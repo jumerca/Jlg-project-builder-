@@ -23,7 +23,7 @@ jobs:
             echo "Checking $f"
             node --check "$f"
           done
-      - name: Check V10.6 freeze fix and PWA
+      - name: Check V10.6.1 Android install and PWA
         run: |
           set -e
           test -s index.html
@@ -31,11 +31,11 @@ jobs:
           test -s sw.js
           test -s project-lab-logo-v10.svg
           test -s v10-4-install.js
-          grep -q '10.6.0' v5-2.js
-          grep -q '10.6.0' v10-fix.js
-          grep -q '10.6.0' v10-4-install.js
-          grep -q '10.6.0' manifest.webmanifest
-          grep -q 'jlg-project-lab-360-v10-6' sw.js
+          grep -q '10.6.1' v5-2.js
+          grep -q '10.6.1' v10-fix.js
+          grep -q '10.6.1' v10-4-install.js
+          grep -q '10.6.1' manifest.webmanifest
+          grep -q 'jlg-project-lab-360-v10-6-1' sw.js
           grep -q 'touchAction=.pan-y.' v5-2.js
           grep -q 'pointerEvents=.none.' v5-2.js
           ! grep -q 'MutationObserver' v10-fix.js
@@ -43,7 +43,8 @@ jobs:
           ! grep -q 'v6-preflight' v5-2.js
           ! grep -q 'v9-preflight' v5-2.js
           ! grep -q 'v10-preflight' v5-2.js
-          grep -q 'Installer l.application' v10-4-install.js
-          grep -q 'intent://' v10-4-install.js
+          grep -q 'Copier le lien pour Chrome' v10-4-install.js
+          grep -q 'navigator.clipboard' v10-4-install.js
+          ! grep -q 'package=com.android.chrome' v10-4-install.js
           grep -q 'Aucun compte, aucun serveur obligatoire' v10-standalone.js
           grep -q 'AES-GCM' v10-standalone.js
