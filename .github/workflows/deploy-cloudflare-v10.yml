@@ -1,0 +1,77 @@
+name: Deploy Project Lab V10 Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cloudflare-worker-v10.js'
+      - 'wrangler.v10.template.jsonc'
+      - '.github/workflows/deploy-cloudflare-v10.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check Cloudflare authorization
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo '::error::Missing repository secret CLOUDFLARE_API_TOKEN'
+            exit 1
+          fi
+      - name: Resolve Cloudflare account and KV namespace
+        id: cf
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT_OVERRIDE: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          AUTH="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+          ACCOUNT_ID="$ACCOUNT_OVERRIDE"
+          if [ -z "$ACCOUNT_ID" ]; then
+            ACCOUNTS=$(curl -fsS -H "$AUTH" https://api.cloudflare.com/client/v4/accounts)
+            ACCOUNT_ID=$(echo "$ACCOUNTS" | jq -r '.result[0].id // empty')
+          fi
+          if [ -z "$ACCOUNT_ID" ]; then echo '::error::Unable to resolve Cloudflare account ID'; exit 1; fi
+          LIST=$(curl -fsS -H "$AUTH" "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/storage/kv/namespaces?per_page=100")
+          KV_ID=$(echo "$LIST" | jq -r '.result[] | select(.title=="jlg-project-lab-360-projects") | .id' | head -n1)
+          if [ -z "$KV_ID" ]; then
+            CREATED=$(curl -fsS -X POST -H "$AUTH" -H 'Content-Type: application/json' "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/storage/kv/namespaces" --data '{"title":"jlg-project-lab-360-projects"}')
+            KV_ID=$(echo "$CREATED" | jq -r '.result.id // empty')
+          fi
+          if [ -z "$KV_ID" ]; then echo '::error::Unable to create/resolve Workers KV namespace'; exit 1; fi
+          echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+          echo "kv_id=$KV_ID" >> "$GITHUB_OUTPUT"
+      - name: Build Wrangler configuration
+        env:
+          KV_ID: ${{ steps.cf.outputs.kv_id }}
+        run: sed "s/__PROJECTS_KV_ID__/$KV_ID/g" wrangler.v10.template.jsonc > wrangler.v10.jsonc
+      - name: Validate Worker syntax
+        run: node --check cloudflare-worker-v10.js
+      - name: Deploy Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+        run: npx --yes wrangler@4 deploy --config wrangler.v10.jsonc
+      - name: Verify live API
+        run: |
+          set -e
+          URL='https://jlg-project-lab-360-api.jmercadier19.workers.dev/health'
+          for i in 1 2 3 4 5 6 7 8; do
+            if curl -fsS "$URL" | tee /tmp/health.json | jq -e '.ok==true and .sync==true and .ai==true' >/dev/null; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 3
+          done
+          echo '::error::Worker deployed but health check did not become ready'
+          exit 1
