@@ -1,8 +1,8 @@
 {
   "name": "JLG Project Lab 360",
   "short_name": "Project Lab 360",
-  "description": "Bureau d’études de poche final : cadrage, finances, risques, urbanisme, territoire live, montage, livrables, synchronisation chiffrée et Studio IA.",
-  "start_url": "./?source=pwa&v=10",
+  "description": "Bureau d’études de poche autonome : cadrage, finances, risques, urbanisme, territoire live, montage, livrables, transfert chiffré et briefs IA.",
+  "start_url": "./?source=pwa&v=10.1.0",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
