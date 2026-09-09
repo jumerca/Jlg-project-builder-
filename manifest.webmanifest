@@ -1,14 +1,15 @@
 {
-  "name": "JLG Project Builder",
-  "short_name": "JLG Project",
-  "description": "Chef de projet créatif et numérique.",
-  "start_url": "./",
-  "scope": "./",
-  "display": "standalone",
-  "background_color": "#f4f1eb",
-  "theme_color": "#0d1b2a",
-  "icons": [
-    {"src":"icon-192.png","sizes":"192x192","type":"image/png"},
-    {"src":"icon-512.png","sizes":"512x512","type":"image/png"}
+  "name":"JLG Project Lab 360 — V4 Online",
+  "short_name":"Project 360",
+  "description":"Bureau d'études de poche pour cadrer, chiffrer, challenger et piloter un projet de A à Z.",
+  "start_url":"./",
+  "scope":"./",
+  "display":"standalone",
+  "orientation":"portrait-primary",
+  "background_color":"#07111f",
+  "theme_color":"#0d1726",
+  "icons":[
+    {"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
   ]
 }
