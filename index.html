@@ -1,1 +1,94 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0d1b2a"><title>JLG Project Builder</title><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><link rel="stylesheet" href="styles.css"></head><body><div id="app" class="app"></div><div id="modal-root"></div><div id="toast" class="toast"></div><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#0d1726" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon-192.png" type="image/png" />
+<title>JLG Project Lab 360 — V4 Online</title>
+<link rel="stylesheet" href="v4.css">
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand"><h1>JLG Project Lab 360</h1><small>V4 Online · bureau d’études de poche</small></div>
+    <div class="badge" id="globalVerdict">À cadrer</div>
+  </div>
+  <nav class="tabs no-print" id="tabs">
+    <button class="tab active" data-page="project">Projet</button><button class="tab" data-page="analysis">Analyse 360</button><button class="tab" data-page="questions">Questions</button><button class="tab" data-page="control">Tour de contrôle</button><button class="tab" data-page="finance">Finances</button><button class="tab" data-page="risks">Risques</button><button class="tab" data-page="pilot">Pilotage</button><button class="tab" data-page="visuals">Plans & visuels</button><button class="tab" data-page="dossier">Dossier</button><button class="tab" data-page="ai">IA & preuves</button>
+  </nav>
+
+  <section id="project" class="page active">
+    <div class="hero"><h2>Une idée, un lieu, un objectif.<br>Le reste devient un plan.</h2><p>Décris ton projet. L’application challenge l’idée, chiffre le modèle, identifie les autorisations, les risques, les preuves manquantes et construit un plan d’action de A à Z.</p></div>
+    <div class="section-title"><h2>Cadrage du projet</h2><p>Les champs peuvent être incomplets : l’outil te dira ce qu’il manque.</p></div>
+    <div class="card grid g2">
+      <label>Nom du projet<input id="name" class="field" placeholder="Ex. Guinguette du lac" /></label>
+      <label>Mode<select id="mode" class="field"><option value="personal">Personnel</option><option value="business" selected>Entrepreneurial</option><option value="organization">Organisation</option><option value="public">Public / territoire</option></select></label>
+      <label>Famille<select id="type" class="field"><option value="commerce">Commerce</option><option value="food">Restauration / bar</option><option value="event">Événementiel</option><option value="tourism">Tourisme / loisirs</option><option value="realestate">Immobilier / aménagement</option><option value="digital">Application / digital</option><option value="services">Services</option><option value="sport">Sport</option><option value="association">Association</option><option value="free">Projet libre</option></select></label>
+      <label>Type de site<select id="site" class="field"><option value="unknown">À définir</option><option value="hotel">Hôtel</option><option value="camping">Camping</option><option value="shop">Local commercial</option><option value="square">Place publique</option><option value="river">Bord de rivière</option><option value="lake">Bord de lac</option><option value="castle">Château / patrimoine</option><option value="land">Terrain</option><option value="private">Site privé</option><option value="publicsite">Site public</option><option value="home">Domicile</option><option value="digital">Site digital</option><option value="other">Autre</option></select></label>
+      <label>Statut du lieu<select id="ownership" class="field"><option value="unknown">Non défini</option><option value="owned">Propriétaire</option><option value="rent">Location / bail</option><option value="agreement">Convention / mise à disposition</option><option value="public">Domaine public / autorisation</option></select></label>
+      <label>Ville / territoire<input id="location" class="field" placeholder="Ex. Uzerche, Corrèze" /></label>
+      <label>Budget plafond (€)<input id="budget" type="number" class="field" min="0" step="100" /></label>
+      <label>Date cible<input id="deadline" type="date" class="field" /></label>
+      <label>Public cible<input id="target" class="field" placeholder="Familles, touristes, entreprises..." /></label>
+      <label>Objectif principal<input id="goal" class="field" placeholder="Rentabilité, service, valorisation du lieu..." /></label>
+      <label style="grid-column:1/-1">Idée détaillée<textarea id="idea" class="field" placeholder="Explique le concept, ce que tu veux proposer, quand, à qui, comment, avec quelles contraintes connues..."></textarea></label>
+    </div>
+    <div class="row no-print" style="margin-top:14px"><button class="btn primary" id="analyzeBtn">Construire le dossier 360°</button><button class="btn" id="testBtn">Charger un projet test</button><button class="btn ghost" id="saveBtn">Sauvegarder</button><button class="btn ghost" id="newBtn">Nouveau</button><button class="btn ghost" id="exportBtn">Export JSON</button><button class="btn ghost" id="importBtn">Import JSON</button><input id="importFile" type="file" accept="application/json" class="hidden" /></div>
+    <div class="section-title"><h2>Mes projets</h2><p>Sauvegarde locale sur cet appareil</p></div><div id="savedProjects" class="grid g3"></div>
+  </section>
+
+  <section id="analysis" class="page">
+    <div class="section-title"><h2>Analyse 360°</h2><p id="analysisSub">Construis d’abord l’analyse.</p></div>
+    <div id="scoreGrid" class="grid g4"></div>
+    <div class="section-title"><h2>Lecture stratégique</h2></div><div id="analysisGrid" class="grid g2"></div>
+  </section>
+
+  <section id="questions" class="page">
+    <div class="section-title"><h2>Questionnaire adaptatif</h2><p>Les questions changent selon le projet et le site.</p></div><div id="questionProgress" class="card"></div><div id="questionList" class="grid g2" style="margin-top:14px"></div>
+  </section>
+
+  <section id="control" class="page">
+    <div class="section-title"><h2>Tour de contrôle</h2><p>25 vérifications minimum avant de considérer le projet solide.</p></div>
+    <div class="grid g3"><div class="kpi"><span>Préparation lancement</span><strong id="readyScore">0/100</strong><div class="scorebar"><i id="readyBar" style="width:0"></i></div></div><div class="kpi"><span>Bloquants</span><strong id="blockCount">0</strong></div><div class="kpi"><span>Alertes</span><strong id="alertCount">0</strong></div></div>
+    <div id="controlList" class="grid" style="margin-top:14px"></div>
+  </section>
+
+  <section id="finance" class="page">
+    <div class="section-title"><h2>Finances & résistance du modèle</h2><p>Hypothèses modifiables, saisonnalité et stress test.</p></div>
+    <div class="card grid g3">
+      <label>Prix / panier moyen (€)<input id="avgPrice" type="number" class="field" value="18" /></label><label>Volume / mois<input id="qty" type="number" class="field" value="800" /></label><label>Marge brute (%)<input id="margin" type="number" class="field" value="68" /></label>
+      <label>Revenus annexes / mois (€)<input id="extraRevenue" type="number" class="field" value="0" /></label><label>Coûts variables supplémentaires / mois (€)<input id="variableExtra" type="number" class="field" value="0" /></label><label>Mois actifs / an<input id="activeMonths" type="number" min="1" max="12" class="field" value="12" /></label>
+      <label>Loyer / convention / mois (€)<input id="rent" type="number" class="field" value="0" /></label><label>Personnel / mois (€)<input id="staff" type="number" class="field" value="0" /></label><label>Marketing / mois (€)<input id="marketing" type="number" class="field" value="0" /></label>
+      <label>Énergie / logiciels / mois (€)<input id="utilities" type="number" class="field" value="0" /></label><label>Dette / mensualités (€)<input id="debt" type="number" class="field" value="0" /></label><label>Autres charges / mois (€)<input id="otherOpex" type="number" class="field" value="0" /></label>
+      <label>CAPEX travaux (€)<input id="capexWorks" type="number" class="field" value="0" /></label><label>CAPEX matériel/mobilier (€)<input id="capexEquip" type="number" class="field" value="0" /></label><label>CAPEX études/stock/lancement (€)<input id="capexOther" type="number" class="field" value="0" /></label>
+      <label>Apport (€)<input id="equity" type="number" class="field" value="0" /></label><label>Prêt (€)<input id="loan" type="number" class="field" value="0" /></label><label>Subventions / partenaires (€)<input id="grants" type="number" class="field" value="0" /></label>
+    </div>
+    <div id="financeKpis" class="grid g4" style="margin-top:14px"></div>
+    <div class="section-title"><h2>Scénarios</h2></div><div id="scenarioTable" class="table-wrap"></div>
+    <div class="section-title"><h2>Stress test 2 000 simulations</h2><button class="btn small" id="stressBtn">Relancer</button></div><div id="stressGrid" class="grid g4"></div>
+    <div class="section-title"><h2>Trésorerie sur 12 mois</h2></div><div id="cashTable" class="table-wrap"></div>
+  </section>
+
+  <section id="risks" class="page"><div class="section-title"><h2>Cartographie des risques</h2><p>Probabilité × gravité × maîtrise.</p></div><div class="card" id="riskList"></div></section>
+
+  <section id="pilot" class="page">
+    <div class="section-title"><h2>Pilotage & portes de décision</h2><p>G0 → G5</p></div><div id="gateList" class="grid g2"></div>
+    <div class="section-title"><h2>Planning de montage</h2></div><div id="gantt" class="card gantt"></div>
+    <div class="section-title"><h2>RACI</h2></div><div id="raci" class="table-wrap"></div>
+  </section>
+
+  <section id="visuals" class="page"><div class="section-title"><h2>Plans, surfaces & visuels</h2><p>Schémas conceptuels à valider techniquement.</p></div><div class="grid g2"><div class="card"><h3>Programme de surfaces</h3><div id="surfaceTable"></div></div><div class="card"><h3>Implantation fonctionnelle</h3><div class="canvas" id="layoutSvg"></div></div></div><div class="section-title"><h2>Briefs visuels</h2></div><div id="visualBriefs" class="grid g3"></div><div class="section-title"><h2>Pitch 60 secondes</h2><button class="btn small" id="pitchBtn">Lancer le pitch</button></div><div id="pitch" class="hero"><h2>Projet non analysé</h2><p>Le pitch se construira à partir du dossier.</p></div></section>
+
+  <section id="dossier" class="page"><div class="section-title no-print"><h2>Dossier final</h2><div class="row"><select id="dossierType" class="field" style="width:auto"><option value="master">Dossier maître 360°</option><option value="bank">Banque / financeur</option><option value="public">Mairie / propriétaire</option><option value="investor">Investisseur</option><option value="partner">Partenaire</option><option value="decision">Note GO / NO-GO</option></select><button class="btn" onclick="window.print()">Imprimer / PDF</button></div></div><div class="dossier" id="dossierContent"><h1>Construis d’abord le dossier 360°</h1></div></section>
+
+  <section id="ai" class="page"><div class="section-title"><h2>IA, preuves & fiabilité</h2><p>Ne mélange jamais une hypothèse et une donnée vérifiée.</p></div><div class="grid g2"><div class="card"><h3>Registre de preuves</h3><div class="grid g2"><label>Intitulé<input id="evidenceLabel" class="field" placeholder="Ex. accord mairie" /></label><label>Source / détail<input id="evidenceDetail" class="field" placeholder="Mail, devis, lien, appel..." /></label></div><div class="row" style="margin-top:10px"><button class="btn" id="addEvidenceBtn">Ajouter la preuve</button><span class="pill" id="confidencePill">Confiance 0/100</span></div><div id="evidenceList" style="margin-top:12px"></div></div><div class="card"><h3>Brief mission IA</h3><label>Passerelle IA optionnelle<input id="gateway" class="field" placeholder="https://... (aucune clé API ici)" /></label><textarea id="aiBrief" class="field" style="min-height:260px;margin-top:10px" readonly></textarea><div class="row" style="margin-top:10px"><button class="btn" id="briefBtn">Construire le brief</button><button class="btn ghost" id="copyBriefBtn">Copier</button></div></div></div><div class="section-title"><h2>Auto-test application</h2><button class="btn primary" id="autoTestBtn">Lancer 10 tests</button></div><div id="testResults" class="grid"></div></section>
+</div>
+<div id="toast" class="toast"></div>
+<script src="v4-1.js"></script>
+<script src="v4-2.js"></script>
+<script src="v4-3.js"></script>
+<script src="v4-4.js"></script>
+<script src="v4-5.js"></script>
+</body></html>
