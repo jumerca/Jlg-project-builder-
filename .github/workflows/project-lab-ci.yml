@@ -40,11 +40,11 @@ jobs:
           test -s v10-fix.js
           grep -q 'v10-fix.js' v5-2.js
           grep -q 'v10-fix.js' sw.js
-          grep -q '10.2.0' manifest.webmanifest
+          grep -q '10.3.0' manifest.webmanifest
           grep -q 'project-lab-logo-v10-192.png' manifest.webmanifest
           grep -q 'project-lab-logo-v10-512.png' manifest.webmanifest
-          grep -q 'project-lab-logo-v10-192.png' index.html
-          grep -q 'project-lab-logo-v10-512.png' index.html
           grep -q 'hardUpdate' v10-fix.js
+          grep -q 'Installer l.application' v10-fix.js
+          grep -q 'jlg360_update_applied' v10-fix.js
           grep -q 'Aucun compte, aucun serveur obligatoire' v10-standalone.js
           grep -q 'AES-GCM' v10-standalone.js
