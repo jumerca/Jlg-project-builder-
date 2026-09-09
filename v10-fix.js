@@ -1,108 +1,20 @@
-/* JLG Project Lab 360 — V10.2 display + update repair */
+/* JLG Project Lab 360 — V10.3 install + update repair */
 (()=>{
-  const VERSION='10.2.0';
-  const LOGO192='./project-lab-logo-v10-192.png?v='+VERSION;
-  const LOGO512='./project-lab-logo-v10-512.png?v='+VERSION;
-  let refreshing=false;
-
-  function notify(msg){try{if(typeof window.toast==='function')window.toast(msg);else console.info(msg)}catch{}}
-
-  function setImage(img,src){
-    if(!img)return;
-    img.removeAttribute('srcset');
-    img.src=src;
-    img.style.objectFit='contain';
-    img.style.objectPosition='center';
-    img.style.display='block';
-  }
-
-  function repairBranding(){
-    document.title='JLG Project Lab 360 — V10.2 Autonome';
-    document.documentElement.dataset.projectLabVersion=VERSION;
-    document.querySelectorAll('.brand-logo').forEach(i=>setImage(i,LOGO192));
-    document.querySelectorAll('.hero-logo,.splash-card img,.logo-stage-media img,.brand-ribbon img,.dossier-brand img').forEach(i=>setImage(i,LOGO512));
-
-    const vp=document.querySelector('.version-pill');
-    if(vp)vp.textContent='V10.2';
-    const small=document.querySelector('.brand small');
-    if(small)small.textContent='V10.2 Autonome · sans compte, sans backend';
-    const stage=document.querySelector('.logo-stage .eyebrow');
-    if(stage)stage.textContent='JLG PROJECT LAB 360 · AUTONOME';
-    const heroTest=document.querySelector('#heroTestBtn');
-    if(heroTest)heroTest.textContent='Charger le projet test';
-    document.querySelectorAll('.dossier-brand span').forEach(s=>s.textContent='Dossier d’ingénierie · V10.2');
-
-    let favicon=document.querySelector('link[rel="icon"]');
-    if(!favicon){favicon=document.createElement('link');favicon.rel='icon';document.head.appendChild(favicon)}
-    favicon.type='image/png';favicon.href=LOGO192;
-    let apple=document.querySelector('link[rel="apple-touch-icon"]');
-    if(!apple){apple=document.createElement('link');apple.rel='apple-touch-icon';document.head.appendChild(apple)}
-    apple.href=LOGO192;
-    const manifest=document.querySelector('link[rel="manifest"]');
-    if(manifest)manifest.href='./manifest.webmanifest?v='+VERSION;
-  }
-
-  async function hardUpdate(btn){
-    if(refreshing)return;
-    refreshing=true;
-    if(btn){btn.disabled=true;btn.textContent='Mise à jour…'}
-    if(!navigator.onLine){refreshing=false;if(btn){btn.disabled=false;btn.textContent='Actualiser'};notify('Connexion nécessaire pour actualiser');return}
-    try{
-      if('serviceWorker' in navigator){
-        const regs=await navigator.serviceWorker.getRegistrations();
-        for(const reg of regs){
-          try{await reg.update()}catch{}
-          try{await reg.unregister()}catch{}
-        }
-      }
-      if('caches' in window){
-        const keys=await caches.keys();
-        await Promise.all(keys.filter(k=>/jlg-project-lab-360/i.test(k)).map(k=>caches.delete(k)));
-      }
-    }catch(e){console.warn('JLG hard update',e)}
-    const u=new URL(location.href);
-    u.searchParams.set('v',VERSION);
-    u.searchParams.set('_maj',Date.now().toString());
-    location.replace(u.toString());
-  }
-
-  function wireUpdateBanner(){
-    const banner=document.querySelector('#updateBanner');
-    if(banner){
-      banner.querySelectorAll('button').forEach(btn=>{
-        if(/actualiser|mettre à jour|mise à jour/i.test(btn.textContent||'')){
-          btn.onclick=e=>{e.preventDefault();hardUpdate(btn)};
-        }
-      });
-      if(new URL(location.href).searchParams.get('v')===VERSION){
-        setTimeout(()=>banner.classList.add('hidden'),900);
-      }
-    }
-    document.addEventListener('click',e=>{
-      const btn=e.target.closest?.('button,a');
-      if(!btn)return;
-      const label=(btn.textContent||'').trim();
-      const inBanner=btn.closest?.('#updateBanner')||/nouvelle version/i.test(btn.parentElement?.parentElement?.textContent||'');
-      if(inBanner&&/actualiser|mettre à jour/i.test(label)){
-        e.preventDefault();e.stopImmediatePropagation();hardUpdate(btn);
-      }
-    },true);
-  }
-
-  async function refreshRegistration(){
-    if(!('serviceWorker' in navigator))return;
-    try{
-      const reg=await navigator.serviceWorker.register('./sw.js?v='+VERSION);
-      await reg.update();
-    }catch(e){console.warn('JLG SW update',e)}
-  }
-
-  function init(){
-    repairBranding();
-    wireUpdateBanner();
-    refreshRegistration();
-    setTimeout(repairBranding,250);
-    setTimeout(repairBranding,900);
-  }
-  init();
+ const VERSION='10.3.0',MARK='jlg360_update_applied';
+ let deferred=window.__jlgInstallPrompt||null,refreshing=false;
+ const $=s=>document.querySelector(s);
+ const notify=m=>{try{typeof window.toast==='function'?window.toast(m):console.info(m)}catch{}};
+ const standalone=()=>matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true||window.__jlgInstalled===true;
+ function branding(){document.title='JLG Project Lab 360 — V10.3 Autonome';document.documentElement.dataset.projectLabVersion=VERSION;const v=$('.version-pill');if(v)v.textContent='V10.3';const s=$('.brand small');if(s)s.textContent='V10.3 Autonome · sans compte, sans backend';const e=$('.logo-stage .eyebrow');if(e)e.textContent='JLG PROJECT LAB 360 · V10.3';document.querySelectorAll('.brand-logo').forEach(i=>i.src='./project-lab-logo-v10-192.png?v='+VERSION);document.querySelectorAll('.hero-logo,.splash-card img,.logo-stage-media img,.brand-ribbon img,.dossier-brand img').forEach(i=>i.src='./project-lab-logo-v10-512.png?v='+VERSION);}
+ function hideUpdate(remove=false){const b=$('#updateBanner');if(!b)return;b.classList.add('hidden');b.style.display='none';b.setAttribute('aria-hidden','true');if(remove)setTimeout(()=>b.remove(),20)}
+ async function hardUpdate(btn){if(refreshing)return;refreshing=true;localStorage.setItem(MARK,VERSION);hideUpdate(true);if(btn){btn.disabled=true;btn.textContent='Mise à jour…'}if(!navigator.onLine){refreshing=false;localStorage.removeItem(MARK);notify('Connexion nécessaire pour actualiser');return}try{if('serviceWorker'in navigator){for(const r of await navigator.serviceWorker.getRegistrations())try{await r.update()}catch{}}if('caches'in window){const ks=await caches.keys();await Promise.all(ks.filter(k=>/jlg-project-lab-360/i.test(k)).map(k=>caches.delete(k)))}}catch(e){console.warn(e)}const u=new URL(location.href);u.searchParams.set('v',VERSION);u.searchParams.set('_maj',Date.now());location.replace(u)}
+ function wireUpdate(){const wire=()=>{const b=$('#updateBanner');if(!b)return;if(localStorage.getItem(MARK)===VERSION){hideUpdate(true);return}b.querySelectorAll('button').forEach(x=>{if(/actualiser|mettre à jour/i.test(x.textContent||''))x.onclick=e=>{e.preventDefault();hardUpdate(x)}})};wire();new MutationObserver(wire).observe(document.body,{childList:true,subtree:true});document.addEventListener('click',e=>{const x=e.target.closest?.('#updateBanner button,#updateBanner a');if(x&&/actualiser|mettre à jour/i.test(x.textContent||'')){e.preventDefault();e.stopImmediatePropagation();hardUpdate(x)}},true)}
+ function css(){if($('#jlgInstallStyle'))return;const s=document.createElement('style');s.id='jlgInstallStyle';s.textContent='.jlg-install-strip{margin:0 0 16px;padding:12px 14px;border:1px solid rgba(67,181,216,.38);border-radius:16px;background:linear-gradient(135deg,rgba(13,146,158,.16),rgba(29,132,205,.14));display:flex;align-items:center;justify-content:space-between;gap:12px}.jlg-install-strip strong{display:block}.jlg-install-strip span{display:block;color:var(--muted,#9fb0c1);font-size:12px;margin-top:3px}.jlg-install-modal{position:fixed;inset:0;z-index:99999;background:rgba(2,8,15,.84);display:grid;place-items:center;padding:20px}.jlg-install-dialog{width:min(440px,100%);background:#0a1724;border:1px solid #34506a;border-radius:20px;padding:20px;box-shadow:0 28px 80px rgba(0,0,0,.55)}.jlg-install-dialog p{color:#b7c5d2;line-height:1.5}.jlg-install-dialog ol{line-height:1.7}.jlg-install-actions{display:flex;justify-content:flex-end;margin-top:16px}@media(max-width:620px){.jlg-install-strip{flex-direction:column;align-items:stretch}.jlg-install-strip .btn{width:100%;font-size:16px;padding:13px}}@media print{.jlg-install-strip,.jlg-install-modal{display:none!important}}';document.head.appendChild(s)}
+ function instructions(){const ios=/iPhone|iPad|iPod/i.test(navigator.userAgent),and=/Android/i.test(navigator.userAgent),m=document.createElement('div');m.className='jlg-install-modal';const steps=ios?'<ol><li>Ouvre la page dans Safari.</li><li>Appuie sur <b>Partager</b>.</li><li>Choisis <b>Sur l’écran d’accueil</b>.</li><li>Valide avec <b>Ajouter</b>.</li></ol>':and?'<ol><li>Ouvre la page dans Chrome ou Samsung Internet.</li><li>Appuie sur le menu <b>⋮</b>.</li><li>Choisis <b>Installer l’application</b> ou <b>Ajouter à l’écran d’accueil</b>.</li></ol>':'<p>Dans le menu du navigateur, choisis <b>Installer l’application</b> ou <b>Ajouter à l’écran d’accueil</b>.</p>';m.innerHTML='<div class="jlg-install-dialog"><h3>Installer JLG Project Lab 360</h3><p>Le navigateur ne permet pas d’ouvrir automatiquement la fenêtre d’installation ici.</p>'+steps+'<div class="jlg-install-actions"><button class="btn primary">Compris</button></div></div>';document.body.appendChild(m);m.querySelector('button').onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()}}
+ function hideInstall(){document.querySelectorAll('#jlgInstallStrip,#installAppBtn').forEach(x=>x.remove())}
+ async function install(){if(standalone()){hideInstall();notify('Application déjà installée');return}const p=deferred||window.__jlgInstallPrompt;if(p){try{p.prompt();const c=await p.userChoice;deferred=null;window.__jlgInstallPrompt=null;if(c?.outcome==='accepted'){hideInstall();notify('Installation lancée')}else notify('Installation annulée');return}catch(e){console.warn(e)}}instructions()}
+ function installUi(){if(standalone()){hideInstall();return}css();document.querySelectorAll('#installAppBtn').forEach(x=>x.remove());let strip=$('#jlgInstallStrip');if(!strip){strip=document.createElement('div');strip.id='jlgInstallStrip';strip.className='jlg-install-strip no-print';strip.innerHTML='<div><strong>Installer JLG Project Lab 360</strong><span>Ajoute l’application directement sur ton téléphone ou ta tablette.</span></div><button class="btn primary" id="jlgInstallBtn" type="button">Installer l’application</button>';const p=$('#project');p?p.insertAdjacentElement('afterbegin',strip):$('.app')?.prepend(strip)}const b=$('#jlgInstallBtn');if(b)b.onclick=install}
+ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;window.__jlgInstallPrompt=e;installUi()});window.addEventListener('jlginstallready',()=>{deferred=window.__jlgInstallPrompt||deferred;installUi()});window.addEventListener('appinstalled',()=>{window.__jlgInstalled=true;hideInstall();notify('Application installée')});
+ async function sw(){if(!('serviceWorker'in navigator))return;try{const r=await navigator.serviceWorker.register('./sw.js?v='+VERSION);await r.update()}catch(e){console.warn(e)}}
+ function init(){branding();wireUpdate();installUi();sw();setTimeout(()=>{branding();installUi()},300);setTimeout(()=>{branding();installUi();if(localStorage.getItem(MARK)===VERSION)hideUpdate(true)},1000)}init();
 })();
