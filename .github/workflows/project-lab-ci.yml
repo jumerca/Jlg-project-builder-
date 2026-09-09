@@ -23,29 +23,24 @@ jobs:
             echo "Checking $f"
             node --check "$f"
           done
-      - name: Check critical standalone PWA files
+      - name: Check V10.5 shell and PWA
         run: |
           set -e
           test -s index.html
           test -s manifest.webmanifest
           test -s sw.js
           test -s project-lab-logo-v10.svg
-          test -s project-lab-logo-v10-192.png
-          test -s project-lab-logo-v10-512.png
-          test -s v10.css
-          test -s v10-1.js
-          test -s v10-2.js
-          test -s v10-preflight.js
-          test -s v10-standalone.js
-          test -s v10-fix.js
           test -s v10-4-install.js
-          grep -q 'v10-4-install.js' v10-preflight.js
-          grep -q 'v10-4-install.js' sw.js
-          grep -q '10.4.0' manifest.webmanifest
-          grep -q '"id": "/Jlg-project-builder-/"' manifest.webmanifest
-          grep -q 'project-lab-logo-v10-192.png' manifest.webmanifest
-          grep -q 'project-lab-logo-v10-512.png' manifest.webmanifest
+          grep -q '10.5.0' index.html
+          grep -q 'jlgInstallHeaderBtn' index.html
+          grep -q 'project-lab-logo-v10.svg' index.html
+          grep -q 'v5-2.js?v=10.5.0' index.html
+          grep -q 'v10-4-install.js' v5-2.js
+          grep -q '10.5.0' manifest.webmanifest
+          grep -q 'jlg-project-lab-360-v10-5' sw.js
           grep -q 'Installer l.application' v10-4-install.js
           grep -q 'intent://' v10-4-install.js
+          ! grep -q 'project-lab-360-v6-192.png' v6-preflight.js
+          ! grep -q 'project-lab-360-v6-192.png' v9-preflight.js
           grep -q 'Aucun compte, aucun serveur obligatoire' v10-standalone.js
           grep -q 'AES-GCM' v10-standalone.js
