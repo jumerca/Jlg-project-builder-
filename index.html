@@ -3,25 +3,65 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<meta name="theme-color" content="#0d1726" />
+<meta name="theme-color" content="#071321" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Project Lab 360" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="icon" href="icon-192.png" type="image/png" />
-<title>JLG Project Lab 360 — V4 Online</title>
-<link rel="stylesheet" href="v4.css">
+<link rel="apple-touch-icon" href="icon-192.png" />
+<title>JLG Project Lab 360 — V5</title>
+<link rel="stylesheet" href="v5.css?v=5.0.0">
 </head>
 <body>
-<div class="app">
-  <div class="top">
-    <div class="brand"><h1>JLG Project Lab 360</h1><small>V4 Online · bureau d’études de poche</small></div>
-    <div class="badge" id="globalVerdict">À cadrer</div>
+<div id="splash" class="splash" aria-hidden="true">
+  <div class="splash-card">
+    <img src="icon-512.png" alt="" />
+    <div class="splash-copy"><b>JLG Project Lab 360</b><span>De l’idée au GO, sans angle mort.</span></div>
   </div>
+</div>
+
+<div class="app">
+  <header class="top">
+    <button class="brand brand-btn" id="homeBrand" aria-label="Retour au projet">
+      <img class="brand-logo" src="icon-192.png" alt="Logo JLG Project Lab 360" />
+      <span><strong>JLG Project Lab 360</strong><small>V5 · bureau d’études de poche</small></span>
+    </button>
+    <div class="top-actions">
+      <span class="version-pill">V5</span>
+      <div class="badge" id="globalVerdict">À cadrer</div>
+    </div>
+  </header>
+
   <nav class="tabs no-print" id="tabs">
-    <button class="tab active" data-page="project">Projet</button><button class="tab" data-page="analysis">Analyse 360</button><button class="tab" data-page="questions">Questions</button><button class="tab" data-page="control">Tour de contrôle</button><button class="tab" data-page="finance">Finances</button><button class="tab" data-page="risks">Risques</button><button class="tab" data-page="pilot">Pilotage</button><button class="tab" data-page="visuals">Plans & visuels</button><button class="tab" data-page="dossier">Dossier</button><button class="tab" data-page="ai">IA & preuves</button>
+    <button class="tab active" data-page="project">Projet</button>
+    <button class="tab" data-page="dashboard">Cockpit</button>
+    <button class="tab" data-page="analysis">Analyse 360</button>
+    <button class="tab" data-page="questions">Questions</button>
+    <button class="tab" data-page="control">Tour de contrôle</button>
+    <button class="tab" data-page="finance">Finances</button>
+    <button class="tab" data-page="risks">Risques</button>
+    <button class="tab" data-page="pilot">Pilotage</button>
+    <button class="tab" data-page="visuals">Plan interactif</button>
+    <button class="tab" data-page="dossier">Dossier</button>
+    <button class="tab" data-page="ai">IA & preuves</button>
   </nav>
 
   <section id="project" class="page active">
-    <div class="hero"><h2>Une idée, un lieu, un objectif.<br>Le reste devient un plan.</h2><p>Décris ton projet. L’application challenge l’idée, chiffre le modèle, identifie les autorisations, les risques, les preuves manquantes et construit un plan d’action de A à Z.</p></div>
-    <div class="section-title"><h2>Cadrage du projet</h2><p>Les champs peuvent être incomplets : l’outil te dira ce qu’il manque.</p></div>
+    <div class="hero hero-brand">
+      <div class="hero-copy">
+        <span class="eyebrow">INGÉNIERIE DE PROJET 360°</span>
+        <h2>Une idée, un lieu, un objectif.<br>Le reste devient un plan de décision.</h2>
+        <p>Décris ton projet. L’application challenge l’idée, chiffre le modèle, identifie les autorisations, les risques, les preuves manquantes et construit un plan d’action de A à Z.</p>
+        <div class="hero-actions no-print">
+          <button class="btn primary" id="heroAnalyzeBtn">Construire mon dossier 360°</button>
+          <button class="btn ghost" id="heroTestBtn">Charger le projet test V5</button>
+        </div>
+      </div>
+      <img class="hero-logo" src="icon-512.png" alt="JLG Project Lab 360" />
+    </div>
+
+    <div class="section-title"><div><span class="section-kicker">01 · CADRAGE</span><h2>Cadrage du projet</h2></div><p>Tu peux démarrer incomplet : la tour de contrôle dira ce qui manque.</p></div>
     <div class="card grid g2">
       <label>Nom du projet<input id="name" class="field" placeholder="Ex. Guinguette du lac" /></label>
       <label>Mode<select id="mode" class="field"><option value="personal">Personnel</option><option value="business" selected>Entrepreneurial</option><option value="organization">Organisation</option><option value="public">Public / territoire</option></select></label>
@@ -33,37 +73,79 @@
       <label>Date cible<input id="deadline" type="date" class="field" /></label>
       <label>Public cible<input id="target" class="field" placeholder="Familles, touristes, entreprises..." /></label>
       <label>Objectif principal<input id="goal" class="field" placeholder="Rentabilité, service, valorisation du lieu..." /></label>
-      <label style="grid-column:1/-1">Idée détaillée<textarea id="idea" class="field" placeholder="Explique le concept, ce que tu veux proposer, quand, à qui, comment, avec quelles contraintes connues..."></textarea></label>
+      <label style="grid-column:1/-1">Idée détaillée<textarea id="idea" class="field" placeholder="Explique le concept, l’expérience, la période, la capacité, ce que tu veux vendre ou proposer, les contraintes connues..."></textarea></label>
     </div>
-    <div class="row no-print" style="margin-top:14px"><button class="btn primary" id="analyzeBtn">Construire le dossier 360°</button><button class="btn" id="testBtn">Charger un projet test</button><button class="btn ghost" id="saveBtn">Sauvegarder</button><button class="btn ghost" id="newBtn">Nouveau</button><button class="btn ghost" id="exportBtn">Export JSON</button><button class="btn ghost" id="importBtn">Import JSON</button><input id="importFile" type="file" accept="application/json" class="hidden" /></div>
-    <div class="section-title"><h2>Mes projets</h2><p>Sauvegarde locale sur cet appareil</p></div><div id="savedProjects" class="grid g3"></div>
+
+    <div class="row no-print action-bar">
+      <button class="btn primary" id="analyzeBtn">Construire le dossier 360°</button>
+      <button class="btn" id="testBtn">Projet test</button>
+      <button class="btn ghost" id="saveBtn">Sauvegarder</button>
+      <button class="btn ghost" id="newBtn">Nouveau</button>
+      <button class="btn ghost" id="exportBtn">Export JSON</button>
+      <button class="btn ghost" id="importBtn">Import JSON</button>
+      <input id="importFile" type="file" accept="application/json" class="hidden" />
+    </div>
+
+    <div class="section-title"><div><span class="section-kicker">DOSSIERS</span><h2>Mes projets</h2></div><p>Sauvegarde locale sur cet appareil</p></div>
+    <div id="savedProjects" class="grid g3"></div>
+  </section>
+
+  <section id="dashboard" class="page">
+    <div class="section-title"><div><span class="section-kicker">COCKPIT</span><h2>Tour d’horizon décisionnelle</h2></div><p>Ce qu’il faut savoir et faire maintenant.</p></div>
+    <div id="cockpitHero" class="cockpit-hero"></div>
+    <div id="cockpitKpis" class="grid g4" style="margin-top:14px"></div>
+    <div class="grid g2 dashboard-grid" style="margin-top:14px">
+      <div class="card"><div class="card-head"><h3>Prochaines actions critiques</h3><span class="pill">priorisées</span></div><div id="nextActions"></div></div>
+      <div class="card"><div class="card-head"><h3>Test express du modèle</h3><span class="pill">sans modifier tes données</span></div><div id="quickSim"></div></div>
+      <div class="card"><div class="card-head"><h3>Portes de décision</h3><span class="pill">G0 → G5</span></div><div id="miniGates"></div></div>
+      <div class="card"><div class="card-head"><h3>Risques dominants</h3><span class="pill">top 4</span></div><div id="miniRisks"></div></div>
+    </div>
   </section>
 
   <section id="analysis" class="page">
-    <div class="section-title"><h2>Analyse 360°</h2><p id="analysisSub">Construis d’abord l’analyse.</p></div>
+    <div class="section-title"><div><span class="section-kicker">02 · ANALYSE</span><h2>Analyse 360°</h2></div><p id="analysisSub">Construis d’abord l’analyse.</p></div>
     <div id="scoreGrid" class="grid g4"></div>
-    <div class="section-title"><h2>Lecture stratégique</h2></div><div id="analysisGrid" class="grid g2"></div>
+    <div class="section-title"><h2>Lecture stratégique</h2></div>
+    <div id="analysisGrid" class="grid g2"></div>
   </section>
 
   <section id="questions" class="page">
-    <div class="section-title"><h2>Questionnaire adaptatif</h2><p>Les questions changent selon le projet et le site.</p></div><div id="questionProgress" class="card"></div><div id="questionList" class="grid g2" style="margin-top:14px"></div>
+    <div class="section-title"><div><span class="section-kicker">03 · INFORMATIONS</span><h2>Questionnaire adaptatif</h2></div><p>Les questions changent selon le projet et le site.</p></div>
+    <div id="questionProgress" class="card"></div>
+    <div id="questionList" class="grid g2" style="margin-top:14px"></div>
   </section>
 
   <section id="control" class="page">
-    <div class="section-title"><h2>Tour de contrôle</h2><p>25 vérifications minimum avant de considérer le projet solide.</p></div>
-    <div class="grid g3"><div class="kpi"><span>Préparation lancement</span><strong id="readyScore">0/100</strong><div class="scorebar"><i id="readyBar" style="width:0"></i></div></div><div class="kpi"><span>Bloquants</span><strong id="blockCount">0</strong></div><div class="kpi"><span>Alertes</span><strong id="alertCount">0</strong></div></div>
+    <div class="section-title"><div><span class="section-kicker">04 · QUALITÉ</span><h2>Tour de contrôle</h2></div><p>25 vérifications minimum avant de considérer le projet solide.</p></div>
+    <div class="grid g3">
+      <div class="kpi"><span>Préparation lancement</span><strong id="readyScore">0/100</strong><div class="scorebar"><i id="readyBar" style="width:0"></i></div></div>
+      <div class="kpi"><span>Bloquants</span><strong id="blockCount">0</strong></div>
+      <div class="kpi"><span>Alertes</span><strong id="alertCount">0</strong></div>
+    </div>
     <div id="controlList" class="grid" style="margin-top:14px"></div>
   </section>
 
   <section id="finance" class="page">
-    <div class="section-title"><h2>Finances & résistance du modèle</h2><p>Hypothèses modifiables, saisonnalité et stress test.</p></div>
+    <div class="section-title"><div><span class="section-kicker">05 · ÉCONOMIE</span><h2>Finances & résistance du modèle</h2></div><p>Hypothèses modifiables, saisonnalité et stress-test.</p></div>
     <div class="card grid g3">
-      <label>Prix / panier moyen (€)<input id="avgPrice" type="number" class="field" value="18" /></label><label>Volume / mois<input id="qty" type="number" class="field" value="800" /></label><label>Marge brute (%)<input id="margin" type="number" class="field" value="68" /></label>
-      <label>Revenus annexes / mois (€)<input id="extraRevenue" type="number" class="field" value="0" /></label><label>Coûts variables supplémentaires / mois (€)<input id="variableExtra" type="number" class="field" value="0" /></label><label>Mois actifs / an<input id="activeMonths" type="number" min="1" max="12" class="field" value="12" /></label>
-      <label>Loyer / convention / mois (€)<input id="rent" type="number" class="field" value="0" /></label><label>Personnel / mois (€)<input id="staff" type="number" class="field" value="0" /></label><label>Marketing / mois (€)<input id="marketing" type="number" class="field" value="0" /></label>
-      <label>Énergie / logiciels / mois (€)<input id="utilities" type="number" class="field" value="0" /></label><label>Dette / mensualités (€)<input id="debt" type="number" class="field" value="0" /></label><label>Autres charges / mois (€)<input id="otherOpex" type="number" class="field" value="0" /></label>
-      <label>CAPEX travaux (€)<input id="capexWorks" type="number" class="field" value="0" /></label><label>CAPEX matériel/mobilier (€)<input id="capexEquip" type="number" class="field" value="0" /></label><label>CAPEX études/stock/lancement (€)<input id="capexOther" type="number" class="field" value="0" /></label>
-      <label>Apport (€)<input id="equity" type="number" class="field" value="0" /></label><label>Prêt (€)<input id="loan" type="number" class="field" value="0" /></label><label>Subventions / partenaires (€)<input id="grants" type="number" class="field" value="0" /></label>
+      <label>Prix / panier moyen (€)<input id="avgPrice" type="number" class="field" value="18" /></label>
+      <label>Volume / mois<input id="qty" type="number" class="field" value="800" /></label>
+      <label>Marge brute (%)<input id="margin" type="number" class="field" value="68" /></label>
+      <label>Revenus annexes / mois (€)<input id="extraRevenue" type="number" class="field" value="0" /></label>
+      <label>Coûts variables supplémentaires / mois (€)<input id="variableExtra" type="number" class="field" value="0" /></label>
+      <label>Mois actifs / an<input id="activeMonths" type="number" min="1" max="12" class="field" value="12" /></label>
+      <label>Loyer / convention / mois (€)<input id="rent" type="number" class="field" value="0" /></label>
+      <label>Personnel / mois (€)<input id="staff" type="number" class="field" value="0" /></label>
+      <label>Marketing / mois (€)<input id="marketing" type="number" class="field" value="0" /></label>
+      <label>Énergie / logiciels / mois (€)<input id="utilities" type="number" class="field" value="0" /></label>
+      <label>Dette / mensualités (€)<input id="debt" type="number" class="field" value="0" /></label>
+      <label>Autres charges / mois (€)<input id="otherOpex" type="number" class="field" value="0" /></label>
+      <label>CAPEX travaux (€)<input id="capexWorks" type="number" class="field" value="0" /></label>
+      <label>CAPEX matériel/mobilier (€)<input id="capexEquip" type="number" class="field" value="0" /></label>
+      <label>CAPEX études/stock/lancement (€)<input id="capexOther" type="number" class="field" value="0" /></label>
+      <label>Apport (€)<input id="equity" type="number" class="field" value="0" /></label>
+      <label>Prêt (€)<input id="loan" type="number" class="field" value="0" /></label>
+      <label>Subventions / partenaires (€)<input id="grants" type="number" class="field" value="0" /></label>
     </div>
     <div id="financeKpis" class="grid g4" style="margin-top:14px"></div>
     <div class="section-title"><h2>Scénarios</h2></div><div id="scenarioTable" class="table-wrap"></div>
@@ -71,24 +153,107 @@
     <div class="section-title"><h2>Trésorerie sur 12 mois</h2></div><div id="cashTable" class="table-wrap"></div>
   </section>
 
-  <section id="risks" class="page"><div class="section-title"><h2>Cartographie des risques</h2><p>Probabilité × gravité × maîtrise.</p></div><div class="card" id="riskList"></div></section>
+  <section id="risks" class="page">
+    <div class="section-title"><div><span class="section-kicker">06 · RISQUES</span><h2>Cartographie des risques</h2></div><p>Probabilité × gravité × maîtrise.</p></div>
+    <div class="card" id="riskList"></div>
+  </section>
 
   <section id="pilot" class="page">
-    <div class="section-title"><h2>Pilotage & portes de décision</h2><p>G0 → G5</p></div><div id="gateList" class="grid g2"></div>
+    <div class="section-title"><div><span class="section-kicker">07 · PILOTAGE</span><h2>Portes de décision</h2></div><p>G0 → G5</p></div>
+    <div id="gateList" class="grid g2"></div>
     <div class="section-title"><h2>Planning de montage</h2></div><div id="gantt" class="card gantt"></div>
     <div class="section-title"><h2>RACI</h2></div><div id="raci" class="table-wrap"></div>
   </section>
 
-  <section id="visuals" class="page"><div class="section-title"><h2>Plans, surfaces & visuels</h2><p>Schémas conceptuels à valider techniquement.</p></div><div class="grid g2"><div class="card"><h3>Programme de surfaces</h3><div id="surfaceTable"></div></div><div class="card"><h3>Implantation fonctionnelle</h3><div class="canvas" id="layoutSvg"></div></div></div><div class="section-title"><h2>Briefs visuels</h2></div><div id="visualBriefs" class="grid g3"></div><div class="section-title"><h2>Pitch 60 secondes</h2><button class="btn small" id="pitchBtn">Lancer le pitch</button></div><div id="pitch" class="hero"><h2>Projet non analysé</h2><p>Le pitch se construira à partir du dossier.</p></div></section>
+  <section id="visuals" class="page">
+    <div class="section-title"><div><span class="section-kicker">08 · CONCEPTION</span><h2>Plan interactif</h2></div><p>Clique une zone pour ouvrir sa fiche d’ingénierie.</p></div>
 
-  <section id="dossier" class="page"><div class="section-title no-print"><h2>Dossier final</h2><div class="row"><select id="dossierType" class="field" style="width:auto"><option value="master">Dossier maître 360°</option><option value="bank">Banque / financeur</option><option value="public">Mairie / propriétaire</option><option value="investor">Investisseur</option><option value="partner">Partenaire</option><option value="decision">Note GO / NO-GO</option></select><button class="btn" onclick="window.print()">Imprimer / PDF</button></div></div><div class="dossier" id="dossierContent"><h1>Construis d’abord le dossier 360°</h1></div></section>
+    <div class="plan-toolbar card no-print">
+      <div>
+        <span class="toolbar-label">VARIANTE</span>
+        <div class="segmented" id="layoutVariants">
+          <button class="seg active" data-variant="balanced">Équilibrée</button>
+          <button class="seg" data-variant="compact">Compacte</button>
+          <button class="seg" data-variant="experience">Expérience</button>
+          <button class="seg" data-variant="safety">Sécurité</button>
+          <button class="seg" data-variant="profit">Rentabilité</button>
+        </div>
+      </div>
+      <div>
+        <span class="toolbar-label">COUCHE DE LECTURE</span>
+        <div class="segmented" id="layoutLayers">
+          <button class="seg active" data-layer="function">Fonctions</button>
+          <button class="seg" data-layer="cost">Coûts</button>
+          <button class="seg" data-layer="risk">Risques</button>
+          <button class="seg" data-layer="flow">Flux</button>
+        </div>
+      </div>
+    </div>
 
-  <section id="ai" class="page"><div class="section-title"><h2>IA, preuves & fiabilité</h2><p>Ne mélange jamais une hypothèse et une donnée vérifiée.</p></div><div class="grid g2"><div class="card"><h3>Registre de preuves</h3><div class="grid g2"><label>Intitulé<input id="evidenceLabel" class="field" placeholder="Ex. accord mairie" /></label><label>Source / détail<input id="evidenceDetail" class="field" placeholder="Mail, devis, lien, appel..." /></label></div><div class="row" style="margin-top:10px"><button class="btn" id="addEvidenceBtn">Ajouter la preuve</button><span class="pill" id="confidencePill">Confiance 0/100</span></div><div id="evidenceList" style="margin-top:12px"></div></div><div class="card"><h3>Brief mission IA</h3><label>Passerelle IA optionnelle<input id="gateway" class="field" placeholder="https://... (aucune clé API ici)" /></label><textarea id="aiBrief" class="field" style="min-height:260px;margin-top:10px" readonly></textarea><div class="row" style="margin-top:10px"><button class="btn" id="briefBtn">Construire le brief</button><button class="btn ghost" id="copyBriefBtn">Copier</button></div></div></div><div class="section-title"><h2>Auto-test application</h2><button class="btn primary" id="autoTestBtn">Lancer 10 tests</button></div><div id="testResults" class="grid"></div></section>
+    <div id="planVariantNote" class="callout plan-note"></div>
+    <div class="plan-workspace">
+      <div class="card plan-card">
+        <div class="plan-card-head"><div><h3>Implantation fonctionnelle</h3><p class="muted mini">Schéma conceptuel — pas un plan d’exécution.</p></div><span id="planLayerLegend" class="pill">Fonctions</span></div>
+        <div class="canvas interactive-canvas" id="layoutSvg"></div>
+        <div id="surfaceTable" class="surface-chips"></div>
+      </div>
+      <aside class="card zone-inspector" id="zoneInspector">
+        <div class="empty-inspector"><span class="inspector-icon">↗</span><h3>Sélectionne une zone</h3><p>Clique une zone du plan ou une puce sous le plan pour voir coûts, risques, contraintes et actions.</p></div>
+      </aside>
+    </div>
+
+    <div class="section-title"><h2>Livrables visuels</h2><p>Clique un livrable pour préparer son brief.</p></div>
+    <div id="visualBriefs" class="grid g3"></div>
+    <div id="visualActionDetail" class="card visual-action hidden"></div>
+
+    <div class="section-title"><h2>Pitch 60 secondes</h2><button class="btn small" id="pitchBtn">Lancer le pitch</button></div>
+    <div id="pitch" class="hero"><h2>Projet non analysé</h2><p>Le pitch se construira à partir du dossier.</p></div>
+  </section>
+
+  <section id="dossier" class="page">
+    <div class="section-title no-print">
+      <div><span class="section-kicker">09 · LIVRABLE</span><h2>Dossier final</h2></div>
+      <div class="row">
+        <select id="dossierType" class="field" style="width:auto">
+          <option value="master">Dossier maître 360°</option><option value="bank">Banque / financeur</option><option value="public">Mairie / propriétaire</option><option value="investor">Investisseur</option><option value="partner">Partenaire</option><option value="decision">Note GO / NO-GO</option>
+        </select>
+        <button class="btn" onclick="window.print()">Imprimer / PDF</button>
+      </div>
+    </div>
+    <div class="dossier" id="dossierContent"><h1>Construis d’abord le dossier 360°</h1></div>
+  </section>
+
+  <section id="ai" class="page">
+    <div class="section-title"><div><span class="section-kicker">10 · FIABILITÉ</span><h2>IA, preuves & fiabilité</h2></div><p>Ne mélange jamais une hypothèse et une donnée vérifiée.</p></div>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Registre de preuves</h3>
+        <div class="grid g2">
+          <label>Intitulé<input id="evidenceLabel" class="field" placeholder="Ex. accord mairie" /></label>
+          <label>Source / détail<input id="evidenceDetail" class="field" placeholder="Mail, devis, lien, appel..." /></label>
+        </div>
+        <div class="row" style="margin-top:10px"><button class="btn" id="addEvidenceBtn">Ajouter la preuve</button><span class="pill" id="confidencePill">Confiance 0/100</span></div>
+        <div id="evidenceList" style="margin-top:12px"></div>
+      </div>
+      <div class="card">
+        <h3>Brief mission IA</h3>
+        <label>Passerelle IA optionnelle<input id="gateway" class="field" placeholder="https://... (aucune clé API ici)" /></label>
+        <textarea id="aiBrief" class="field" style="min-height:260px;margin-top:10px" readonly></textarea>
+        <div class="row" style="margin-top:10px"><button class="btn" id="briefBtn">Construire le brief</button><button class="btn ghost" id="copyBriefBtn">Copier</button></div>
+      </div>
+    </div>
+    <div class="section-title"><h2>Auto-test application</h2><button class="btn primary" id="autoTestBtn">Lancer les tests</button></div>
+    <div id="testResults" class="grid"></div>
+  </section>
 </div>
+
 <div id="toast" class="toast"></div>
-<script src="v4-1.js"></script>
-<script src="v4-2.js"></script>
-<script src="v4-3.js"></script>
-<script src="v4-4.js"></script>
-<script src="v4-5.js"></script>
-</body></html>
+<script src="v4-1.js?v=5"></script>
+<script src="v4-2.js?v=5"></script>
+<script src="v4-3.js?v=5"></script>
+<script src="v4-4.js?v=5"></script>
+<script src="v4-5.js?v=5"></script>
+<script src="v5-1.js?v=5.0.0"></script>
+<script src="v5-2.js?v=5.0.0"></script>
+</body>
+</html>
