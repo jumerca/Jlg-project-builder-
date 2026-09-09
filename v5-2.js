@@ -4,6 +4,19 @@
   const SVG='./project-lab-logo-v10.svg?v='+VERSION;
   const $=s=>document.querySelector(s);
 
+  // Fail-safe first: never allow a visual layer or stale style to freeze the app.
+  document.documentElement.style.overflow='';
+  document.documentElement.style.touchAction='';
+  document.body.style.overflow='';
+  document.body.style.touchAction='pan-y';
+  document.body.style.pointerEvents='auto';
+  document.querySelectorAll('#updateBanner').forEach(x=>x.remove());
+  const splash=$('#splash');
+  if(splash){
+    splash.style.pointerEvents='none';
+    setTimeout(()=>{splash.classList.add('hide');setTimeout(()=>splash.remove(),500)},850);
+  }
+
   document.querySelectorAll('.brand-logo,.hero-logo,.splash-card img').forEach(img=>{
     img.src=SVG;img.style.objectFit='contain';img.style.display='block';
   });
@@ -34,7 +47,8 @@
       document.documentElement.style.overflow='';
       document.body.style.overflow='';
       document.body.style.touchAction='pan-y';
-      const splash=document.querySelector('#splash');
-      if(splash){splash.style.pointerEvents='none';splash.classList.add('hide')}
+      document.body.style.pointerEvents='auto';
+      const s=document.querySelector('#splash');
+      if(s){s.style.pointerEvents='none';s.classList.add('hide')}
     });
 })();
