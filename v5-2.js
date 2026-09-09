@@ -1,6 +1,6 @@
-/* V10.6.1 Standalone loader — stable shell + reliable Android install handoff. */
+/* V10.7 Standalone loader — stable shell + direct Android APK installer. */
 (()=>{
-  const VERSION='10.6.1';
+  const VERSION='10.7.0';
   const SVG='./project-lab-logo-v10.svg?v='+VERSION;
   const $=s=>document.querySelector(s);
 
@@ -11,21 +11,13 @@
   document.body.style.pointerEvents='auto';
   document.querySelectorAll('#updateBanner').forEach(x=>x.remove());
   const splash=$('#splash');
-  if(splash){
-    splash.style.pointerEvents='none';
-    setTimeout(()=>{splash.classList.add('hide');setTimeout(()=>splash.remove(),500)},850);
-  }
+  if(splash){splash.style.pointerEvents='none';setTimeout(()=>{splash.classList.add('hide');setTimeout(()=>splash.remove(),500)},850)}
 
-  document.querySelectorAll('.brand-logo,.hero-logo,.splash-card img').forEach(img=>{
-    img.src=SVG;img.style.objectFit='contain';img.style.display='block';
-  });
-  const version=$('.version-pill');if(version)version.textContent='V10.6.1';
-  const small=$('.brand small');if(small)small.textContent='V10.6.1 Autonome · sans compte, sans backend';
+  document.querySelectorAll('.brand-logo,.hero-logo,.splash-card img').forEach(img=>{img.src=SVG;img.style.objectFit='contain';img.style.display='block'});
+  const version=$('.version-pill');if(version)version.textContent='V10.7';
+  const small=$('.brand small');if(small)small.textContent='V10.7 Android · installation directe';
 
-  const load=src=>new Promise((resolve,reject)=>{
-    const s=document.createElement('script');s.src=src;s.async=false;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);
-  });
-
+  const load=src=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.async=false;s.onload=resolve;s.onerror=reject;document.head.appendChild(s)});
   load('./v5-2-core.js?v='+VERSION)
     .then(()=>load('./v6.js?v='+VERSION))
     .then(()=>load('./v7.js?v='+VERSION))
@@ -40,7 +32,7 @@
     .then(()=>load('./v10-fix.js?v='+VERSION))
     .then(()=>load('./v10-4-install.js?v='+VERSION))
     .catch(err=>{
-      console.error('Project Lab V10.6.1 loader',err);
+      console.error('Project Lab V10.7 loader',err);
       document.documentElement.style.overflow='';document.body.style.overflow='';document.body.style.touchAction='pan-y';document.body.style.pointerEvents='auto';
       const s=document.querySelector('#splash');if(s){s.style.pointerEvents='none';s.classList.add('hide')}
     });
