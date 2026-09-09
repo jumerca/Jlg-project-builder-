@@ -1,8 +1,8 @@
 {
   "name": "JLG Project Lab 360",
   "short_name": "Project Lab 360",
-  "description": "Bureau d’études de poche pour cadrer, chiffrer, sécuriser et piloter un projet de A à Z.",
-  "start_url": "./?source=pwa&v=6",
+  "description": "Bureau d’études de poche pour cadrer, chiffrer, sécuriser, monter et piloter un projet de A à Z.",
+  "start_url": "./?source=pwa&v=7",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
