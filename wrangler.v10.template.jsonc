@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "jlg-project-lab-360-api",
+  "main": "cloudflare-worker-v10.js",
+  "compatibility_date": "2026-09-09",
+  "workers_dev": true,
+  "ai": { "binding": "AI" },
+  "kv_namespaces": [
+    { "binding": "PROJECTS", "id": "__PROJECTS_KV_ID__" }
+  ]
+}
