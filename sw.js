@@ -1,4 +1,4 @@
-const CACHE='jlg-project-lab-360-v10-6-stable-20260909-1';
+const CACHE='jlg-project-lab-360-v10-6-1-install-20260909-1';
 const CORE=['./','./index.html','./manifest.webmanifest','./project-lab-logo-v10.svg','./project-lab-logo-v10-192.png','./project-lab-logo-v10-512.png','./v4-1.js','./v4-2.js','./v4-3.js','./v4-4.js','./v4-5.js','./v5-1.js','./v5-2.js','./v5-2-core.js','./v6.js','./v6.css','./v7.js','./v7.css','./v8-1.js','./v8-2.js','./v8-3.js','./v8.css','./v9-1.js','./v9-2.js','./v9.css','./v10-1.js','./v10-2.js','./v10-standalone.js','./v10-fix.js','./v10-4-install.js','./v10.css'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).catch(()=>{}))});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
