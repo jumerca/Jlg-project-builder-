@@ -7,16 +7,24 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Project Lab 360" />
-<link rel="manifest" href="manifest.webmanifest?v=10.2.0" />
-<link rel="icon" href="project-lab-logo-v10-192.png?v=10.2.0" type="image/png" />
-<link rel="apple-touch-icon" href="project-lab-logo-v10-192.png?v=10.2.0" />
-<title>JLG Project Lab 360 — V10.2 Autonome</title>
-<link rel="stylesheet" href="v5.css?v=10.2.0">
+<link rel="manifest" href="manifest.webmanifest?v=10.5.0" />
+<script>
+window.__jlgInstallPrompt=null;window.__jlgInstalled=false;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__jlgInstallPrompt=e;window.dispatchEvent(new Event('jlginstallready'));});
+window.addEventListener('appinstalled',function(){window.__jlgInstalled=true;try{localStorage.setItem('jlg360_true_install','1')}catch{}});
+</script>
+<style>
+#jlgInstallStaticBar{display:flex;justify-content:center;padding:2px 0 12px}#jlgInstallHeaderBtn{min-height:44px;padding:10px 16px;border-radius:999px;font-weight:900;box-shadow:0 10px 26px rgba(20,126,180,.25)}@media(max-width:620px){#jlgInstallStaticBar{position:sticky;top:112px;z-index:23;padding:7px 0 10px;background:linear-gradient(180deg,rgba(6,17,29,.92),rgba(6,17,29,.55),transparent)}#jlgInstallHeaderBtn{width:min(100%,330px);font-size:15px}}@media print{#jlgInstallStaticBar{display:none!important}}
+</style>
+<link rel="icon" href="project-lab-logo-v10.svg?v=10.5.0" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="project-lab-logo-v10.svg?v=10.5.0" />
+<title>JLG Project Lab 360 — V10.5 Autonome</title>
+<link rel="stylesheet" href="v5.css?v=10.5.0">
 </head>
 <body>
 <div id="splash" class="splash" aria-hidden="true">
   <div class="splash-card">
-    <img src="project-lab-logo-v10-512.png?v=10.2.0" alt="" />
+    <img src="project-lab-logo-v10.svg?v=10.5.0" alt="" />
     <div class="splash-copy"><b>JLG Project Lab 360</b><span>De l’idée au GO, sans angle mort.</span></div>
   </div>
 </div>
@@ -24,11 +32,11 @@
 <div class="app">
   <header class="top">
     <button class="brand brand-btn" id="homeBrand" aria-label="Retour au projet">
-      <img class="brand-logo" src="project-lab-logo-v10-192.png?v=10.2.0" alt="Logo JLG Project Lab 360" />
-      <span><strong>JLG Project Lab 360</strong><small>V10.2 Autonome · sans compte, sans backend</small></span>
+      <img class="brand-logo" src="project-lab-logo-v10.svg?v=10.5.0" alt="Logo JLG Project Lab 360" />
+      <span><strong>JLG Project Lab 360</strong><small>V10.5 Autonome · sans compte, sans backend</small></span>
     </button>
     <div class="top-actions">
-      <span class="version-pill">V10.2</span>
+      <span class="version-pill">V10.5</span>
       <div class="badge" id="globalVerdict">À cadrer</div>
     </div>
   </header>
@@ -47,6 +55,8 @@
     <button class="tab" data-page="ai">IA & preuves</button>
   </nav>
 
+  <div id="jlgInstallStaticBar" class="no-print"><button id="jlgInstallHeaderBtn" class="btn primary" type="button">⬇ Installer l’application</button></div>
+
   <section id="project" class="page active">
     <div class="hero hero-brand">
       <div class="hero-copy">
@@ -55,10 +65,10 @@
         <p>Décris ton projet. L’application challenge l’idée, chiffre le modèle, identifie les autorisations, les risques, les preuves manquantes et construit un plan d’action de A à Z.</p>
         <div class="hero-actions no-print">
           <button class="btn primary" id="heroAnalyzeBtn">Construire mon dossier 360°</button>
-          <button class="btn ghost" id="heroTestBtn">Charger le projet test V5</button>
+          <button class="btn ghost" id="heroTestBtn">Charger le projet test</button>
         </div>
       </div>
-      <img class="hero-logo" src="project-lab-logo-v10-512.png?v=10.2.0" alt="JLG Project Lab 360" />
+      <img class="hero-logo" src="project-lab-logo-v10.svg?v=10.5.0" alt="JLG Project Lab 360" />
     </div>
 
     <div class="section-title"><div><span class="section-kicker">01 · CADRAGE</span><h2>Cadrage du projet</h2></div><p>Tu peux démarrer incomplet : la tour de contrôle dira ce qui manque.</p></div>
@@ -253,7 +263,7 @@
 <script src="v4-3.js?v=5"></script>
 <script src="v4-4.js?v=5"></script>
 <script src="v4-5.js?v=5"></script>
-<script src="v5-1.js?v=10.2.0"></script>
-<script src="v5-2.js?v=10.2.0"></script>
+<script src="v5-1.js?v=10.5.0"></script>
+<script src="v5-2.js?v=10.5.0"></script>
 </body>
 </html>
