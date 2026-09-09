@@ -1,0 +1,39 @@
+name: Project Lab CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          set -e
+          for f in v4-1.js v4-2.js v4-3.js v4-4.js v4-5.js v5-1.js v5-2.js v5-2-core.js v6.js v6-preflight.js v7.js v8-1.js v8-2.js v8-3.js v9-1.js v9-2.js v9-preflight.js sw.js; do
+            echo "Checking $f"
+            node --check "$f"
+          done
+      - name: Check critical PWA files
+        run: |
+          set -e
+          test -s index.html
+          test -s manifest.webmanifest
+          test -s sw.js
+          test -s project-lab-360-v6-192.png
+          test -s project-lab-360-v6-512.png
+          test -s v9.css
+          grep -q 'v9-1.js' v5-2.js
+          grep -q 'v9-2.js' v5-2.js
+          grep -q 'v9-preflight.js' v5-2.js
+          grep -q 'v9-1.js' sw.js
+          grep -q 'project-lab-360-v6-192.png' manifest.webmanifest
