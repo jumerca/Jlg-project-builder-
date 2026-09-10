@@ -23,23 +23,32 @@ jobs:
             echo "Checking $f"
             node --check "$f"
           done
-      - name: Check V10.7 Android APK installer
+      - name: Check V10.8 Android layout and APK installer
         run: |
           set -e
           test -s index.html
           test -s manifest.webmanifest
           test -s sw.js
           test -s project-lab-logo-v10.svg
+          test -s android.css
           test -s v10-4-install.js
           test -s downloads/JLG-Project-Lab-360.apk
           test -s android-wrapper/app/src/main/AndroidManifest.xml
-          grep -q '10.7.0' v5-2.js
-          grep -q '10.7.0' v10-fix.js
-          grep -q '10.7.0' v10-4-install.js
-          grep -q '10.7.0' manifest.webmanifest
-          grep -q 'jlg-project-lab-360-v10-7' sw.js
+          test -s android-wrapper/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+          grep -q '10.8.0' v5-2.js
+          grep -q '10.8.0' v10-fix.js
+          grep -q '10.8.0' v10-4-install.js
+          grep -q '10.8.0' manifest.webmanifest
+          grep -q 'jlg-project-lab-360-v10-8' sw.js
+          grep -q 'native-android' v5-2.js
+          grep -q 'android.css' v5-2.js
+          grep -q 'hero-brand' android.css
+          grep -q 'overflow-x:hidden' android.css
+          grep -q '@mipmap/ic_launcher' android-wrapper/app/src/main/AndroidManifest.xml
+          grep -q 'JLGProjectLabAndroid/10.8.0' android-wrapper/app/src/main/java/com/jlg/projectlab360/MainActivity.java
+          grep -q 'setUseWideViewPort(true)' android-wrapper/app/src/main/java/com/jlg/projectlab360/MainActivity.java
+          grep -q 'setTextZoom(100)' android-wrapper/app/src/main/java/com/jlg/projectlab360/MainActivity.java
           grep -q 'JLG-Project-Lab-360.apk' v10-4-install.js
-          grep -q 'Installer l.application Android' v10-4-install.js
           ! grep -q 'package=com.android.chrome' v10-4-install.js
           ! grep -q 'MutationObserver' v10-fix.js
           ! grep -q 'MutationObserver' v10-4-install.js
