@@ -1,6 +1,6 @@
-/* JLG Project Lab 360 — V10.8 Android APK installer */
+/* JLG Project Lab 360 — V10.9 Android APK installer */
 (()=>{
-  const VERSION='10.8.0';
+  const VERSION='10.9.0';
   const APK_URL='./downloads/JLG-Project-Lab-360.apk?v='+VERSION;
   const $=s=>document.querySelector(s);
   const ua=navigator.userAgent||'';
@@ -20,7 +20,7 @@
     document.querySelector('.jlg-install-help')?.remove();
     const m=document.createElement('div');m.className='jlg-install-help';
     m.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.78);display:grid;place-items:center;padding:20px;touch-action:auto';
-    m.innerHTML='<div style="width:min(460px,100%);background:#0a1724;color:white;border:1px solid #34506a;border-radius:20px;padding:20px"><h3>Installer JLG Project Lab 360</h3><p>L’application Android va être téléchargée. Ouvre ensuite <b>JLG-Project-Lab-360.apk</b> et valide <b>Installer</b>.</p><p>Si Android demande l’autorisation d’installer depuis ce navigateur, accepte-la une fois puis reviens au fichier.</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><a class="btn primary" href="'+APK_URL+'" download="JLG-Project-Lab-360.apk">Télécharger l’application Android</a><button class="btn ghost" data-close type="button">Fermer</button></div></div>';
+    m.innerHTML='<div style="width:min(460px,100%);background:#0a1724;color:white;border:1px solid #34506a;border-radius:20px;padding:20px"><h3>Installer JLG Project Lab 360</h3><p>L’application Android V10.9 va être téléchargée. Ouvre ensuite <b>JLG-Project-Lab-360.apk</b> et valide <b>Installer</b>.</p><p>Cette version ajoute les contrôles interactifs, les PDF et l’enregistrement natif dans Téléchargements.</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><a class="btn primary" href="'+APK_URL+'" download="JLG-Project-Lab-360.apk">Télécharger l’application Android</a><button class="btn ghost" data-close type="button">Fermer</button></div></div>';
     document.body.appendChild(m);
     m.querySelector('[data-close]')?.addEventListener('click',()=>m.remove(),{once:true});
     m.addEventListener('click',e=>{if(e.target===m)m.remove()});
