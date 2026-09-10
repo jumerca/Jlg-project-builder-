@@ -5,8 +5,8 @@
         android:allowBackup="true"
         android:usesCleartextTraffic="false"
         android:label="JLG Project Lab 360"
-        android:icon="@drawable/app_icon"
-        android:roundIcon="@drawable/app_icon"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/AppTheme">
 
         <activity
