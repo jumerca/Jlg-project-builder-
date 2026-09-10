@@ -1,0 +1,37 @@
+/* JLG Project Lab 360 V10.9 - interaction and clarity layer */
+(()=>{'use strict';
+const W=window,J=W.JLG109=W.JLG109||{},V='10.9.0',$=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+J.version=V;J.$=$;J.$$=$$;J.esc=E;
+J.ensure=()=>{state.v109=state.v109||{};state.v109.place=state.v109.place||{status:(state.location||state.site!=='unknown')?'identified':'searching',siteName:'',address:'',postalCode:'',parcel:''};state.v109.identity=state.v109.identity||{kind:state.mode==='personal'?'private':'company',name:'',contact:'',email:'',phone:'',address:'',logoData:''}};
+J.example=()=>!!state.isExample||/^test_/i.test(state.id||'')||/Guinguette du Lac.*Test/i.test(state.name||'');
+const route=n=>/budget|CAPEX|prix|volume|marge|résultat|point mort|trésorerie|financ|saisonn/i.test(n)?'finance':/assurance|accès|PMR|charge humaine/i.test(n)?'execution':/marché|preuve|juridique|droit d’usage/i.test(n)?'documents':/questionnaire|plan B/i.test(n)?'questions':/territoire|site|concept|échéance/i.test(n)?'project':'control';
+const CM=[
+ [/Concept/,'Vérifie si le projet est assez décrit pour être analysé sans inventer.','Offre, cible, fonctionnement, périmètre et critères de réussite.','Note de cadrage'],
+ [/Territoire identifié/,'Vérifie qu’une commune ou zone réelle est choisie.','Commune/territoire, puis adresse ou parcelle quand elle est connue.','Fiche de localisation'],
+ [/Type de site/,'Le type de site adapte les contraintes, risques et autorisations.','Nature réelle du lieu : local, terrain, hôtel, site public, digital…','Fiche site'],
+ [/Droit d’usage défini/,'Vérifie sur quelle base tu peux utiliser le lieu.','Propriété, bail, convention, mise à disposition ou autorisation.','Note de statut d’occupation'],
+ [/Preuve du droit d’usage/,'Évite d’investir dans un lieu que le projet n’a pas le droit d’utiliser.','Titre, bail signé, convention, AOT ou accord écrit.','Demande / preuve de droit d’usage'],
+ [/Budget plafond/,'Fixe la limite d’investissement que le projet ne doit pas dépasser.','Enveloppe réellement disponible ou finançable.','Note d’enveloppe budgétaire'],
+ [/CAPEX/,'Compare l’investissement prévu au budget plafond.','Devis, références de coûts et arbitrages/phases.','Plan CAPEX'],
+ [/Prix moyen/,'Vérifie qu’un prix réel alimente le modèle économique.','Prix testé ou benchmark documenté.','Fiche hypothèse prix'],
+ [/Volume mensuel/,'Vérifie que le chiffre d’affaires repose sur un volume explicite.','Fréquentation observée, test marché ou hypothèse sourcée.','Fiche hypothèse volume'],
+ [/Marge brute/,'Contrôle que la marge reste plausible après coûts directs.','Coûts unitaires, achats, pertes, commissions et prix de vente.','Calcul de marge'],
+ [/Résultat central/,'Vérifie si le scénario central crée ou consomme de la trésorerie.','Prix, volume, marge et charges réalistes.','Compte de résultat prévisionnel'],
+ [/Point mort/,'Mesure le volume minimum à atteindre pour couvrir les charges.','Capacité réelle et fréquentation compatibles avec le seuil.','Analyse du point mort'],
+ [/Scénario prudent/,'Teste si le projet résiste à une activité plus faible et des charges plus fortes.','Plan B chiffré ou modèle restant positif sous stress.','Scénario prudent'],
+ [/Trésorerie de sécurité/,'Mesure le coussin nécessaire pour absorber le démarrage et les aléas.','Réserve de trésorerie explicitement financée.','Plan de trésorerie'],
+ [/Reste à financer/,'Vérifie que les investissements ont une source de financement.','Apport, dette, aides ou partenaires identifiés.','Plan de financement'],
+ [/Saisonnalité/,'Intègre les mois actifs et les charges des périodes creuses.','Calendrier réaliste d’ouverture/activité.','Calendrier d’exploitation'],
+ [/Questionnaire/,'Mesure combien d’inconnues du site et de l’exploitation ont été traitées.','Réponses factuelles, preuves ou points clairement marqués à vérifier.','Fiche informations manquantes'],
+ [/preuve externe/i,'Évite un dossier composé uniquement d’hypothèses internes.','Devis, accord, source officielle, test client ou constat terrain.','Registre de preuves'],
+ [/Marché documenté/,'Vérifie qu’il existe une preuve de demande et pas seulement un contexte territorial.','Tests clients, préventes, ventes comparables ou fréquentation mesurée.','Validation marché'],
+ [/Juridique documenté/,'Vérifie que les règles et validations sont documentées.','Écrit d’une autorité, bail, assurance, urbanisme ou convention.','Journal des validations juridiques'],
+ [/Assurance/,'Vérifie que l’activité et le lieu peuvent être couverts.','Confirmation de l’assureur : activité, RC, site et garanties.','Demande de validation assureur'],
+ [/Accès/,'Vérifie accès clients, livraisons et secours.','Plan/constat terrain et validation technique si nécessaire.','Fiche accès et secours'],
+ [/PMR/,'Vérifie l’accessibilité applicable au projet.','Cheminements, accès, sanitaires et obligations confirmés.','Checklist PMR'],
+ [/Plan B/,'Vérifie la continuité en cas de météo, panne, indisponibilité ou incident.','Conditions de fermeture/repli, communication et impact financier.','Plan B / continuité'],
+ [/Échéance/,'Compare la date cible aux validations et travaux encore nécessaires.','Planning jalonné avec marges réalistes.','Planning jalonné'],
+ [/Charge humaine/,'Évite de supposer du travail gratuit ou une disponibilité illimitée.','Temps de travail, effectifs, pics, remplacements et coût.','Plan de charge humaine']
+];
+J.meta=n=>{const x=CM.find(v=>v[0].test(n));return{why:x?.[1]||'Ce contrôle vérifie un prérequis de faisabilité.',proof:x?.[2]||'Une preuve ou validation cohérente.',doc:x?.[3]||'Fiche de traitement',route:route(n)}};
+J.value=n=>{const f=calcFinance(),q=siteQuestions(),answered=q.filter(([k])=>(state.answers[k]||'').trim()).length;if(/Concept/.test(n))return state.idea?state.idea.length+' caractères décrits':'Concept non détaillé';if(/Territoire/.test(n))return state.location||'Non renseigné';if(/Type de site/.test(n))return siteLabels[state.site]||state.site;if(/Droit d’usage défini/.test(n))return({unknown:'À définir',owned:'Propriétaire',rent:'Location / bail',agreement:'Convention',public:'Domaine public'})[state.ownership]||state.ownership;if(/Preuve du droit/.test(n))return state.answers.site_right|| (state.ownership==='owned'?'Propriétaire déclaré':'Aucune preuve');if(/Budget plafond/.test(n))return state.budget?fmt(state.budget):'Non renseigné';if(/CAPEX/.test(n))return fmt(f.capex)+' / plafond '+(state.budget?fmt(state.budget):'non défini');if(/Prix moyen/.test(n))return fmt(state.finance.avgPrice||0);if(/Volume mensuel/.test(n))return (state.finance.qty||0)+' / mois';if(/Marge brute/.test(n))return (state.finance.margin||0)+' %';if(/Résultat central/.test(n))return fmt(f.profit)+' / mois';if(/Point mort/.test(n))return f.breakeven+' ventes / mois';if(/Scénario prudent/.test(n))return fmt(calcFinance({price:.95,qty:.7,margin:.92,opex:1.08}).profit)+' / mois';if(/Trésorerie/.test(n))return 'Besoin indicatif '+fmt(f.cashBuffer);if(/Reste à financer/.test(n))return fmt(f.remaining);if(/Saisonnalité/.test(n))return (state.finance.activeMonths||12)+' mois actifs';if(/Questionnaire/.test(n))return answered+'/'+q.length+' réponses';if(/preuve externe/i.test(n))return (state.evidence.length||0)+' preuve(s)';if(/Marché/.test(n))return state.evidence.some(e=>/march|client|vente|sondage|fréquent/i.test(e.label+' '+e.detail)
