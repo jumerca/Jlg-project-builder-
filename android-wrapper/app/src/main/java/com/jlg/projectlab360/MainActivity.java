@@ -13,7 +13,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
-    private static final String APP_URL = "https://jumerca.github.io/Jlg-project-builder-/?source=android-app&v=10.7.0";
+    private static final String APP_URL = "https://jumerca.github.io/Jlg-project-builder-/?source=android-app&v=10.8.0";
     private WebView webView;
 
     @Override
@@ -25,6 +25,8 @@ public class MainActivity extends Activity {
         webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(7, 19, 33));
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        webView.setHorizontalScrollBarEnabled(false);
+        webView.setVerticalScrollBarEnabled(false);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -33,9 +35,13 @@ public class MainActivity extends Activity {
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
+        settings.setSupportZoom(false);
+        settings.setUseWideViewPort(true);
+        settings.setLoadWithOverviewMode(false);
+        settings.setTextZoom(100);
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " JLGProjectLabAndroid/10.7.0");
+        settings.setUserAgentString(settings.getUserAgentString() + " JLGProjectLabAndroid/10.8.0");
 
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient() {
@@ -57,7 +63,7 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 view.evaluateJavascript(
-                    "try{localStorage.setItem('jlg360_native_android','1');document.documentElement.dataset.nativeAndroid='1';var b=document.getElementById('jlgInstallStaticBar');if(b)b.style.display='none';}catch(e){}",
+                    "try{localStorage.setItem('jlg360_native_android','1');document.documentElement.classList.add('native-android');document.documentElement.dataset.nativeAndroid='1';var b=document.getElementById('jlgInstallStaticBar');if(b)b.style.display='none';if(!document.querySelector('link[data-jlg-android-css]')){var l=document.createElement('link');l.rel='stylesheet';l.href='./android.css?v=10.8.0';l.dataset.jlgAndroidCss='1';document.head.appendChild(l);}}catch(e){}",
                     null
                 );
             }
