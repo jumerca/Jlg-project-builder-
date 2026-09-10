@@ -1,0 +1,67 @@
+/* JLG Project Lab 360 — Android native shell layout */
+html.native-android,html.native-android body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html.native-android body{margin:0;overscroll-behavior-x:none}
+html.native-android *{min-width:0}
+html.native-android .app{width:100%;max-width:100%;margin:0 auto;padding:10px max(12px,env(safe-area-inset-right)) calc(88px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));overflow-x:hidden}
+html.native-android .top{width:100%;max-width:100%;gap:8px;padding:7px 0 8px}
+html.native-android .brand{flex:1;max-width:calc(100% - 130px);overflow:hidden}
+html.native-android .brand-logo{width:46px;height:46px;flex:0 0 46px}
+html.native-android .brand span{overflow:hidden}
+html.native-android .brand strong{display:block;font-size:15px;line-height:1.15;white-space:normal;overflow:visible;text-overflow:clip}
+html.native-android .brand small{display:block;font-size:10px;line-height:1.25;white-space:normal;overflow-wrap:anywhere}
+html.native-android .top-actions{flex:0 0 auto;max-width:118px}
+html.native-android .top-actions .badge{max-width:118px;white-space:normal;text-align:center;line-height:1.12;font-size:10px;padding:7px 8px}
+html.native-android .version-pill{display:none}
+html.native-android .tabs{width:100%;max-width:100%;top:61px;margin:0;gap:7px;padding:9px 0 12px;scroll-padding-inline:4px;-webkit-overflow-scrolling:touch}
+html.native-android .tab{flex:0 0 auto;padding:9px 13px;font-size:14px}
+html.native-android #jlgInstallStaticBar{display:none!important}
+html.native-android .page,html.native-android .hero,html.native-android .card,html.native-android .cockpit-hero,html.native-android .table-wrap,html.native-android .canvas,html.native-android .dossier{width:100%;max-width:100%}
+html.native-android .hero{padding:18px 14px;border-radius:22px}
+html.native-android .hero-brand{display:flex!important;flex-direction:column;align-items:center;gap:18px;min-height:0;text-align:center}
+html.native-android .hero-logo{order:-1;width:min(56vw,190px);max-width:190px;justify-self:center!important;align-self:center;transform:none!important;border-radius:34px}
+html.native-android .hero-copy{width:100%;text-align:center}
+html.native-android .hero h2{font-size:clamp(25px,7.2vw,34px);line-height:1.08;margin:0 auto 12px;max-width:19ch;overflow-wrap:normal}
+html.native-android .hero p{width:100%;max-width:36rem;margin:0 auto;font-size:15px;line-height:1.55;overflow-wrap:break-word}
+html.native-android .hero-actions{justify-content:center;width:100%}
+html.native-android .hero-actions .btn{flex:1 1 220px;max-width:320px}
+html.native-android .section-title{width:100%;align-items:flex-start;flex-direction:column;gap:5px;margin:22px 0 10px}
+html.native-android .section-title h2{font-size:21px;line-height:1.2;overflow-wrap:break-word}
+html.native-android .section-title p{text-align:left;max-width:100%;line-height:1.45}
+html.native-android .grid,html.native-android .g2,html.native-android .g3,html.native-android .g4{grid-template-columns:minmax(0,1fr)!important;width:100%}
+html.native-android .card{padding:14px}
+html.native-android label,html.native-android input,html.native-android select,html.native-android textarea,html.native-android .field{width:100%;max-width:100%}
+html.native-android input,html.native-android select,html.native-android textarea{font-size:16px}
+html.native-android .row{width:100%;max-width:100%}
+html.native-android .action-bar{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%;padding:10px}
+html.native-android .action-bar .btn{width:100%;grid-column:auto!important}
+html.native-android .btn{max-width:100%;white-space:normal;line-height:1.2;text-align:center}
+html.native-android h1,html.native-android h2,html.native-android h3,html.native-android h4,html.native-android p,html.native-android li,html.native-android td,html.native-android th,html.native-android strong,html.native-android span{max-width:100%;overflow-wrap:break-word}
+html.native-android .cockpit-hero{grid-template-columns:minmax(0,1fr)!important;padding:14px}
+html.native-android .decision-orb{min-height:125px}
+html.native-android .decision-orb .big-verdict{font-size:23px}
+html.native-android .sim-grid,html.native-android .plan-toolbar,html.native-android .plan-workspace{grid-template-columns:minmax(0,1fr)!important}
+html.native-android .segmented{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+html.native-android .seg{width:100%;white-space:normal}
+html.native-android .zone-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+html.native-android .interactive-canvas{width:100%;max-width:100%;min-height:300px;overflow:hidden}
+html.native-android .interactive-canvas svg,html.native-android .canvas svg{width:100%;max-width:100%;height:auto}
+html.native-android .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+html.native-android table{max-width:none}
+html.native-android .risk{grid-template-columns:minmax(0,1fr)!important}
+html.native-android .risk .wide{grid-column:auto}
+html.native-android .gantt-row{grid-template-columns:minmax(88px,110px) minmax(0,1fr)}
+html.native-android .dossier{padding:16px;border-radius:14px;overflow:hidden}
+html.native-android .dossier table{font-size:12px}
+html.native-android .dossier-brand{align-items:flex-start}
+html.native-android .dossier-brand img{width:54px;height:54px;flex:0 0 54px}
+html.native-android .toast{left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));text-align:center}
+@media(max-width:380px){
+ html.native-android .brand{max-width:calc(100% - 106px)}
+ html.native-android .brand-logo{width:40px;height:40px;flex-basis:40px}
+ html.native-android .top-actions{max-width:100px}
+ html.native-android .top-actions .badge{max-width:100px;font-size:9px}
+ html.native-android .hero{padding-inline:12px}
+ html.native-android .hero h2{font-size:24px}
+ html.native-android .segmented{grid-template-columns:1fr}
+ html.native-android .zone-metrics{grid-template-columns:1fr}
+}
