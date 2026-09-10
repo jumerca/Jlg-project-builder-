@@ -6,7 +6,7 @@ on:
     paths:
       - 'android-wrapper/**'
       - '.github/workflows/build-android-apk.yml'
-      - 'project-lab-logo-v10-512.png'
+      - 'project-lab-logo-v10.svg'
   workflow_dispatch:
 
 permissions:
@@ -25,21 +25,24 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
-      - name: Install Android SDK
+      - name: Install Android SDK and SVG renderer
         run: |
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          sudo apt-get update -y
+          sudo apt-get install -y librsvg2-bin imagemagick
 
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      - name: Prepare launcher icon
+      - name: Prepare exact launcher icon from app SVG
         run: |
-          mkdir -p android-wrapper/app/src/main/res/drawable
-          cp project-lab-logo-v10-512.png android-wrapper/app/src/main/res/drawable/app_icon.png
+          mkdir -p android-wrapper/app/src/main/res/drawable-nodpi
+          rsvg-convert project-lab-logo-v10.svg -w 300 -h 300 -o /tmp/project-lab-logo.png
+          convert -size 432x432 xc:none /tmp/project-lab-logo.png -gravity center -composite android-wrapper/app/src/main/res/drawable-nodpi/app_icon_foreground.png
 
-      - name: Build debug APK
+      - name: Build Android APK
         run: gradle -p android-wrapper assembleDebug --stacktrace
 
       - name: Publish APK in Pages repository
@@ -52,7 +55,7 @@ jobs:
           if git diff --cached --quiet; then
             echo 'APK unchanged'
           else
-            git commit -m 'Build Android APK [skip ci]'
+            git commit -m 'Build JLG Project Lab Android V10.8 [skip ci]'
             git push
           fi
 
