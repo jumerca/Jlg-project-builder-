@@ -59,7 +59,7 @@ jobs:
           if git diff --cached --quiet; then
             echo 'APK unchanged'
           else
-            git commit -m 'Build JLG Project Lab Android V10.8'
+            git commit -m 'Build JLG Project Lab Android V10.9'
             git push origin HEAD:main
           fi
 
