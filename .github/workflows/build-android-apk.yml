@@ -47,16 +47,20 @@ jobs:
 
       - name: Publish APK in Pages repository
         run: |
-          mkdir -p downloads
-          cp android-wrapper/app/build/outputs/apk/debug/app-debug.apk downloads/JLG-Project-Lab-360.apk
+          set -e
+          cp android-wrapper/app/build/outputs/apk/debug/app-debug.apk /tmp/JLG-Project-Lab-360.apk
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          git reset --hard origin/main
+          mkdir -p downloads
+          cp /tmp/JLG-Project-Lab-360.apk downloads/JLG-Project-Lab-360.apk
           git add downloads/JLG-Project-Lab-360.apk
           if git diff --cached --quiet; then
             echo 'APK unchanged'
           else
-            git commit -m 'Build JLG Project Lab Android V10.8 [skip ci]'
-            git push
+            git commit -m 'Build JLG Project Lab Android V10.8'
+            git push origin HEAD:main
           fi
 
       - name: Upload build artifact
