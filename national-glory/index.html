@@ -2882,28 +2882,52 @@ function moreModal(){
   return `<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-label="Fenêtre de jeu"><div class="modal"><div class="modal-top"><h2>Plus</h2><button class="btn ghost" id="closeModal">Fermer</button></div><div class="option-grid">${extra.map(([id,label])=>`<div class="option active" data-more-nav="${id}"><b>${label}</b><span>Accéder à l’écran ${label.toLowerCase()}.</span></div>`).join('')}</div></div></div>`;
 }
 
+function showOfficialTimeBlock(result){
+  const c=state.save.competitions?.find(x=>x.id===result?.competitionId)||state.save.competitions?.find(x=>x.status==='live-pending');
+  if(!c)return false;
+  state.screen='competitions';
+  state.modal=null;
+  persist();
+  render();
+  toast(`🏆 ${c.name} est prête : choisis « Coacher » ou « Simuler » pour continuer.`);
+  return true;
+}
 function advanceUntil(kind){
   if(state.save.careerComplete){toast('Carrière terminée. Consulte ton bilan dans Histoire.');return;}
-  let limit=370,progressed=0;const historyStart=state.save.history.length;
+  let limit=370,progressed=0,block=null;
+  const completedStart=state.save.competitions.filter(c=>c.status==='done').length;
   while(limit-->0){
-    if(!advanceOneDay())break;progressed++;
-    if(kind==='competition'&&state.save.history.length>historyStart)break;
+    const step=advanceOneDay();
+    if(step.advanced)progressed++;
+    if(step.reason==='official'){block=step;break;}
+    if(!step.advanced)break;
+    if(kind==='competition'&&state.save.competitions.filter(c=>c.status==='done').length>completedStart)break;
     if(kind==='decision'&&nextDecisionItem())break;
   }
-  persist();render();toast(`${progressed} jours simulés`);
+  if(block&&showOfficialTimeBlock(block))return;
+  persist();render();
+  if(kind==='competition'&&progressed===0)toast('Aucune compétition accessible pour le moment.');
+  else toast(`${progressed} jour${progressed>1?'s':''} simulé${progressed>1?'s':''}`);
 }
 function advanceTime(days){
   if(state.save.careerComplete){toast('Carrière terminée. Consulte ton bilan dans Histoire.');return;}
-  let progressed=0;for(let i=0;i<days;i++){if(!advanceOneDay())break;progressed++;}
+  let progressed=0,block=null;
+  for(let i=0;i<days;i++){
+    const step=advanceOneDay();
+    if(step.advanced)progressed++;
+    if(step.reason==='official'){block=step;break;}
+    if(!step.advanced)break;
+  }
+  if(block&&showOfficialTimeBlock(block))return;
   persist();render();toast(`${progressed} jour${progressed>1?'s':''} simulé${progressed>1?'s':''}`);
 }
 
 function advanceOneDay(){
   const s = state.save;
-  if(s.careerComplete)return false;
+  if(s.careerComplete)return {advanced:false,reason:'career'};
   const pendingOfficial=s.competitions?.find(c=>c.status==='live-pending');
-  if(pendingOfficial)return false;
-  if(s.careerEndYear&&s.year===s.careerEndYear&&s.month===12&&s.day===31){s.careerComplete=true;s.history.push({kind:'career',name:'Fin de carrière',date:dateLabel(),summary:`Carrière de ${s.duration} terminée.`});s.notifications.unshift({id:'career_end_'+s.tick,type:'career',title:'Carrière terminée',text:'Ton mandat arrive à son terme. Le bilan est disponible dans Histoire.',target:'history'});return false;}
+  if(pendingOfficial)return {advanced:false,reason:'official',competitionId:pendingOfficial.id};
+  if(s.careerEndYear&&s.year===s.careerEndYear&&s.month===12&&s.day===31){s.careerComplete=true;s.history.push({kind:'career',name:'Fin de carrière',date:dateLabel(),summary:`Carrière de ${s.duration} terminée.`});s.notifications.unshift({id:'career_end_'+s.tick,type:'career',title:'Carrière terminée',text:'Ton mandat arrive à son terme. Le bilan est disponible dans Histoire.',target:'history'});return {advanced:false,reason:'career'};}
   const rng = rngObj((s.seed + s.tick*7919)>>>0);
   s.tick++;
   s.day++;
@@ -2928,7 +2952,7 @@ function advanceOneDay(){
   if(s.tick%28===0)s.athletes.forEach(a=>refineScoutingEstimate(a,rng));
 
   const due = s.competitions.filter(c=>c.status==='upcoming' && c.year===s.year && c.month===s.month && c.day===s.day);
-  for(const c of due){simulateCompetition(c,rng);if(c.status==='live-pending')return false;}
+  for(const c of due){simulateCompetition(c,rng);if(c.status==='live-pending')return {advanced:true,reason:'official',competitionId:c.id};}
   if(s.tick%14===0 && rng()<0.4) generateStory(rng);
   if(s.tick%45===0 && rng()<0.65 && !nextDecisionItem()) createManagementDecision(rng);
   if(s.notifications.length>22){
@@ -2936,7 +2960,7 @@ function advanceOneDay(){
     const rest=s.notifications.filter(n=>!(n.decision&&!n.resolved)).slice(0,Math.max(0,18-pending.length));
     s.notifications=[...pending,...rest];
   }
-  return true;
+  return {advanced:true,reason:null};
 }
 function refineScoutingEstimate(a,rng){
   const country=currentCountry(),fed=federationFor(a.sportId);const mods=Engine.careerModifiers(state.save.mode,state.save.difficulty);
