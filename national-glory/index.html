@@ -1,0 +1,1000 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#08152f"><meta name="description" content="National Glory — Sports Management Simulator. Dirigez une nation, développez vos athlètes et visez les plus grandes compétitions."><title>National Glory — Sports Management Simulator</title><style>:root{
+  --bg:#071228; --bg2:#0a1834; --panel:#0f2246; --panel2:#132957; --text:#f7f9ff; --muted:#9ca9c6;
+  --gold:#f2c565; --gold2:#dcae48; --line:rgba(255,255,255,.08); --good:#59d68d; --warn:#f0b95f; --bad:#ee7183;
+  --shadow:0 18px 50px rgba(0,0,0,.28); --radius:22px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:linear-gradient(180deg,var(--bg),#050b18);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+
+.shell{min-height:100vh;display:grid;grid-template-columns:280px 1fr}
+.sidebar{position:sticky;top:0;height:100vh;padding:24px 18px;border-right:1px solid var(--line);background:rgba(5,13,30,.92);backdrop-filter:blur(14px)}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.brand.deluxe{align-items:center}
+.brand-logo,.sidebar-logo{width:58px;height:58px;object-fit:cover;border-radius:16px;border:1px solid rgba(242,197,101,.28);box-shadow:0 10px 25px rgba(0,0,0,.22)}
+.sidebar-logo{width:54px;height:54px}
+.brand b{font-size:17px;display:block}
+.brand span{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.nav{display:flex;flex-direction:column;gap:8px}
+.nav button,.bottom-nav button{border:0;background:transparent;color:var(--muted);text-align:left;padding:12px 14px;border-radius:14px;font-weight:700}
+.nav button.active,.nav button:hover{background:rgba(242,197,101,.12);color:#fff}
+.sidebar-footer{position:absolute;bottom:22px;left:18px;right:18px;color:var(--muted);font-size:12px}
+.main{min-width:0}
+.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:18px 26px;border-bottom:1px solid var(--line);background:rgba(7,18,40,.84);backdrop-filter:blur(16px)}
+.topbar-left strong{font-size:18px}
+.topbar-left span{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.date-chip{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.03)}
+.content{padding:26px;max-width:1480px;margin:0 auto}
+.hero{position:relative;overflow:hidden;border:1px solid rgba(242,197,101,.17);border-radius:30px;padding:34px;background:radial-gradient(circle at 85% 20%,rgba(242,197,101,.18),transparent 28%),linear-gradient(135deg,#0b1c3e,#08152f);box-shadow:var(--shadow)}
+.hero-with-logo{display:grid;grid-template-columns:1.3fr .7fr;gap:24px;align-items:center}
+.hero:after{content:"";position:absolute;right:-80px;bottom:-120px;width:340px;height:340px;border:50px solid rgba(255,255,255,.035);border-radius:50%}
+.hero h1{font-size:clamp(30px,5vw,58px);margin:0 0 8px;letter-spacing:-.04em}
+.hero p{color:#cdd6eb;max-width:680px;font-size:16px}
+.eyebrow{display:inline-flex;padding:8px 12px;background:rgba(242,197,101,.12);border:1px solid rgba(242,197,101,.18);border-radius:999px;color:#f2d07c;font-weight:800;font-size:12px;margin-bottom:12px}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+.hero-logo{justify-self:end;max-width:340px;width:100%;border-radius:28px;border:1px solid rgba(242,197,101,.18);box-shadow:0 14px 35px rgba(0,0,0,.25)}
+.btn{border:1px solid var(--line);background:#132957;color:#fff;border-radius:14px;padding:12px 16px;font-weight:800}
+.btn.primary{background:linear-gradient(180deg,#f5d07a,#dfb353);color:#17213c;border-color:transparent}
+.btn.ghost{background:rgba(255,255,255,.04)}
+.btn.danger{background:rgba(238,113,131,.12);color:#ffc1ca;border-color:rgba(238,113,131,.24)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.grid{display:grid;gap:16px}
+.grid.stats{grid-template-columns:repeat(5,minmax(0,1fr));margin:20px 0}
+.card{background:linear-gradient(180deg,rgba(18,41,87,.9),rgba(12,29,62,.9));border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.16)}
+.metric-label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+.metric{font-size:25px;font-weight:900;margin-top:8px}
+.metric small{display:block;font-size:13px;color:var(--muted);font-weight:700;line-height:1.3;margin-top:5px}
+.section-title{display:flex;justify-content:space-between;align-items:end;gap:16px;margin:26px 0 12px}
+.section-title h2{margin:0;font-size:21px}
+.section-title p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.two-col{grid-template-columns:1.2fr .8fr}
+.three-col{grid-template-columns:repeat(3,minmax(0,1fr))}
+.sports-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.athlete-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.watch-card{display:flex;align-items:center;gap:14px}
+.avatar{width:48px;height:48px;flex:0 0 auto;border-radius:16px;display:grid;place-items:center;background:linear-gradient(145deg,#1d407e,#0f2246);font-weight:900;color:var(--gold)}
+.watch-card b{display:block}
+.watch-card span{display:block;color:var(--muted);font-size:13px;margin-top:3px}
+.badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;background:rgba(255,255,255,.06);color:#dfe6f7}
+.badge.good{background:rgba(89,214,141,.12);color:#92f0b8}
+.badge.gold{background:rgba(242,197,101,.13);color:#ffe0a0}
+.badge.warn{background:rgba(240,185,95,.12);color:#ffd491}
+.badge.bad{background:rgba(238,113,131,.12);color:#ffc1ca}
+.list{display:flex;flex-direction:column;gap:10px}
+.list.compact{gap:8px}
+.list-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.025)}
+.list-row.clickable:hover{background:rgba(255,255,255,.05)}
+.clickable{cursor:pointer}
+.grow{flex:1;min-width:0}
+.row-title{font-weight:800}
+.row-sub{color:var(--muted);font-size:12px;margin-top:3px}
+.right{text-align:right}
+.filters{display:grid;grid-template-columns:2fr repeat(6,1fr);gap:10px;margin:14px 0 18px}
+.input,select.input{width:100%;padding:11px 12px;border-radius:13px;border:1px solid var(--line);background:#0b1d40;color:#fff;outline:none}
+.input::placeholder{color:#72809e}
+.sport-card h3,.athlete-card h3{margin:0}
+.sport-top,.athlete-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:15px}
+.mini{padding:10px;border-radius:12px;background:rgba(255,255,255,.035)}
+.mini.big{padding:14px}
+.mini span{color:var(--muted);font-size:11px}
+.mini b{display:block;margin-top:3px}
+.athlete-card{cursor:pointer}
+.athlete-card:hover,.sport-card:hover,.watch-card:hover{transform:translateY(-2px);transition:.2s ease}
+.rating{font-size:28px;font-weight:900;color:#fff}
+.pillbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.detail-head{display:flex;align-items:center;gap:18px}
+.detail-head .avatar{width:74px;height:74px;font-size:22px;border-radius:22px}
+.detail-title h2{margin:0;font-size:28px}
+.detail-title p{margin:6px 0 0;color:var(--muted)}
+.detail-grid{display:grid;grid-template-columns:repeat(4,1fr);margin-top:18px;gap:12px}
+.history-item{display:grid;grid-template-columns:90px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.notification{border-left:3px solid var(--gold);padding:13px 14px;background:rgba(242,197,101,.06);border-radius:12px}
+.notification+.notification{margin-top:10px}
+.notification button{margin-top:9px}
+.empty{padding:26px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:16px}
+.modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.66);display:grid;place-items:center;padding:18px}
+.modal{width:min(920px,100%);max-height:88vh;overflow:auto;background:#0a1834;border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:var(--shadow)}
+.modal-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.modal h2{margin-top:0}
+.wizard-steps{display:flex;gap:8px;margin-bottom:18px}
+.wizard-step{height:6px;flex:1;border-radius:999px;background:rgba(255,255,255,.08)}
+.wizard-step.active{background:var(--gold)}
+.option-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.option-grid.countries{grid-template-columns:repeat(2,1fr)}
+.option{padding:16px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.03);cursor:pointer}
+.option.active{border-color:rgba(242,197,101,.55);background:rgba(242,197,101,.08)}
+.option b{display:block}
+.option span{display:block;margin-top:5px;color:var(--muted);font-size:13px}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.bottom-nav{display:none}
+.landing{min-height:100vh;padding:24px;display:grid;place-items:center;background:radial-gradient(circle at 70% 20%,rgba(242,197,101,.16),transparent 25%),linear-gradient(180deg,#08152f,#050a15)}
+.landing-card{width:min(1180px,100%);padding:32px;border:1px solid rgba(242,197,101,.2);border-radius:32px;background:linear-gradient(145deg,rgba(15,34,70,.94),rgba(7,18,40,.96));box-shadow:var(--shadow)}
+.landing-top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:14px}
+.landing-version{color:var(--muted);font-size:13px}
+.landing-hero{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:stretch}
+.landing-title{font-size:clamp(44px,8vw,88px);line-height:.95;letter-spacing:-.06em;margin:0}
+.landing-title span{color:var(--gold)}
+.landing-tag{font-size:18px;color:#c7d2eb;margin:18px 0 16px}
+.landing-text{max-width:680px;color:#d5def0;line-height:1.55}
+.menu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px}
+.menu-grid .btn{padding:15px}
+.logo-panel{display:flex;flex-direction:column;justify-content:center}
+.landing-logo{width:100%;max-width:430px;margin:0 auto 18px;display:block;border-radius:26px;border:1px solid rgba(242,197,101,.2)}
+.save-card{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:16px;margin-top:10px}
+.country-card{padding:18px;border:1px solid rgba(242,197,101,.25);border-radius:18px;background:rgba(242,197,101,.06)}
+.country-card.detail-country{margin-bottom:6px}
+.country-card h3{margin:0 0 8px}
+.country-facts{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:14px}
+.country-facts div{background:rgba(255,255,255,.03);padding:10px;border-radius:12px}
+.country-facts span{color:var(--muted);font-size:11px}.country-facts b{display:block;margin-top:3px}
+.toast{pointer-events:none;position:fixed;right:20px;bottom:20px;z-index:130;padding:13px 16px;background:#132957;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);font-weight:800}
+
+@media(max-width:1180px){
+  .grid.stats{grid-template-columns:repeat(3,1fr)}
+  .sports-grid,.athlete-grid{grid-template-columns:repeat(2,1fr)}
+  .filters{grid-template-columns:repeat(3,1fr)}
+  .two-col,.hero-with-logo,.landing-hero{grid-template-columns:1fr}
+  .detail-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:760px){
+  .shell{display:block}.sidebar{display:none}.main{padding-bottom:78px}
+  .topbar{padding:14px 15px}.content{padding:15px}.hero{padding:22px;border-radius:22px}
+  .grid.stats{grid-template-columns:repeat(2,1fr)}.sports-grid,.athlete-grid,.three-col{grid-template-columns:1fr}
+  .filters{grid-template-columns:1fr 1fr}.filters .search{grid-column:1/-1}
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:50;display:grid;grid-template-columns:repeat(5,1fr);padding:7px max(6px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));background:rgba(5,13,30,.96);border-top:1px solid var(--line);backdrop-filter:blur(16px)}
+  .bottom-nav button{text-align:center;padding:9px 4px;font-size:11px}.bottom-nav button.active{color:#fff;background:rgba(242,197,101,.1)}
+  .landing{padding:12px}.landing-card{padding:22px;border-radius:24px}.menu-grid{grid-template-columns:1fr}.option-grid,.option-grid.countries{grid-template-columns:1fr}.country-facts{grid-template-columns:1fr 1fr}.detail-head{align-items:flex-start}.detail-grid{grid-template-columns:1fr 1fr}.history-item{grid-template-columns:70px 1fr}.history-item>:last-child{grid-column:2}.topbar .date-chip{display:none}.landing-top{display:block}.brand-logo{width:52px;height:52px}.landing-logo{max-width:100%}
+}
+@media(max-width:420px){
+  .grid.stats{grid-template-columns:1fr 1fr}.filters{grid-template-columns:1fr}.filters .search{grid-column:auto}.detail-grid{grid-template-columns:1fr}.country-facts{grid-template-columns:1fr 1fr}.metric{font-size:22px}
+}
+
+/* V0.4 — management */
+.budget-row{flex-wrap:wrap}.budget-value{min-width:72px;text-align:center}.card h3{margin-top:8px;margin-bottom:6px}.modal .pillbar .btn{font-size:13px}.notification .btn+.btn{margin-left:8px}
+@media(max-width:760px){.budget-row .grow{flex-basis:100%;margin-bottom:4px}.budget-row .btn{padding:10px 12px}.hero-actions .btn{flex:1 1 140px}.modal .detail-head{flex-wrap:wrap}.modal .detail-head>.btn{width:100%}}
+
+.card,.list-row,.grow{min-width:0}.row-title,.row-sub,.metric{overflow-wrap:anywhere}.content{overflow-x:hidden}
+@media(min-width:761px) and (max-width:900px){.budget-row{display:grid;grid-template-columns:1fr auto auto auto}.budget-row .grow{grid-column:1/-1}.grid.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.reduced-motion *{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+.compact-ui .card{padding:14px}.compact-ui .content{padding-top:18px;padding-bottom:18px}.compact-ui .list-row{padding:9px 11px}
+
+.wide-modal{width:min(1180px,100%)}
+.staff-card{min-width:0}.staff-line{display:flex;align-items:center;justify-content:space-between;gap:10px}.staff-card .metric{font-size:30px}.staff-card .pillbar{margin-top:14px}
+@media(max-width:760px){.wide-modal{width:100%}.staff-card .pillbar{display:grid;grid-template-columns:1fr}.staff-card .btn{width:100%}}
+
+/* V0.95 — Centre de match live fiabilisé */
+.live-entry{background:linear-gradient(135deg,rgba(242,197,101,.11),rgba(18,41,87,.82));border-color:rgba(242,197,101,.28)}
+.live-scoreboard{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:18px;margin:18px 0;padding:20px;border:1px solid rgba(242,197,101,.24);border-radius:22px;background:radial-gradient(circle at 50% 30%,rgba(242,197,101,.12),transparent 42%),rgba(5,13,30,.52)}
+.live-scoreboard>div:first-child{text-align:left}.live-scoreboard>div:last-child{text-align:right}
+.live-scoreboard span{display:block;color:#dfe6f7;font-weight:800;font-size:14px}.live-scoreboard b{display:block;font-size:clamp(42px,7vw,72px);line-height:1;margin-top:6px;color:#fff}
+.live-clock{text-align:center;font-size:18px;font-weight:900;color:var(--gold);min-width:150px}.live-clock small{display:block;margin-top:7px;font-size:11px;font-weight:700;color:var(--muted)}
+.live-advance{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.selected-live-player{border-color:rgba(242,197,101,.55);background:rgba(242,197,101,.08)}
+.live-match-modal .list-row .btn{padding:8px 10px;font-size:12px}
+@media(max-width:760px){.live-scoreboard{grid-template-columns:1fr auto 1fr;gap:8px;padding:14px}.live-scoreboard b{font-size:40px}.live-scoreboard span{font-size:11px}.live-clock{min-width:86px;font-size:13px}.live-match-modal .modal-top{align-items:flex-start}.live-match-modal .pillbar .btn{flex:1 1 auto}.live-match-modal .list-row{align-items:flex-start;flex-wrap:wrap}.live-match-modal .list-row .grow{min-width:160px}}
+
+/* V0.98 QA — identité National Glory + onboarding */
+.brand-logo,.sidebar-logo{object-fit:cover;background:#071228}
+.landing-logo{aspect-ratio:auto;object-fit:contain;background:#071228}
+.tutorial-modal{width:min(820px,100%)}
+.tutorial-visual{display:grid;grid-template-columns:180px 1fr;gap:22px;align-items:center;margin:18px 0 22px}
+.tutorial-visual img{width:180px;height:180px;object-fit:cover;border-radius:28px;border:1px solid rgba(242,197,101,.3);box-shadow:0 16px 34px rgba(0,0,0,.26)}
+.tutorial-visual p{font-size:17px;line-height:1.55;color:#e4e9f4;margin-top:0}
+@media(max-width:760px){.tutorial-visual{grid-template-columns:1fr}.tutorial-visual img{width:120px;height:120px;margin:0 auto}.tutorial-visual p{font-size:15px}.landing-title{font-size:clamp(40px,14vw,70px)}}
+</style></head><body><div id="app"></div><script>
+(function(root,factory){
+  const api=factory();
+  if(typeof module==='object'&&module.exports) module.exports=api;
+  else root.ON_CONFIG=api;
+})(typeof globalThis!=='undefined'?globalThis:this,function(){
+  const TEAM_SPORTS=['handball','basketball','volleyball'];
+  const DISCIPLINES={
+    athletics:['100 m','400 m','1500 m','5000 m','Marathon','Saut en longueur'],
+    swimming:['100 m nage libre','200 m nage libre','100 m papillon'],
+    gymnastics:['Concours général','Sol','Barres'],
+    cycling:['Route','Piste','Contre-la-montre'],
+    judo:['-60 kg','-73 kg','-81 kg','-90 kg'],
+    fencing:['Épée','Fleuret','Sabre'],
+    boxing:['-63,5 kg','-71 kg','-80 kg'],
+    rowing:['Skiff','Deux de couple'],
+    canoe:['K1 500 m','K2 500 m','Slalom'],
+    tennis:['Simple'],
+    tabletennis:['Simple'],
+    archery:['Individuel'],
+    handball:['Arrière','Ailier','Pivot','Gardien'],
+    basketball:['Meneur','Arrière','Ailier','Intérieur'],
+    volleyball:['Réceptionneur','Central','Passeur','Libéro']
+  };
+  const SEXES=[{id:'M',label:'Hommes'},{id:'F',label:'Femmes'}];
+  const TEAM_RULES={
+    handball:{minimum:7,preferred:16,selectionLimit:20},
+    basketball:{minimum:5,preferred:12,selectionLimit:18},
+    volleyball:{minimum:6,preferred:12,selectionLimit:20}
+  };
+  const CAREER_MODES={
+    'Classique':{budgetMultiplier:1,objectiveMultiplier:1,progressionMultiplier:1,youthMultiplier:1,pressure:1},
+    'Bâtisseur':{budgetMultiplier:.78,objectiveMultiplier:.78,progressionMultiplier:1.06,youthMultiplier:1.12,pressure:.82},
+    'Puissance mondiale':{budgetMultiplier:1.12,objectiveMultiplier:1.18,progressionMultiplier:1.02,youthMultiplier:1.02,pressure:1.25},
+    'Libre':{budgetMultiplier:1,objectiveMultiplier:1,progressionMultiplier:1,youthMultiplier:1,pressure:1}
+  };
+  const DIFFICULTIES={
+    'Facile':{opponentMultiplier:.95,progressionMultiplier:1.06,injuryMultiplier:.86,scoutingMultiplier:1.12,objectiveMultiplier:.92},
+    'Normal':{opponentMultiplier:1,progressionMultiplier:1,injuryMultiplier:1,scoutingMultiplier:1,objectiveMultiplier:1},
+    'Difficile':{opponentMultiplier:1.055,progressionMultiplier:.96,injuryMultiplier:1.13,scoutingMultiplier:.9,objectiveMultiplier:1.08}
+  };
+  const DURATION_YEARS={'10 ans':10,'20 ans':20,'30 ans':30,'Illimitée':null};
+
+  const TEAM_ROLE_NEEDS={
+    handball:{'Gardien':2,'Ailier':2,'Arrière':3,'Pivot':1},
+    basketball:{'Meneur':1,'Arrière':2,'Ailier':2,'Intérieur':2},
+    volleyball:{'Passeur':1,'Central':2,'Réceptionneur':2,'Libéro':1}
+  };
+  const STAFF_ROLES={
+    headCoach:{label:'Entraîneur national',baseYears:2},
+    youthDirector:{label:'Directeur de la formation',baseYears:3},
+    medicalLead:{label:'Responsable médical',baseYears:3}
+  };
+  const STAFF_SPECIALTIES={
+    headCoach:['Tactique','Développement','Mental','Physique'],
+    youthDirector:['Détection','Technique','Potentiel','Transition senior'],
+    medicalLead:['Prévention','Récupération','Réathlétisation','Charge']
+  };
+
+  function makeEvents(){
+    const events={};
+    for(const [sportId,disciplines] of Object.entries(DISCIPLINES)){
+      if(TEAM_SPORTS.includes(sportId)){
+        events[sportId]=SEXES.map(sex=>({
+          id:`${sportId}_${sex.id.toLowerCase()}_team`,
+          sportId,
+          name:`Tournoi ${sex.label.toLowerCase()}`,
+          discipline:'Équipe',
+          sex:sex.id,
+          type:'team'
+        }));
+      }else{
+        events[sportId]=[];
+        disciplines.forEach((discipline,di)=>{
+          SEXES.forEach(sex=>events[sportId].push({
+            id:`${sportId}_${di}_${sex.id.toLowerCase()}`,
+            sportId,
+            name:`${discipline} ${sex.label}`,
+            discipline,
+            sex:sex.id,
+            type:'individual'
+          }));
+        });
+      }
+    }
+    return events;
+  }
+  const SPORT_EVENTS=makeEvents();
+
+  return {TEAM_SPORTS,DISCIPLINES,SEXES,TEAM_RULES,TEAM_ROLE_NEEDS,STAFF_ROLES,STAFF_SPECIALTIES,CAREER_MODES,DIFFICULTIES,DURATION_YEARS,SPORT_EVENTS};
+});
+
+</script>
+<script>
+(function(root,factory){
+  const config=(typeof module==='object'&&module.exports)?require('./config.js'):root.ON_CONFIG;
+  const api=factory(config);
+  if(typeof module==='object'&&module.exports) module.exports=api;
+  else root.ON_ENGINE=api;
+})(typeof globalThis!=='undefined'?globalThis:this,function(C){
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const round1=v=>Math.round(v*10)/10;
+  function isTeamSport(sportId){return C.TEAM_SPORTS.includes(sportId)}
+  function eventsForSport(sportId){return C.SPORT_EVENTS[sportId]||[]}
+  function selectionLimitForSport(sportId){
+    if(isTeamSport(sportId)) return C.TEAM_RULES[sportId].selectionLimit;
+    return Math.max(6,eventsForSport(sportId).length*2);
+  }
+  function careerModifiers(mode='Classique',difficulty='Normal'){
+    const m=C.CAREER_MODES[mode]||C.CAREER_MODES.Classique;
+    const d=C.DIFFICULTIES[difficulty]||C.DIFFICULTIES.Normal;
+    return {
+      budgetMultiplier:m.budgetMultiplier,
+      objectiveMultiplier:m.objectiveMultiplier*d.objectiveMultiplier,
+      progressionMultiplier:m.progressionMultiplier*d.progressionMultiplier,
+      youthMultiplier:m.youthMultiplier,
+      pressure:m.pressure,
+      opponentMultiplier:d.opponentMultiplier,
+      injuryMultiplier:d.injuryMultiplier,
+      scoutingMultiplier:d.scoutingMultiplier
+    };
+  }
+  function careerEndYear(startYear,duration){
+    const years=C.DURATION_YEARS[duration];
+    return years==null?null:startYear+years-1;
+  }
+  function eligibleForEvent(athlete,event){
+    if(!athlete||!event||athlete.sportId!==event.sportId) return false;
+    if(event.sex&&athlete.sex!==event.sex) return false;
+    if(event.type==='team') return true;
+    return athlete.discipline===event.discipline;
+  }
+  function eventEntries(athletes,event,{selectedOnly=true,limit=2}={}){
+    return athletes.filter(a=>!a.injuredDays&&(!selectedOnly||a.selected)&&eligibleForEvent(a,event)).sort((a,b)=>b.ability-a.ability).slice(0,limit);
+  }
+  function normalizeBudgets(sports,totalBudget,reserveRatio=.08){
+    const cap=Math.max(0,totalBudget*(1-reserveRatio));
+    const current=sports.reduce((sum,s)=>sum+Math.max(0,+s.budget||0),0)||1;
+    const scale=Math.min(1,cap/current);
+    const normalized=sports.map(s=>({...s,budget:round1(Math.max(2,(+s.budget||0)*scale))}));
+    let sum=round1(normalized.reduce((x,s)=>x+s.budget,0));
+    if(sum>cap){
+      const sorted=[...normalized].sort((a,b)=>b.budget-a.budget);
+      let excess=round1(sum-cap);
+      for(const s of sorted){
+        if(excess<=0)break;
+        const cut=Math.min(excess,Math.max(0,s.budget-2));
+        s.budget=round1(s.budget-cut);excess=round1(excess-cut);
+      }
+    }
+    normalized.forEach(s=>{s.recommendedBudget=s.recommendedBudget||s.budget});
+    return normalized;
+  }
+  function reserveBudget(totalBudget,sports){return round1(totalBudget-sports.reduce((sum,s)=>sum+(+s.budget||0),0))}
+  function budgetFactor(sport){
+    const recommended=Math.max(1,+sport.recommendedBudget||+sport.budget||1);
+    return clamp((+sport.budget||0)/recommended,.62,1.28);
+  }
+  function playerTeamScore(a){
+    return a.ability*.46+a.technical*.17+a.physical*.13+a.mental*.11+a.form*.08+a.confidence*.05-a.fatigue*.05;
+  }
+  function balancedRoster(athletes,event){
+    const rule=C.TEAM_RULES[event.sportId];
+    const needs=C.TEAM_ROLE_NEEDS[event.sportId]||{};
+    const eligible=eventEntries(athletes,event,{selectedOnly:true,limit:rule.selectionLimit});
+    const available=[...eligible].sort((a,b)=>playerTeamScore(b)-playerTeamScore(a));
+    const roster=[]; const used=new Set(); const missingRoles=[];
+    for(const [role,count] of Object.entries(needs)){
+      const candidates=available.filter(a=>a.discipline===role&&!used.has(a));
+      for(let i=0;i<count;i++){
+        if(candidates[i]){roster.push(candidates[i]);used.add(candidates[i])}
+        else missingRoles.push(role);
+      }
+    }
+    for(const a of available){
+      if(roster.length>=rule.preferred) break;
+      if(!used.has(a)){roster.push(a);used.add(a)}
+    }
+    return {roster,eligible,missingRoles};
+  }
+  function roleBalance(event,roster){
+    const needs=C.TEAM_ROLE_NEEDS[event.sportId]||{};
+    const totalNeed=Object.values(needs).reduce((s,n)=>s+n,0)||1;
+    let covered=0;
+    for(const [role,count] of Object.entries(needs)){
+      covered+=Math.min(count,roster.filter(a=>a.discipline===role).length);
+    }
+    return clamp(covered/totalNeed,0,1);
+  }
+  function teamChemistry(roster){
+    if(!roster.length)return 0;
+    const avgMental=roster.reduce((s,a)=>s+(a.mental||60),0)/roster.length;
+    const avgConfidence=roster.reduce((s,a)=>s+(a.confidence||60),0)/roster.length;
+    const avgExperience=roster.reduce((s,a)=>s+(a.experience||20),0)/roster.length;
+    const avgFatigue=roster.reduce((s,a)=>s+(a.fatigue||0),0)/roster.length;
+    const spread=Math.max(...roster.map(a=>a.ability))-Math.min(...roster.map(a=>a.ability));
+    return clamp(avgMental*.35+avgConfidence*.25+avgExperience*.25+(100-avgFatigue)*.15-spread*.15,0,100);
+  }
+  function teamStrength(athletes,event,environment={}){
+    const rule=C.TEAM_RULES[event.sportId];
+    const built=balancedRoster(athletes,event);
+    const roster=built.roster;
+    if(!roster.length) return {score:0,roster:[],shortage:rule.minimum,roleBalance:0,chemistry:0,missingRoles:built.missingRoles};
+    const playerScore=roster.reduce((s,a)=>s+playerTeamScore(a),0)/roster.length;
+    const shortage=Math.max(0,rule.minimum-roster.length);
+    const balance=roleBalance(event,roster);
+    const chemistry=teamChemistry(roster);
+    const depth=Math.min(1,roster.length/rule.preferred);
+    const env=(environment.coach||70)*.045+(environment.efficiency||70)*.025+(environment.morale||70)*.015+(environment.budgetFactor||1)*2;
+    const score=playerScore+env-shortage*5+(balance-.7)*7+(chemistry-70)*.045+(depth-.75)*3;
+    return {score,roster,shortage,roleBalance:round1(balance*100),chemistry:round1(chemistry),missingRoles:built.missingRoles};
+  }
+  function totalOlympicEvents(){return Object.values(C.SPORT_EVENTS).reduce((n,a)=>n+a.length,0)}
+  return {isTeamSport,eventsForSport,selectionLimitForSport,careerModifiers,careerEndYear,eligibleForEvent,eventEntries,normalizeBudgets,reserveBudget,budgetFactor,balancedRoster,roleBalance,teamChemistry,teamStrength,totalOlympicEvents,round1,clamp};
+});
+
+</script>
+<script>
+(function(root,factory){
+  const config=(typeof module==='object'&&module.exports)?require('./config.js'):root.ON_CONFIG;
+  const core=(typeof module==='object'&&module.exports)?require('./core.js'):root.ON_ENGINE;
+  const api=factory(config,core);
+  if(typeof module==='object'&&module.exports) module.exports=api;
+  else root.ON_MANAGEMENT=api;
+})(typeof globalThis!=='undefined'?globalThis:this,function(C,E){
+  const clamp=E.clamp,round1=E.round1;
+
+  function normalizeStaffMember(member,role,currentYear){
+    const base=C.STAFF_ROLES[role]?.baseYears||2;
+    return {
+      name:member?.name||'Poste vacant',
+      rating:clamp(+member?.rating||60,35,99),
+      salary:round1(Math.max(.2,+member?.salary||.5)),
+      specialty:member?.specialty||C.STAFF_SPECIALTIES[role]?.[0]||'Polyvalent',
+      contractEnd:+member?.contractEnd||currentYear+base,
+      role
+    };
+  }
+  function contractYearsRemaining(member,currentYear){return Math.max(0,(+member?.contractEnd||currentYear)-currentYear)}
+  function contractStatus(member,currentYear){
+    const years=contractYearsRemaining(member,currentYear);
+    return years<=0?'expired':years===1?'expiring':'active';
+  }
+  function renewalCost(member,years=2){return round1((+member.salary||.5)*years*.45)}
+  function recruitmentCost(candidate){return round1((+candidate.salary||.5)*1.25 + Math.max(0,(+candidate.rating||60)-75)*.025)}
+  function annualStaffPayroll(federations){
+    return round1(Object.values(federations||{}).reduce((sum,f)=>sum+['headCoach','youthDirector','medicalLead'].reduce((s,r)=>s+(+f?.[r]?.salary||0),0),0));
+  }
+
+  function generateFederationObjectives(sport,year,{olympicYear=false}={}){
+    const objectives=[
+      {id:`rank_${year}`,type:'ranking',label:`Atteindre le top ${Math.max(1,Math.min(sport.ranking, sport.ranking-1))}`,target:Math.max(1,sport.ranking-1),baseline:sport.ranking,weight:40},
+      {id:`youth_${year}`,type:'youth',label:`Porter la formation à ${Math.min(98,sport.youth+2)}/100`,target:Math.min(98,sport.youth+2),baseline:sport.youth,weight:30},
+      {id:`infra_${year}`,type:'infrastructure',label:`Porter les infrastructures à ${Math.min(99,sport.infrastructure+1)}/100`,target:Math.min(99,sport.infrastructure+1),baseline:sport.infrastructure,weight:30}
+    ];
+    if(olympicYear){
+      objectives[0]={id:`qual_${year}`,type:'qualification',label:'Qualifier au moins une épreuve aux Jeux',target:1,baseline:0,weight:40};
+    }
+    return objectives;
+  }
+  function objectiveProgress(objective,sport,qualification){
+    if(objective.type==='ranking'){
+      const achieved=sport.ranking<=objective.target;
+      const denom=Math.max(1,objective.baseline-objective.target);
+      const progress=clamp((objective.baseline-sport.ranking)/denom,0,1);
+      return {achieved,progress,value:sport.ranking};
+    }
+    if(objective.type==='youth'){
+      const denom=Math.max(1,objective.target-objective.baseline);
+      const progress=clamp((sport.youth-objective.baseline)/denom,0,1);
+      return {achieved:sport.youth>=objective.target,progress,value:sport.youth};
+    }
+    if(objective.type==='infrastructure'){
+      const denom=Math.max(1,objective.target-objective.baseline);
+      const progress=clamp((sport.infrastructure-objective.baseline)/denom,0,1);
+      return {achieved:sport.infrastructure>=objective.target,progress,value:sport.infrastructure};
+    }
+    if(objective.type==='qualification'){
+      const count=Object.values(qualification?.events||{}).filter(e=>e.qualified).length;
+      return {achieved:count>=objective.target,progress:clamp(count/objective.target,0,1),value:count};
+    }
+    return {achieved:false,progress:0,value:0};
+  }
+  function evaluateFederationObjectives(sport,qualification,objectives=[]){
+    const details=objectives.map(o=>({...o,...objectiveProgress(o,sport,qualification)}));
+    const weight=details.reduce((s,o)=>s+(o.weight||1),0)||1;
+    const score=Math.round(details.reduce((s,o)=>s+o.progress*(o.weight||1),0)/weight*100);
+    const achieved=details.filter(o=>o.achieved).length;
+    return {score,achieved,total:details.length,details,moraleDelta:score>=80?4:score>=55?1:score>=35?-2:-5,efficiencyDelta:score>=80?2:score>=55?1:score>=35?0:-2};
+  }
+
+  function candidateQuality(currentRating,rand=.5){
+    return clamp(Math.round(currentRating-4+rand*13),55,99);
+  }
+  function makeStaffCandidate(role,currentRating,currentYear,rand=.5,name='Candidat'){
+    const rating=candidateQuality(currentRating,rand);
+    const specialties=C.STAFF_SPECIALTIES[role]||['Polyvalent'];
+    const idx=Math.min(specialties.length-1,Math.floor(rand*specialties.length));
+    return {name,rating,salary:round1(.35+rating*.012),specialty:specialties[idx],contractEnd:currentYear+(C.STAFF_ROLES[role]?.baseYears||2),role};
+  }
+
+  return {normalizeStaffMember,contractYearsRemaining,contractStatus,renewalCost,recruitmentCost,annualStaffPayroll,generateFederationObjectives,objectiveProgress,evaluateFederationObjectives,candidateQuality,makeStaffCandidate};
+});
+
+</script>
+<script>
+(function(root,factory){
+  const api=factory();
+  if(typeof module==='object'&&module.exports) module.exports=api;
+  else root.ON_TACTICS=api;
+})(typeof globalThis!=='undefined'?globalThis:this,function(){
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const round1=v=>Math.round(v*10)/10;
+  const TACTICS={
+    handball:{
+      balanced:{label:'Équilibré',weights:{technical:.30,physical:.24,mental:.24,experience:.12,form:.10},style:'balanced'},
+      transition:{label:'Jeu rapide',weights:{technical:.24,physical:.34,mental:.18,experience:.09,form:.15},style:'pace'},
+      positional:{label:'Attaque placée',weights:{technical:.36,physical:.16,mental:.27,experience:.14,form:.07},style:'control'},
+      aggressive:{label:'Défense agressive',weights:{technical:.19,physical:.31,mental:.31,experience:.11,form:.08},style:'pressure'}
+    },
+    basketball:{
+      balanced:{label:'Équilibré',weights:{technical:.29,physical:.24,mental:.22,experience:.13,form:.12},style:'balanced'},
+      pace:{label:'Tempo élevé',weights:{technical:.25,physical:.32,mental:.17,experience:.09,form:.17},style:'pace'},
+      perimeter:{label:'Jeu extérieur',weights:{technical:.37,physical:.17,mental:.23,experience:.12,form:.11},style:'control'},
+      defense:{label:'Priorité défense',weights:{technical:.19,physical:.28,mental:.34,experience:.12,form:.07},style:'pressure'}
+    },
+    volleyball:{
+      balanced:{label:'Équilibré',weights:{technical:.31,physical:.23,mental:.23,experience:.12,form:.11},style:'balanced'},
+      serve:{label:'Service agressif',weights:{technical:.34,physical:.27,mental:.18,experience:.09,form:.12},style:'pressure'},
+      block:{label:'Bloc-défense',weights:{technical:.22,physical:.34,mental:.28,experience:.10,form:.06},style:'control'},
+      reception:{label:'Réception sécurisée',weights:{technical:.32,physical:.16,mental:.31,experience:.14,form:.07},style:'balanced'}
+    }
+  };
+  const MATCHUPS={
+    pace:{control:1.8,pressure:-1.2,balanced:.4,pace:0},
+    control:{pressure:1.4,pace:-1.5,balanced:.5,control:0},
+    pressure:{pace:1.5,control:-1.3,balanced:.3,pressure:0},
+    balanced:{pace:.2,control:.2,pressure:.2,balanced:0}
+  };
+  function tacticFor(sportId,tacticId='balanced'){return TACTICS[sportId]?.[tacticId]||TACTICS[sportId]?.balanced||null}
+  function rosterProfile(roster){
+    if(!roster?.length)return {technical:0,physical:0,mental:0,experience:0,form:0,fatigue:100};
+    const avg=k=>roster.reduce((s,a)=>s+(+a[k]||0),0)/roster.length;
+    return {technical:avg('technical'),physical:avg('physical'),mental:avg('mental'),experience:avg('experience'),form:avg('form'),fatigue:avg('fatigue')};
+  }
+  function tacticFit(sportId,tacticId,roster){
+    const tactic=tacticFor(sportId,tacticId); if(!tactic)return 0;
+    const p=rosterProfile(roster),w=tactic.weights;
+    const weighted=p.technical*w.technical+p.physical*w.physical+p.mental*w.mental+p.experience*w.experience+p.form*w.form;
+    return round1(clamp((weighted-70)*.11-(p.fatigue-25)*.025,-4.5,4.5));
+  }
+  function matchupBonus(sportId,ourTactic='balanced',opponentTactic='balanced'){
+    const a=tacticFor(sportId,ourTactic),b=tacticFor(sportId,opponentTactic);if(!a||!b)return 0;
+    return MATCHUPS[a.style]?.[b.style]||0;
+  }
+  function chooseAITactic(sportId,profile={}){
+    const candidates=Object.keys(TACTICS[sportId]||{});if(!candidates.length)return 'balanced';
+    if((profile.physical||70)>(profile.technical||70)+5) return sportId==='volleyball'?'block':sportId==='basketball'?'pace':'transition';
+    if((profile.mental||70)>(profile.physical||70)+4) return sportId==='basketball'?'defense':sportId==='handball'?'positional':'reception';
+    if((profile.technical||70)>(profile.physical||70)+4) return sportId==='volleyball'?'serve':sportId==='basketball'?'perimeter':'positional';
+    return 'balanced';
+  }
+  function effectiveTeamScore(baseScore,{sportId,ourTactic='balanced',opponentTactic='balanced',roster=[]}={}){
+    return round1(baseScore+tacticFit(sportId,ourTactic,roster)+matchupBonus(sportId,ourTactic,opponentTactic));
+  }
+  return {TACTICS,tacticFor,rosterProfile,tacticFit,matchupBonus,chooseAITactic,effectiveTeamScore};
+});
+
+</script>
+<script>
+(function(root,factory){
+  let T=null;
+  if(typeof module==='object'&&module.exports){try{T=require('./tactics.js')}catch(e){T=null} module.exports=factory(T)}
+  else root.ON_LIVE_MATCH=factory(root.ON_TACTICS||null);
+})(typeof globalThis!=='undefined'?globalThis:this,function(Tactics){
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const avg=(arr,k,f=70)=>arr?.length?arr.reduce((s,x)=>s+(+x[k]||f),0)/arr.length:f;
+  const makeRng=(seed=1)=>{let s=(seed>>>0)||1;return()=>{s=(s+0x6D2B79F5)|0;let t=Math.imul(s^(s>>>15),1|s);t=t+Math.imul(t^(t>>>7),61|t)^t;return((t^(t>>>14))>>>0)/4294967296}};
+  const normal=rng=>{let u=0,v=0;while(!u)u=rng();while(!v)v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+  const RULES={
+    handball:{lineup:7,roster:16,timeouts:3,periods:2,unitsPerPeriod:60,roles:['Gardien','Gardien','Ailier','Ailier','Arrière','Arrière','Arrière','Pivot','Ailier','Arrière','Pivot','Ailier','Arrière','Arrière','Ailier','Pivot']},
+    basketball:{lineup:5,roster:12,timeouts:5,periods:4,unitsPerPeriod:35,roles:['Meneur','Arrière','Arrière','Ailier','Ailier','Intérieur','Intérieur','Meneur','Arrière','Ailier','Intérieur','Ailier']},
+    volleyball:{lineup:6,roster:12,timeouts:2,periods:5,unitsPerPeriod:999,roles:['Passeur','Central','Central','Réceptionneur','Réceptionneur','Libéro','Passeur','Central','Réceptionneur','Libéro','Central','Réceptionneur']}
+  };
+  function tacticLabel(s,id){return Tactics?.tacticFor?.(s,id)?.label||id||'Équilibré'}
+  function matchup(s,a,b){return Tactics?.matchupBonus?.(s,a,b)||0}
+  function fit(s,t,r){return Tactics?.tacticFit?.(s,t,r)||0}
+  function clonePlayer(p,i,role,teamName){
+    const base=+p?.ability||+p?.technical||74;
+    return {
+      id:p?.id||`${teamName.replace(/\W/g,'')}_${i}`,
+      name:p?.name||`${teamName} #${i+1}`,
+      discipline:p?.discipline||role,
+      technical:+p?.technical||base,physical:+p?.physical||base,mental:+p?.mental||base,
+      experience:+p?.experience||Math.max(55,base-5),form:+p?.form||76,confidence:+p?.confidence||74,
+      fatigue:clamp(+p?.fatigue||15,0,100),injuryRisk:clamp(+p?.injuryRisk||15,1,60),injured:false,fouledOut:false,suspendedUnits:0,
+      sourceId:p?.id||null
+    };
+  }
+  function normalizeTeam(team,sportId,rng){
+    const rule=RULES[sportId],source=team.roster||[],base=+team.strength||+team.score||74;
+    const roster=[];
+    for(let i=0;i<rule.roster;i++){
+      const p=source[i];
+      const role=rule.roles[i%rule.roles.length];
+      roster.push(clonePlayer(p||{ability:base+normal(rng)*2,technical:base+normal(rng)*2,physical:base+normal(rng)*2,mental:base+normal(rng)*2,experience:base-5+normal(rng)*2,form:+team.form||76,confidence:+team.confidence||74,fatigue:+team.fatigue||15},i,role,team.name));
+    }
+    const tactic=team.tactic||'balanced';
+    return {id:team.id||team.nationId,name:team.name,roster,tactic,familiarity:clamp(+team.familiarity||72,30,100),timeoutsUsed:0,totalTimeoutsUsed:0,timeoutsBySegment:{first:0,second:0,late:0,ot:0},lastTimeoutUnit:-999,substitutionsUsed:0,totalSubstitutionsUsed:0,coachLog:[],lineup:[],bench:[],score:0,periodScores:[],run:0,lastScoreAt:0};
+  }
+  function playerValue(p){return p.technical*.37+p.physical*.25+p.mental*.20+p.form*.12+p.experience*.06-p.fatigue*.10}
+  function buildLineup(team,sportId){
+    const rule=RULES[sportId],r=[...team.roster];
+    let chosen=[];
+    if(sportId==='handball'){
+      const needs=[['Gardien',1],['Ailier',2],['Arrière',2],['Pivot',1]];
+      needs.forEach(([role,count])=>{const pool=r.filter(x=>x.discipline===role&&!chosen.includes(x)).sort((a,b)=>playerValue(b)-playerValue(a));chosen.push(...pool.slice(0,count))});
+      chosen.push(...r.filter(p=>!chosen.includes(p)).sort((a,b)=>playerValue(b)-playerValue(a)).slice(0,rule.lineup-chosen.length));
+    }else if(sportId==='basketball'){
+      const needs=[['Meneur',1],['Arrière',1],['Ailier',1],['Intérieur',1]];
+      needs.forEach(([role,count])=>{const pool=r.filter(x=>x.discipline===role&&!chosen.includes(x)).sort((a,b)=>playerValue(b)-playerValue(a));chosen.push(...pool.slice(0,count))});
+      chosen.push(...r.filter(p=>!chosen.includes(p)).sort((a,b)=>playerValue(b)-playerValue(a)).slice(0,rule.lineup-chosen.length));
+    }else{
+      const needs=[['Passeur',1],['Central',2],['Réceptionneur',2],['Libéro',1]];
+      needs.forEach(([role,count])=>{const pool=r.filter(x=>x.discipline===role&&!chosen.includes(x)).sort((a,b)=>playerValue(b)-playerValue(a));chosen.push(...pool.slice(0,count))});
+      chosen.push(...r.filter(p=>!chosen.includes(p)).sort((a,b)=>playerValue(b)-playerValue(a)).slice(0,rule.lineup-chosen.length));
+    }
+    team.lineup=chosen.slice(0,rule.lineup);team.bench=r.filter(p=>!team.lineup.includes(p));
+  }
+  function initPlayerStats(team,sportId){
+    return Object.fromEntries(team.roster.map(p=>[p.id,{id:p.id,sourceId:p.sourceId||null,name:p.name,role:p.discipline,minutes:0,fatigueStart:p.fatigue,fatigueEnd:p.fatigue,injury:null,
+      goals:0,shots:0,assists:0,saves:0,turnovers:0,exclusions:0,penalties:0,fouls:0,
+      points:0,fg2m:0,fg2a:0,fg3m:0,fg3a:0,ftm:0,fta:0,rebounds:0,
+      kills:0,aces:0,blocks:0,errors:0,digs:0,rallies:0}])) ;
+  }
+  function profile(team){
+    const r=team.lineup.filter(p=>!p.injured&&!p.fouledOut&&(p.suspendedUnits||0)<=0),all=team.roster.filter(p=>!p.injured&&!p.fouledOut);
+    return {technical:avg(r,'technical'),physical:avg(r,'physical'),mental:avg(r,'mental'),experience:avg(r,'experience'),form:avg(r,'form'),confidence:avg(r,'confidence'),fatigue:avg(r,'fatigue'),depth:all.length/Math.max(1,team.roster.length),activeRatio:r.length/Math.max(1,team.lineup.length),familiarity:team.familiarity,tactic:team.tactic};
+  }
+  function effective(team,sportId,oppTactic){const p=profile(team);const core=p.technical*.31+p.physical*.22+p.mental*.20+p.experience*.10+p.form*.10+p.confidence*.07;return core-Math.max(0,p.fatigue-25)*.055-(1-p.activeRatio)*8+(p.familiarity-70)*.055+fit(sportId,p.tactic,team.lineup)+matchup(sportId,p.tactic,oppTactic||'balanced')}
+  function weightedPick(players,weightFn,rng){const pool=players.filter(p=>!p.injured&&!p.fouledOut&&(p.suspendedUnits||0)<=0);if(!pool.length)return null;const weights=pool.map(p=>Math.max(.1,weightFn(p))),sum=weights.reduce((a,b)=>a+b,0);let x=rng()*sum;for(let i=0;i<pool.length;i++){x-=weights[i];if(x<=0)return pool[i]}return pool[pool.length-1]}
+  function rolePick(team,roles,rng){let pool=team.lineup.filter(p=>roles.includes(p.discipline)&&!p.injured&&!p.fouledOut&&(p.suspendedUnits||0)<=0);if(!pool.length)pool=team.lineup.filter(p=>!p.injured&&!p.fouledOut&&(p.suspendedUnits||0)<=0);return weightedPick(pool,p=>playerValue(p),rng)}
+  function fatigueTick(session,team,amount){for(const p of team.lineup){if(p.injured||p.fouledOut)continue;p.fatigue=clamp(p.fatigue+amount*(.85+(100-p.physical)/100),0,100);session.playerStats[sideOf(session,team)][p.id].fatigueEnd=p.fatigue}}
+  function benchRecovery(team,amount=.08){for(const p of team.bench){if(p.injured)continue;p.fatigue=clamp(p.fatigue-amount,0,100)}}
+  function breakRecovery(team,amount=1.5){for(const p of team.roster){if(p.injured)continue;p.fatigue=clamp(p.fatigue-amount,0,100)}}
+  function tickSuspensions(team){for(const p of team.roster)if((p.suspendedUnits||0)>0)p.suspendedUnits=Math.max(0,p.suspendedUnits-1)}
+  function sideOf(s,t){return s.home===t?'home':'away'}
+  function addMinutes(session,team,mins){for(const p of team.lineup){const st=session.playerStats[sideOf(session,team)][p.id];if(st)st.minutes+=mins}}
+  function maybeInjury(session,team,rng,intensity=1){
+    const candidates=team.lineup.filter(p=>!p.injured&&!p.fouledOut);if(!candidates.length)return;
+    const p=weightedPick(candidates,x=>(x.fatigue+15)*(x.injuryRisk+5),rng);if(!p)return;
+    const risk=(p.injuryRisk/100)*(p.fatigue/100)*0.0012*intensity;
+    if(rng()<risk){
+      p.injured=true;const severity=rng()<.72?'léger':rng()<.92?'modéré':'sérieux';const st=session.playerStats[sideOf(session,team)][p.id];st.injury=severity;
+      session.injuries.push({side:sideOf(session,team),player:p.name,severity,time:timeLabel(session)});session.events.push({time:timeLabel(session),type:'injury',text:`Blessure ${severity} : ${p.name}`});
+      replaceUnavailable(session,team,p,rng,'blessure');
+    }
+  }
+  function canSubstitute(session,team){return session.sportId!=='volleyball'||team.substitutionsUsed<6}
+  function substitute(session,team,outId,inId,forced=false){
+    if(!forced&&!canSubstitute(session,team))return false;
+    const out=team.lineup.find(p=>p.id===outId),cand=team.bench.find(p=>p.id===inId&&!p.injured&&!p.fouledOut);if(!out||!cand)return false;
+    team.lineup[team.lineup.indexOf(out)]=cand;team.bench[team.bench.indexOf(cand)]=out;
+    if(!forced||session.sportId!=='volleyball')team.substitutionsUsed++;
+    team.totalSubstitutionsUsed++;
+    team.coachLog.push({time:timeLabel(session),type:'rotation',text:`${cand.name} remplace ${out.name}${forced?' (forcé)':''}`});session.rotations.push({side:sideOf(session,team),out:out.name,in:cand.name,time:timeLabel(session),forced});return true;
+  }
+  function replaceUnavailable(session,team,out,rng,reason='indisponible'){
+    if(!out||!team.lineup.includes(out))return false;
+    const available=team.bench.filter(p=>!p.injured&&!p.fouledOut);if(!available.length)return false;
+    let cand=available.filter(p=>p.discipline===out.discipline).sort((a,b)=>playerValue(b)-playerValue(a))[0];
+    if(!cand)cand=available.sort((a,b)=>playerValue(b)-playerValue(a))[0];
+    const ok=substitute(session,team,out.id,cand.id,true);if(ok)session.events.push({time:timeLabel(session),type:'rotation',text:`Changement forcé (${reason}) : ${cand.name} pour ${out.name}`});return ok;
+  }
+  function autoRotate(session,team,rng,forced=false){
+    const availableBench=team.bench.filter(p=>!p.injured&&!p.fouledOut);if(!availableBench.length||!canSubstitute(session,team))return false;
+    const out=[...team.lineup].filter(p=>!p.injured&&!p.fouledOut).sort((a,b)=>b.fatigue-a.fatigue)[0];
+    if(!out)return false;if(!forced&&out.fatigue<48)return false;
+    let cand=availableBench.filter(p=>p.discipline===out.discipline).sort((a,b)=>playerValue(b)-playerValue(a))[0];
+    if(!cand)cand=availableBench.sort((a,b)=>playerValue(b)-playerValue(a))[0];if(!cand)return false;
+    return substitute(session,team,out.id,cand.id);
+  }
+  function timeoutStatus(session,team){
+    const sport=session.sportId;
+    if(sport==='volleyball')return {allowed:team.timeoutsUsed<2,used:team.timeoutsUsed,limit:2,label:'ce set'};
+    if(sport==='handball'){
+      const seg=session.period===1?'first':'second',usedHalf=team.timeoutsBySegment[seg]||0;
+      const minute=(session.period-1)*30+session.unit/RULES.handball.unitsPerPeriod*30;
+      const late=minute>=55;
+      const allowed=team.totalTimeoutsUsed<3&&usedHalf<2&&(!late||team.timeoutsBySegment.late<1);
+      return {allowed,used:team.totalTimeoutsUsed,limit:3,label:session.period===1?'1re mi-temps':'2e mi-temps'};
+    }
+    const firstHalf=session.period<=2,seg=firstHalf?'first':'second',limit=firstHalf?2:3,usedHalf=team.timeoutsBySegment[seg]||0;
+    const late=session.period===4&&session.unit>=Math.round(RULES.basketball.unitsPerPeriod*.8);
+    const lateUsed=team.timeoutsBySegment.late||0;
+    const allowed=usedHalf<limit&&(!late||lateUsed<2);
+    return {allowed,used:usedHalf,limit,label:firstHalf?'1re mi-temps':'2e mi-temps'};
+  }
+  function useTimeout(session,team,reason='Temps mort'){
+    const status=timeoutStatus(session,team);if(!status.allowed||team.lastTimeoutUnit===session.unit)return false;
+    const seg=session.sportId==='volleyball'?null:(session.period<=((session.sportId==='basketball')?2:1)?'first':'second');
+    team.timeoutsUsed++;team.totalTimeoutsUsed++;team.lastTimeoutUnit=session.unit;
+    if(seg)team.timeoutsBySegment[seg]++;
+    if(session.sportId==='handball'){
+      const minute=(session.period-1)*30+session.unit/RULES.handball.unitsPerPeriod*30;if(minute>=55)team.timeoutsBySegment.late++;
+    }else if(session.sportId==='basketball'&&session.period===4&&session.unit>=Math.round(RULES.basketball.unitsPerPeriod*.8))team.timeoutsBySegment.late++;
+    team.lineup.forEach(p=>p.fatigue=clamp(p.fatigue-1.8,0,100));team.bench.forEach(p=>p.fatigue=clamp(p.fatigue-.8,0,100));
+    team.coachLog.push({time:timeLabel(session),type:'timeout',text:`${reason} (${status.used+1}/${status.limit} ${status.label})`});session.events.push({time:timeLabel(session),type:'timeout',text:`Temps mort ${team.name}`});return true
+  }
+  function changeTactic(session,team,tactic,reason='Changement tactique'){if(!Tactics?.TACTICS?.[session.sportId]?.[tactic])return false;if(team.tactic===tactic)return false;const old=team.tactic;team.tactic=tactic;team.familiarity=clamp(team.familiarity-2.5,30,100);team.coachLog.push({time:timeLabel(session),type:'tactic',text:`${reason} : ${tacticLabel(session.sportId,old)} → ${tacticLabel(session.sportId,tactic)}`});session.events.push({time:timeLabel(session),type:'tactic',text:`${team.name} passe en ${tacticLabel(session.sportId,tactic)}`});return true}
+  function aiAdapt(session,team,opp,rng){
+    const diff=team.score-opp.score,p=profile(team);let desired=team.tactic;
+    if(session.sportId==='handball'){
+      if(diff<=-4)desired=p.physical>p.technical?'transition':'aggressive';else if(diff>=4)desired='positional';else if(p.fatigue>58)desired='positional';
+    }else if(session.sportId==='basketball'){
+      if(diff<=-8)desired=p.technical>p.physical?'perimeter':'pace';else if(diff>=8)desired='defense';else if(p.fatigue>60)desired='defense';
+    }else{
+      const setDiff=team.score-opp.score;if(setDiff<0)desired=p.technical>p.physical?'serve':'block';else if(setDiff>0)desired='reception';
+    }
+    if(desired!==team.tactic&&rng()<.65)changeTactic(session,team,desired,'Adaptation IA');
+    const timeoutNeeded=session.sportId==='volleyball' ? ((team===session.home?session.setPoints.home:session.setPoints.away)+4 <= (team===session.home?session.setPoints.away:session.setPoints.home)) : diff<=-(session.sportId==='basketball'?10:5);
+    if(timeoutNeeded&&rng()<.5)useTimeout(session,team,'IA : stopper la série adverse');
+    autoRotate(session,team,rng,false);
+  }
+  function timeLabel(s){if(s.sportId==='handball'){const min=Math.min(60,Math.ceil((s.period-1)*30+s.unit/RULES.handball.unitsPerPeriod*30));return `${min}'`}if(s.sportId==='basketball'){const remain=Math.max(0,10-Math.floor(s.unit/RULES.basketball.unitsPerPeriod*10));return `Q${s.period} ${remain}:00`}return `S${s.period} ${s.setPoints.home}-${s.setPoints.away}`}
+  function createSession(sportId,homeInput,awayInput,options={}){
+    const rng=options.rng||makeRng(options.seed||1),home=normalizeTeam(homeInput,sportId,rng),away=normalizeTeam(awayInput,sportId,rng);buildLineup(home,sportId);buildLineup(away,sportId);
+    const s={sportId,home,away,rng,period:1,unit:0,finished:false,events:[],rotations:[],injuries:[],periods:[],setPoints:{home:0,away:0},servingSide:rng()<.5?'home':'away',setStartServingSide:null,teamFouls:{home:0,away:0},playerStats:{home:null,away:null},options,autoCoach:{home:options.autoCoachHome!==false,away:options.autoCoachAway!==false},lastPeriodHome:0,lastPeriodAway:0};
+    s.setStartServingSide=s.servingSide;s.playerStats.home=initPlayerStats(home,sportId);s.playerStats.away=initPlayerStats(away,sportId);return s;
+  }
+  function applyCommand(session,side,cmd){const team=session[side],opp=session[side==='home'?'away':'home'];if(session.finished)return false;if(cmd.type==='timeout')return useTimeout(session,team,'Coach : temps mort');if(cmd.type==='tactic')return changeTactic(session,team,cmd.tactic,'Coach');if(cmd.type==='rotate')return autoRotate(session,team,session.rng,true);if(cmd.type==='substitute')return substitute(session,team,cmd.outId,cmd.inId);if(cmd.type==='auto') {session.autoCoach[side]=!!cmd.enabled;return true}return false}
+  function handballPossession(s){
+    const rng=s.rng,homeAtt=s.unit%2===1,att=homeAtt?s.home:s.away,def=homeAtt?s.away:s.home,A=s.playerStats[homeAtt?'home':'away'],D=s.playerStats[homeAtt?'away':'home'];const ap=profile(att),dp=profile(def),base=effective(att,'handball',def.tactic)-effective(def,'handball',att.tactic);
+    const handler=rolePick(att,['Arrière','Ailier','Pivot'],rng);if(!handler)return;
+    const turnover=clamp(.12+(dp.mental-ap.technical)*.0022+(att.tactic==='transition'?.012:0)+(handler.fatigue-35)*.0008,.06,.24);
+    if(rng()<turnover){A[handler.id].turnovers++;if(rng()<.15)s.events.push({time:timeLabel(s),type:'turnover',text:`Ballon perdu : ${handler.name}`});fatigueTick(s,att,.34);fatigueTick(s,def,.27);benchRecovery(att,.10);benchRecovery(def,.10);addMinutes(s,att,.5);addMinutes(s,def,.5);tickSuspensions(att);tickSuspensions(def);return}
+    let shooter=handler;if(rng()<.38)shooter=rolePick(att,rng()<.5?['Ailier']:['Pivot','Arrière'],rng)||handler;A[shooter.id].shots++;
+    const gk=rolePick(def,['Gardien'],rng);const gkSkill=gk?(gk.technical*.45+gk.mental*.35+gk.form*.20):70;
+    const seven=def.tactic==='aggressive'&&rng()<.04;if(seven)A[shooter.id].penalties++;
+    const pGoal=clamp((seven?.74:.55)+base*.008+(shooter.technical-75)*.003+(shooter.mental-72)*.0015-(gkSkill-75)*.003-(shooter.fatigue-30)*.0015,.34,.86);
+    if(rng()<pGoal){att.score++;att.run++;def.run=0;A[shooter.id].goals++;const passer=weightedPick(att.lineup.filter(p=>p!==shooter&&p.discipline!=='Gardien'),p=>p.technical+p.mental,rng);if(passer&&rng()<.62)A[passer.id].assists++;if(rng()<.12||Math.abs(att.score-def.score)<=2&&s.period===2&&s.unit>45)s.events.push({time:timeLabel(s),type:'goal',text:`But ${shooter.name} (${att.name})`});}
+    else {att.run=0;if(gk)D[gk.id].saves++;}
+    if(def.tactic==='aggressive'&&rng()<.022){const defender=weightedPick(def.lineup.filter(p=>p.discipline!=='Gardien'),p=>p.physical+p.mental,rng);if(defender){D[defender.id].exclusions++;defender.suspendedUnits=Math.max(defender.suspendedUnits||0,5);s.events.push({time:timeLabel(s),type:'exclusion',text:`2 minutes : ${defender.name}`})}}
+    fatigueTick(s,att,.42);fatigueTick(s,def,.37);benchRecovery(att,.10);benchRecovery(def,.10);maybeInjury(s,att,rng,1.0);maybeInjury(s,def,rng,.8);addMinutes(s,att,.5);addMinutes(s,def,.5);tickSuspensions(att);tickSuspensions(def);
+  }
+  function basketballPossession(s){
+    const rng=s.rng,homeAtt=s.unit%2===1,att=homeAtt?s.home:s.away,def=homeAtt?s.away:s.home,A=s.playerStats[homeAtt?'home':'away'];const ap=profile(att),dp=profile(def),base=effective(att,'basketball',def.tactic)-effective(def,'basketball',att.tactic);
+    const handler=rolePick(att,['Meneur','Arrière'],rng)||weightedPick(att.lineup,p=>playerValue(p),rng);if(!handler)return;
+    if(rng()<clamp(.125+(dp.mental-ap.technical)*.0015+(def.tactic==='defense'?.018:0)+(handler.fatigue-40)*.0007,.07,.20)){A[handler.id].turnovers++;fatigueTick(s,att,.22);fatigueTick(s,def,.18);benchRecovery(att,.07);benchRecovery(def,.07);addMinutes(s,att,10/35);addMinutes(s,def,10/35);return}
+    const foul=rng()<.105;if(foul){
+      const defender=weightedPick(def.lineup,p=>p.physical+p.mental,rng);const defSide=homeAtt?'away':'home';
+      if(defender){const dst=s.playerStats[defSide][defender.id];dst.fouls++;s.teamFouls[defSide]++;if(dst.fouls>=5){defender.fouledOut=true;s.events.push({time:timeLabel(s),type:'foul',text:`${defender.name} sort pour 5 fautes`});replaceUnavailable(s,def,defender,rng,'5 fautes')}}
+      const shooting=rng()<.48,bonus=s.teamFouls[defSide]>=5;
+      if(shooting||bonus){const shooter=rng()<.65?handler:weightedPick(att.lineup,p=>p.technical+p.mental,rng);const n=shooting?(rng()<.76?2:3):2;for(let i=0;i<n;i++){A[shooter.id].fta++;if(rng()<clamp(.73+(shooter.mental-70)*.0025,.58,.92)){A[shooter.id].ftm++;A[shooter.id].points++;att.score++}}}
+      else if(rng()<.55){const shooter=weightedPick(att.lineup,p=>p.technical+p.physical,rng);if(shooter){A[shooter.id].fg2a++;const make=clamp(.49+base*.003+(shooter.technical-75)*.0035,.34,.67);if(rng()<make){A[shooter.id].fg2m++;A[shooter.id].points+=2;att.score+=2}}}
+      fatigueTick(s,att,.2);fatigueTick(s,def,.2);benchRecovery(att,.06);benchRecovery(def,.06);addMinutes(s,att,10/35);addMinutes(s,def,10/35);return}
+    const threeShare=att.tactic==='perimeter'?.48:att.tactic==='pace'?.39:.34,is3=rng()<threeShare;
+    let shooter=is3?rolePick(att,['Meneur','Arrière','Ailier'],rng):rolePick(att,['Intérieur','Ailier','Arrière'],rng);if(!shooter)shooter=handler;
+    if(is3)A[shooter.id].fg3a++;else A[shooter.id].fg2a++;
+    const p=clamp((is3?.345:.515)+base*.0032+(shooter.technical-75)*(is3?.004:.003)-(def.tactic==='defense'?.025:0)-(shooter.fatigue-35)*.0012,is3?.23:.38,is3?.52:.70);
+    if(rng()<p){const pts=is3?3:2;att.score+=pts;A[shooter.id].points+=pts;if(is3)A[shooter.id].fg3m++;else A[shooter.id].fg2m++;const passer=weightedPick(att.lineup.filter(x=>x!==shooter),x=>x.technical+x.mental,rng);if(passer&&rng()<.56)A[passer.id].assists++;}
+    else {const rebound=weightedPick([...att.lineup,...def.lineup],x=>x.physical+(x.discipline==='Intérieur'?18:0),rng);if(rebound){const side=att.lineup.includes(rebound)?A:s.playerStats[homeAtt?'away':'home'];side[rebound.id].rebounds++;}}
+    fatigueTick(s,att,.25);fatigueTick(s,def,.22);benchRecovery(att,.07);benchRecovery(def,.07);maybeInjury(s,att,rng,.7);maybeInjury(s,def,rng,.6);addMinutes(s,att,10/35);addMinutes(s,def,10/35);
+  }
+  function volleyballRally(s){
+    const rng=s.rng,serverSide=s.servingSide||'home',server=s[serverSide],receiver=s[serverSide==='home'?'away':'home'];
+    const S=s.playerStats[serverSide],R=s.playerStats[serverSide==='home'?'away':'home'];
+    const sp=profile(server),rp=profile(receiver),base=effective(server,'volleyball',receiver.tactic)-effective(receiver,'volleyball',server.tactic);
+    const srv=rolePick(server,['Réceptionneur','Passeur'],rng)||weightedPick(server.lineup,p=>p.technical,rng);if(!srv)return;
+    let winner=receiver,pointType='rally';
+    if(rng()<clamp(.08+(server.tactic==='serve'?.035:0)-(srv.mental-70)*.001,.035,.16)){S[srv.id].errors++;winner=receiver;pointType='serviceError'}
+    else if(rng()<clamp(.05+(server.tactic==='serve'?.035:0)+(srv.technical-rp.technical)*.0015,.02,.14)){S[srv.id].aces++;S[srv.id].points++;winner=server;pointType='ace'}
+    else{
+      const attacker=weightedPick(server.lineup.filter(p=>p.discipline!=='Libéro'),p=>p.technical*.6+p.physical*.4,rng),blocker=rolePick(receiver,['Central'],rng);
+      if(!attacker)return;
+      const receptionBoost=receiver.tactic==='reception'?.035:0;
+      const pWin=clamp(.50+base*.002+(attacker.technical-rp.technical)*.0017+(attacker.physical-rp.physical)*.0012-(attacker.fatigue-35)*.001-receptionBoost,.33,.68);
+      if(rng()<pWin){S[attacker.id].kills++;S[attacker.id].points++;winner=server;pointType='kill'}
+      else{winner=receiver;if(blocker&&rng()<.28+(receiver.tactic==='block'?.04:0)){R[blocker.id].blocks++;R[blocker.id].points++;pointType='block'}else{const dig=weightedPick(receiver.lineup,p=>p.discipline==='Libéro'?120:p.mental+p.technical,rng);if(dig)R[dig.id].digs++;pointType='defense'}}
+    }
+    if(winner===s.home){s.setPoints.home++;s.home.run++;s.away.run=0}else{s.setPoints.away++;s.away.run++;s.home.run=0}
+    // Rally-point scoring: the winning side serves the next rally; service is NOT alternated automatically.
+    s.servingSide=winner===s.home?'home':'away';
+    for(const p of [...server.lineup,...receiver.lineup]){const st=s.playerStats[sideOf(s,server.lineup.includes(p)?server:receiver)][p.id];if(st)st.rallies++}
+    fatigueTick(s,server,.18);fatigueTick(s,receiver,.18);benchRecovery(server,.05);benchRecovery(receiver,.05);maybeInjury(s,server,rng,.35);maybeInjury(s,receiver,rng,.35);
+    if(['ace','block'].includes(pointType)&&rng()<.32)s.events.push({time:timeLabel(s),type:pointType,text:pointType==='ace'?`Ace de ${srv.name}`:`Block décisif de ${receiver.name}`});
+  }
+  function periodComplete(s){
+    if(s.sportId==='volleyball'){const target=s.period===5?15:25,h=s.setPoints.home,a=s.setPoints.away;return (h>=target||a>=target)&&Math.abs(h-a)>=2}
+    return s.unit>=RULES[s.sportId].unitsPerPeriod;
+  }
+  function finishPeriod(s){
+    if(s.sportId==='volleyball'){
+      const h=s.setPoints.home,a=s.setPoints.away;if(h>a)s.home.score++;else s.away.score++;s.periods.push({label:`S${s.period}`,home:h,away:a});s.events.push({time:`S${s.period}`,type:'period',text:`Set ${s.period} : ${s.home.name} ${h}–${a} ${s.away.name}`});
+      breakRecovery(s.home,1.2);breakRecovery(s.away,1.2);
+      if(s.home.score>=3||s.away.score>=3||s.period>=5){s.finished=true;return}
+      s.period++;s.unit=0;s.setPoints={home:0,away:0};s.home.timeoutsUsed=0;s.away.timeoutsUsed=0;s.home.substitutionsUsed=0;s.away.substitutionsUsed=0;
+      s.setStartServingSide=s.setStartServingSide==='home'?'away':'home';s.servingSide=s.setStartServingSide;return;
+    }
+    s.periods.push({label:s.sportId==='handball'?(s.period===1?'1re MT':'2e MT'):`Q${s.period}`,home:s.home.score-s.lastPeriodHome,away:s.away.score-s.lastPeriodAway});s.lastPeriodHome=s.home.score;s.lastPeriodAway=s.away.score;s.events.push({time:s.sportId==='handball'?`${s.period*30}'`:`Q${s.period}`,type:'period',text:`Fin de période : ${s.home.name} ${s.home.score}–${s.away.score} ${s.away.name}`});
+    if(s.period>=RULES[s.sportId].periods){
+      if(s.home.score===s.away.score&&s.options.knockout!==false){
+        s.events.push({time:'OT',type:'period',text:'Prolongation'});
+        let ot=0;
+        const maxOt=s.sportId==='handball'?2:5;
+        while(s.home.score===s.away.score&&ot<maxOt){ot++;const extra=s.sportId==='handball'?20:18;s.teamFouls={home:0,away:0};s.home.timeoutsBySegment.ot=0;s.away.timeoutsBySegment.ot=0;
+          const startH=s.home.score,startA=s.away.score;
+          for(let i=0;i<extra;i++){s.unit=i+1;if(s.sportId==='handball')handballPossession(s);else basketballPossession(s)}
+          s.periods.push({label:`OT${ot}`,home:s.home.score-startH,away:s.away.score-startA});
+        }
+        if(s.home.score===s.away.score){
+          if(s.sportId==='handball'){const home7=Math.round(3+s.rng()*3),away7=Math.round(3+s.rng()*3);if(home7===away7){if(s.rng()>.5)s.home.score++;else s.away.score++}else if(home7>away7)s.home.score++;else s.away.score++;s.events.push({time:'7m',type:'clutch',text:'Décision aux jets de 7 m'});}
+          else {while(s.home.score===s.away.score){if(s.rng()>.5)s.home.score+=2;else s.away.score+=2}}
+        }
+      }
+      s.finished=true;return
+    }
+    breakRecovery(s.home,s.sportId==='handball'?2.2:1.0);breakRecovery(s.away,s.sportId==='handball'?2.2:1.0);
+    s.period++;s.unit=0;if(s.sportId==='basketball')s.teamFouls={home:0,away:0};
+  }
+  function advance(session,steps=1){
+    if(session.finished)return session;
+    for(let i=0;i<steps&&!session.finished;i++){
+      session.unit++;
+      if(session.sportId==='handball')handballPossession(session);else if(session.sportId==='basketball')basketballPossession(session);else volleyballRally(session);
+      if(session.autoCoach.home&&session.unit%10===0)aiAdapt(session,session.home,session.away,session.rng);
+      if(session.autoCoach.away&&session.unit%10===0)aiAdapt(session,session.away,session.home,session.rng);
+      if(periodComplete(session))finishPeriod(session);
+    }
+    return session;
+  }
+  function finalize(session){
+    for(const side of ['home','away'])for(const p of session[side].roster){const st=session.playerStats[side][p.id];if(st)st.fatigueEnd=p.fatigue}
+    const h=session.home.score,a=session.away.score,w=h>a?'home':a>h?'away':'draw';
+    const totalStats={home:aggregate(session,'home'),away:aggregate(session,'away')};
+    return {sportId:session.sportId,home:session.home.name,away:session.away.name,homeId:session.home.id,awayId:session.away.id,homeScore:h,awayScore:a,winner:w,winnerName:w==='home'?session.home.name:w==='away'?session.away.name:'Égalité',scoreline:`${h}–${a}`,summary:`${session.home.name} ${h}–${a} ${session.away.name}`,periods:session.periods,events:session.events,stats:totalStats,playerStats:session.playerStats,coaching:{home:session.home.coachLog,away:session.away.coachLog},rotations:session.rotations,injuries:session.injuries,timeouts:{home:session.home.totalTimeoutsUsed,away:session.away.totalTimeoutsUsed},tactics:{home:tacticLabel(session.sportId,session.home.tactic),away:tacticLabel(session.sportId,session.away.tactic)},finalTacticIds:{home:session.home.tactic,away:session.away.tactic},rosterState:{home:session.home.roster.map(p=>({id:p.id,sourceId:p.sourceId,fatigue:p.fatigue,injured:p.injured})),away:session.away.roster.map(p=>({id:p.id,sourceId:p.sourceId,fatigue:p.fatigue,injured:p.injured}))},sessionMeta:{autoCoach:session.autoCoach}};
+  }
+  function aggregate(s,side){const rows=Object.values(s.playerStats[side]);
+    if(s.sportId==='handball')return {goals:sum(rows,'goals'),shots:sum(rows,'shots'),assists:sum(rows,'assists'),saves:sum(rows,'saves'),turnovers:sum(rows,'turnovers'),exclusions:sum(rows,'exclusions'),penalties:sum(rows,'penalties')};
+    if(s.sportId==='basketball')return {points:sum(rows,'points'),fg2a:sum(rows,'fg2a'),fg2m:sum(rows,'fg2m'),fg3a:sum(rows,'fg3a'),fg3m:sum(rows,'fg3m'),fta:sum(rows,'fta'),ftm:sum(rows,'ftm'),turnovers:sum(rows,'turnovers'),rebounds:sum(rows,'rebounds'),assists:sum(rows,'assists'),fouls:sum(rows,'fouls')};
+    return {aces:sum(rows,'aces'),blocks:sum(rows,'blocks'),serviceErrors:sum(rows,'errors'),attackPoints:sum(rows,'kills'),digs:sum(rows,'digs')};}
+  function sum(rows,k){return rows.reduce((n,r)=>n+(+r[k]||0),0)}
+  function simulateAuto(sportId,home,away,options={}){const s=createSession(sportId,home,away,{...options,autoCoachHome:options.autoCoachHome!==false,autoCoachAway:options.autoCoachAway!==false});while(!s.finished)advance(s,10);return finalize(s)}
+  function publicState(s){return {sportId:s.sportId,home:s.home.name,away:s.away.name,homeScore:s.home.score,awayScore:s.away.score,period:s.period,unit:s.unit,time:timeLabel(s),finished:s.finished,setPoints:{...s.setPoints},servingSide:s.servingSide,teamFouls:{...s.teamFouls},tactics:{home:s.home.tactic,away:s.away.tactic},timeouts:{home:s.home.timeoutsUsed,away:s.away.timeoutsUsed},timeoutStatus:{home:timeoutStatus(s,s.home),away:timeoutStatus(s,s.away)},lineups:{home:s.home.lineup.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut,suspendedUnits:p.suspendedUnits||0})),away:s.away.lineup.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut,suspendedUnits:p.suspendedUnits||0}))},benches:{home:s.home.bench.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut})),away:s.away.bench.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut}))},substitutions:{home:s.home.substitutionsUsed,away:s.away.substitutionsUsed,totalHome:s.home.totalSubstitutionsUsed,totalAway:s.away.totalSubstitutionsUsed},events:s.events.slice(-8),coaching:{home:s.home.coachLog.slice(-6),away:s.away.coachLog.slice(-6)}}}
+  return {RULES,makeRng,createSession,advance,applyCommand,finalize,simulateAuto,publicState,profile,effective,timeoutStatus};
+});
+
+</script>
+<script>
+(function(root,factory){
+  let T=null,L=null;
+  if(typeof module==='object'&&module.exports){try{T=require('./tactics.js')}catch(e){T=null} try{L=require('./liveMatch.js')}catch(e){L=null} module.exports=factory(T,L)}
+  else root.ON_TEAM_MATCH=factory(root.ON_TACTICS||null,root.ON_LIVE_MATCH||null);
+})(typeof globalThis!=='undefined'?globalThis:this,function(Tactics,LiveMatch){
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const round1=v=>Math.round(v*10)/10;
+  const avg=(arr,k,fallback=70)=>arr?.length?arr.reduce((s,x)=>s+(+x[k]||fallback),0)/arr.length:fallback;
+  const sigmoid=x=>1/(1+Math.exp(-x));
+  const makeRng=(seed=1)=>{let s=(seed>>>0)||1;return()=>{s=(s+0x6D2B79F5)|0;let t=Math.imul(s^(s>>>15),1|s);t=t+Math.imul(t^(t>>>7),61|t)^t;return((t^(t>>>14))>>>0)/4294967296}};
+  const normal=rng=>{let u=0,v=0;while(!u)u=rng();while(!v)v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+  const pick=(arr,rng)=>arr[Math.floor(rng()*arr.length)];
+
+  const RULES={
+    handball:{rosterSize:16, regulation:'2x30', tournamentTeams:12, groupCount:2, advancePerGroup:4},
+    basketball:{rosterSize:12, regulation:'4x10', tournamentTeams:12, groupCount:3, advancePerGroup:2, bestThirds:2},
+    volleyball:{rosterSize:12, regulation:'best-of-5', tournamentTeams:12, groupCount:3, advancePerGroup:2, bestThirds:2}
+  };
+
+  function teamProfile(team={},sportId){
+    const r=team.roster||[];
+    const base=+team.strength||+team.score||72;
+    const profile={
+      technical:r.length?avg(r,'technical'):base,
+      physical:r.length?avg(r,'physical'):base,
+      mental:r.length?avg(r,'mental'):base,
+      experience:r.length?avg(r,'experience'):Math.max(55,base-5),
+      form:r.length?avg(r,'form'):clamp(+team.form||72,40,100),
+      fatigue:r.length?avg(r,'fatigue'):clamp(+team.fatigue||18,0,100),
+      confidence:r.length?avg(r,'confidence'):clamp(+team.confidence||72,30,100),
+      depth:clamp(r.length/(RULES[sportId]?.rosterSize||10),.55,1.08),
+      familiarity:clamp(+team.familiarity||72,30,100),
+      tactic:team.tactic||'balanced'
+    };
+    if(sportId==='handball'){
+      const gk=r.filter(x=>x.discipline==='Gardien');
+      profile.goalkeeping=gk.length?(avg(gk,'technical')*.42+avg(gk,'mental')*.33+avg(gk,'form')*.25):base-3;
+      profile.backcourt=roleQuality(r,['Arrière'],base);
+      profile.wings=roleQuality(r,['Ailier'],base);
+      profile.pivot=roleQuality(r,['Pivot'],base);
+    }else if(sportId==='basketball'){
+      profile.guard=roleQuality(r,['Meneur','Arrière'],base);
+      profile.wing=roleQuality(r,['Ailier'],base);
+      profile.inside=roleQuality(r,['Intérieur'],base);
+    }else if(sportId==='volleyball'){
+      profile.setter=roleQuality(r,['Passeur'],base);
+      profile.middle=roleQuality(r,['Central'],base);
+      profile.receiver=roleQuality(r,['Réceptionneur','Libéro'],base);
+    }
+    return profile;
+  }
+  function roleQuality(roster,roles,fallback){
+    const p=(roster||[]).filter(a=>roles.includes(a.discipline));
+    if(!p.length)return fallback-5;
+    return p.reduce((s,a)=>s+(a.technical*.42+a.physical*.24+a.mental*.20+a.form*.14),0)/p.length;
+  }
+  function tacticLabel(sportId,id){return Tactics?.tacticFor?.(sportId,id)?.label||id||'Équilibré'}
+  function matchup(sportId,a,b){return Tactics?.matchupBonus?.(sportId,a,b)||0}
+  function fit(sportId,tactic,roster){return Tactics?.tacticFit?.(sportId,tactic,roster)||0}
+  function effectiveBase(team,sportId,opponentTactic){
+    const p=teamProfile(team,sportId);
+    const core=p.technical*.31+p.physical*.22+p.mental*.20+p.experience*.10+p.form*.10+p.confidence*.07;
+    const fatiguePenalty=Math.max(0,p.fatigue-25)*.055;
+    const familiar=(p.familiarity-70)*.055;
+    const tact=fit(sportId,p.tactic,team.roster||[])+matchup(sportId,p.tactic,opponentTactic||'balanced');
+    return core+(p.depth-0.8)*4-fatiguePenalty+familiar+tact;
+  }
+
+  function simulateMatch(sportId,home,away,options={}){
+    if(LiveMatch?.simulateAuto&&!options.fast)return LiveMatch.simulateAuto(sportId,home,away,options);
+    const rng=options.rng||makeRng(options.seed||1);
+    if(sportId==='handball')return simulateHandball(home,away,rng,options);
+    if(sportId==='basketball')return simulateBasketball(home,away,rng,options);
+    if(sportId==='volleyball')return simulateVolleyball(home,away,rng,options);
+    throw new Error(`Unsupported team sport: ${sportId}`);
+  }
+
+  function simulateHandball(home,away,rng,options={}){
+    const hp=teamProfile(home,'handball'),ap=teamProfile(away,'handball');
+    const hb=effectiveBase(home,'handball',ap.tactic),ab=effectiveBase(away,'handball',hp.tactic);
+    const paceH=hp.tactic==='transition'?1.09:hp.tactic==='positional'?.93:1;
+    const paceA=ap.tactic==='transition'?1.09:ap.tactic==='positional'?.93:1;
+    const totalPoss=Math.round(clamp(120*((paceH+paceA)/2)+normal(rng)*5,108,138));
+    let hs=0,as=0,halfH=0,halfA=0;const stats={home:{shots:0,saves:0,turnovers:0,exclusions:0,penalties:0},away:{shots:0,saves:0,turnovers:0,exclusions:0,penalties:0}};const events=[];let hSusp=0,aSusp=0;
+    const attack=(att,def,attP,defP,isHome,minute)=>{
+      const A=isHome?stats.home:stats.away,D=isHome?stats.away:stats.home;
+      const pressure=(defP.tactic==='aggressive'?1.25:1)*(1+(defP.mental-attP.mental)/300);
+      const turnover=clamp(.125+(defP.mental-attP.technical)*.0022+(attP.fatigue-defP.fatigue)*.0008+(pressure-1)*.045,.065,.235);
+      if(rng()<turnover){A.turnovers++;if(minute>50||rng()<.09)events.push({time:`${minute}'`,type:'turnover',text:`Ballon perdu par ${att.name}`});return 0}
+      const aggressive=defP.tactic==='aggressive';
+      const seven=aggressive&&rng()<.045;
+      if(seven){A.penalties++;A.shots++;const p=clamp(.73+(attP.mental-defP.goalkeeping)*.002,.58,.88);if(rng()<p){if(minute>50)events.push({time:`${minute}'`,type:'goal',text:`Jet de 7 m transformé par ${att.name}`});return 1}D.saves++;return 0}
+      if(aggressive&&rng()<.026){D.exclusions++;if(isHome)aSusp=3;else hSusp=3;events.push({time:`${minute}'`,type:'exclusion',text:`Exclusion temporaire contre ${def.name}`})}
+      A.shots++;
+      const power=(attP.backcourt*.43+attP.wings*.31+attP.pivot*.26);
+      const numerical=isHome?(aSusp>0?2.2:0):(hSusp>0?2.2:0);
+      const quality=hb-ab+(isHome?0.7:-0.2)+(power-75)*.12-(defP.goalkeeping-75)*.11+numerical;
+      const pGoal=clamp(.54+quality*.009+normal(rng)*.012,.38,.72);
+      if(rng()<pGoal){if(minute>50||rng()<.06)events.push({time:`${minute}'`,type:'goal',text:`But ${att.name}`});return 1}
+      D.saves++;return 0;
+    };
+    for(let i=0;i<totalPoss;i++){
+      const minute=Math.min(60,Math.max(1,Math.round((i+1)/totalPoss*60)));
+      const homePoss=i%2===0;
+      if(homePoss)hs+=attack(home,away,hp,ap,true,minute);else as+=attack(away,home,ap,hp,false,minute);
+      if(hSusp>0)hSusp--;if(aSusp>0)aSusp--;
+      if(i===Math.floor(totalPoss/2)-1){halfH=hs;halfA=as;events.push({time:"30'",type:'period',text:`Mi-temps : ${home.name} ${hs}–${as} ${away.name}`});}
+    }
+    let overtime=false;
+    if(hs===as && options.knockout!==false){overtime=true;events.push({time:"60'",type:'period',text:'Égalité : prolongation'});for(let i=0;i<10;i++){const minute=61+i;if(i%2===0)hs+=attack(home,away,hp,ap,true,minute);else as+=attack(away,home,ap,hp,false,minute)}if(hs===as){if(rng()>.5)hs++;else as++;events.push({time:'TAB',type:'clutch',text:'Décision après jets de 7 m'})}}
+    const periods=[{label:'1re MT',home:halfH,away:halfA},{label:'2e MT',home:Math.max(0,hs-halfH-(overtime?Math.max(0,hs-as>0?1:0):0)),away:Math.max(0,as-halfA-(overtime?Math.max(0,as-hs>0?1:0):0))}];
+    return finalize('handball',home,away,hs,as,{periods,stats,events,overtime,profile:{home:hp,away:ap},tactics:{home:tacticLabel('handball',hp.tactic),away:tacticLabel('handball',ap.tactic)}});
+  }
+
+  function simulateBasketball(home,away,rng,options={}){
+    const hp=teamProfile(home,'basketball'),ap=teamProfile(away,'basketball');
+    const hb=effectiveBase(home,'basketball',ap.tactic),ab=effectiveBase(away,'basketball',hp.tactic);
+    const pace=(p)=>p.tactic==='pace'?1.10:p.tactic==='defense'?.94:1;
+    const qPoss=Math.round(clamp(17.5*((pace(hp)+pace(ap))/2)+normal(rng),15,21));
+    let hs=0,as=0;const quarters=[];const events=[];const stats={home:{fg2a:0,fg2m:0,fg3a:0,fg3m:0,fta:0,ftm:0,turnovers:0,oreb:0},away:{fg2a:0,fg2m:0,fg3a:0,fg3m:0,fta:0,ftm:0,turnovers:0,oreb:0}};
+    const possession=(att,def,attP,defP,baseDiff,isHome,q,clock)=>{
+      const S=isHome?stats.home:stats.away;
+      let tov=clamp(.125+(defP.mental-attP.technical)*.0016+(defP.tactic==='defense'?.018:0),.075,.19);
+      if(rng()<tov){S.turnovers++;return 0}
+      if(rng()<clamp(.10+(defP.tactic==='defense'?.025:0),.06,.16)){
+        const n=rng()<.72?2:3;S.fta+=n;let pts=0;const p=clamp(.73+(attP.mental-70)*.0025,.61,.90);for(let i=0;i<n;i++)if(rng()<p){pts++;S.ftm++}return pts;
+      }
+      const threeShare=attP.tactic==='perimeter'?.48:attP.tactic==='pace'?.38:.34;
+      const is3=rng()<threeShare;
+      if(is3)S.fg3a++;else S.fg2a++;
+      const role=is3?(attP.guard*.50+attP.wing*.35+attP.technical*.15):(attP.inside*.48+attP.wing*.25+attP.physical*.27);
+      const pMake=clamp((is3?.345:.515)+(role-75)*(is3?.0042:.0048)+baseDiff*.0032-(defP.tactic==='defense'?.025:0),is3?.25:.39,is3?.49:.68);
+      if(rng()<pMake){if(is3)S.fg3m++;else S.fg2m++;return is3?3:2}
+      const pOreb=clamp(.25+(attP.physical-defP.physical)*.0025+(attP.inside-defP.inside)*.001,.14,.38);
+      if(rng()<pOreb){S.oreb++; if(rng()<.48){S.fg2a++;if(rng()<clamp(.52+(attP.inside-defP.inside)*.003,.38,.68)){S.fg2m++;return 2}}}
+      return 0;
+    };
+    for(let q=1;q<=4;q++){
+      const startH=hs,startA=as;
+      for(let i=0;i<qPoss*2;i++){
+        const homePoss=i%2===0;const clock=`Q${q} ${Math.max(0,10-Math.floor(i/(qPoss*2)*10))}:${String(Math.floor(rng()*60)).padStart(2,'0')}`;
+        if(homePoss)hs+=possession(home,away,hp,ap,hb-ab,true,q,clock);else as+=possession(away,home,ap,hp,ab-hb,false,q,clock);
+        const diff=hs-as;if(q===4&&i>qPoss&&Math.abs(diff)<=5&&rng()<.12)events.push({time:clock,type:'clutch',text:`Match serré : ${home.name} ${hs}–${as} ${away.name}`});
+      }
+      quarters.push({label:`Q${q}`,home:hs-startH,away:as-startA});events.push({time:`Q${q}`,type:'period',text:`Fin Q${q} : ${home.name} ${hs}–${as} ${away.name}`});
+    }
+    let overtime=false,ot=0;
+    while(hs===as&&options.knockout!==false&&ot<3){overtime=true;ot++;const stH=hs,stA=as;for(let i=0;i<12;i++){if(i%2===0)hs+=possession(home,away,hp,ap,hb-ab,true,5,'OT');else as+=possession(away,home,ap,hp,ab-hb,false,5,'OT')}quarters.push({label:`OT${ot}`,home:hs-stH,away:as-stA})}
+    if(hs===as&&options.knockout!==false){if(rng()>.5)hs++;else as++}
+    return finalize('basketball',home,away,hs,as,{periods:quarters,stats,events,overtime,profile:{home:hp,away:ap},tactics:{home:tacticLabel('basketball',hp.tactic),away:tacticLabel('basketball',ap.tactic)}});
+  }
+
+  function simulateVolleyball(home,away,rng,options={}){
+    const hp=teamProfile(home,'volleyball'),ap=teamProfile(away,'volleyball');
+    const hb=effectiveBase(home,'volleyball',ap.tactic),ab=effectiveBase(away,'volleyball',hp.tactic);
+    const stats={home:{aces:0,blocks:0,serviceErrors:0,attackPoints:0},away:{aces:0,blocks:0,serviceErrors:0,attackPoints:0}};const sets=[];const events=[];let hs=0,as=0;
+    const rally=(serverIsHome,setNo)=>{
+      const att=serverIsHome?home:away,def=serverIsHome?away:home,attP=serverIsHome?hp:ap,defP=serverIsHome?ap:hp,S=serverIsHome?stats.home:stats.away,D=serverIsHome?stats.away:stats.home;
+      const serveAgg=attP.tactic==='serve';
+      const err=clamp(.085+(serveAgg?.035:0)-(attP.mental-70)*.001,.045,.16);if(rng()<err){S.serviceErrors++;return !serverIsHome}
+      const ace=clamp(.055+(serveAgg?.035:0)+(attP.technical-defP.receiver)*.0015,.025,.13);if(rng()<ace){S.aces++;return serverIsHome}
+      const blockBoost=defP.tactic==='block'?.04:0;
+      const receptionBoost=defP.tactic==='reception'?.035:0;
+      const atk=(attP.setter*.18+attP.receiver*.35+attP.middle*.27+attP.physical*.20);
+      const defense=(defP.receiver*.32+defP.middle*.30+defP.mental*.24+defP.physical*.14);
