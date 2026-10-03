@@ -1,0 +1,19 @@
+{
+  "name": "National Glory — Simulateur de management sportif",
+  "short_name": "National Glory",
+  "description": "Dirigez une nation, développez vos athlètes et coachez vos sélections dans les grandes compétitions.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#071228",
+  "theme_color": "#08152f",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
