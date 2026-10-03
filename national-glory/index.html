@@ -2672,7 +2672,7 @@ function newCareerModal(){
     <div class="wizard-steps"><div class="wizard-step ${step>=1?'active':''}"></div><div class="wizard-step ${step>=2?'active':''}"></div><div class="wizard-step ${step>=3?'active':''}"></div></div>
     ${step===1?`
       <h3>1 — Choisir son pays</h3>
-      <div class="option-grid countries">${COUNTRY_LIST.map(c=>`<div class="option ${d.countryId===c.id?'active':''}" data-pick-country="${c.id}"><b>${c.flag} ${c.name}</b><span>${c.blurb}</span><div class="row-sub">Population ${c.population} · Budget ${fmtMoney(c.budget)} · Rang #${c.worldRank}</div></div>`).join('')}</div>
+      <div class="option-grid countries">${COUNTRY_LIST.map(c=>`<div class="option ${d.countryId===c.id?'active':''}" data-pick-country="${c.id}"><b>${c.flag} ${c.name}</b><span>${c.blurb}</span><div class="row-sub">Population ${c.population} · Budget de référence ${fmtMoney(c.budget)} · Rang #${c.worldRank}</div></div>`).join('')}</div>
       <div class="country-card" style="margin-top:16px"><h3>${country.flag} ${country.name}</h3><div class="row-sub">${country.blurb}</div><div class="country-facts"><div><span>Population</span><b>${country.population}</b></div><div><span>Budget de référence</span><b>${fmtMoney(country.budget)}</b></div><div><span>Culture</span><b>${country.culture}/100</b></div><div><span>Objectif</span><b>${country.medalObjective} médailles</b></div></div></div>`:''}
     ${step===2?`
       <h3>2 — Type de carrière</h3>
