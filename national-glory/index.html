@@ -1790,6 +1790,7 @@ function buildFederationState(sports,country,year=2034){
     seasonObjectives:Management.generateFederationObjectives(s,year,{olympicYear:year%4===0}),
     objectiveHistory:[],
     tactics:{M:'balanced',F:'balanced'},
+    defenseSchemes:{M:s.id==='handball'?'6-0':s.id==='basketball'?'man':'standard',F:s.id==='handball'?'6-0':s.id==='basketball'?'man':'standard'},
     tacticalFamiliarity:{M:70,F:70},
     lastInvestment:null
   }]));
@@ -2216,6 +2217,7 @@ function normalizeSave(save){
     if(!Array.isArray(f.seasonObjectives)||!f.seasonObjectives.length) f.seasonObjectives=Management.generateFederationObjectives(sp,save.year||2034,{olympicYear:(save.year||2034)%4===0});
     if(!Array.isArray(f.objectiveHistory)) f.objectiveHistory=[];
     if(!f.tactics)f.tactics={M:'balanced',F:'balanced'};
+    if(!f.defenseSchemes)f.defenseSchemes={M:sp.id==='handball'?'6-0':sp.id==='basketball'?'man':'standard',F:sp.id==='handball'?'6-0':sp.id==='basketball'?'man':'standard'};
     if(!f.tacticalFamiliarity)f.tacticalFamiliarity={M:70,F:70};
   }
 }
@@ -2898,7 +2900,7 @@ function launchOfficialLiveMatch(c,event,tournament,pending){
   }
   const seed=(state.officialCompetition.seed+hashSeed(`${event.id}-${tournament.matches.length}-${pending.stage}`))>>>0;
   state.liveMatchResult=null;state.liveSubOutId=null;
-  state.liveMatchMeta={official:true,competitionId:c.id,eventId:event.id,eventName:event.name,competitionName:c.name,stage:pending.stage,olympics:state.officialCompetition.olympics,qualifier:state.officialCompetition.qualifier};
+  state.liveMatchMeta={official:true,competitionId:c.id,eventId:event.id,eventName:event.name,competitionName:c.name,stage:pending.stage,olympics:state.officialCompetition.olympics,qualifier:state.officialCompetition.qualifier,sportId:c.sportId,sex:event.sex};
   state.liveMatchSession=LiveMatch.createSession(c.sportId,pending.home,pending.away,{seed,autoCoachHome:false,autoCoachAway:true,knockout:pending.phase!=='group'});
   saveOfficialProgress(c);
   state.modal={type:'livematch'};openModal();
@@ -2991,7 +2993,7 @@ function startLiveFriendly(sportId,sex='M'){
   const foreign=Object.values(state.save.world.nations).filter(n=>n.id!==state.save.countryId).map(n=>foreignTeamForEvent(n,event,rng,false));
   foreign.sort((a,b)=>Math.abs(a.strength-user.strength)-Math.abs(b.strength-user.strength));
   const opponent=foreign[0];
-  state.liveMatchResult=null;state.liveSubOutId=null;state.liveMatchMeta={official:false,competitionName:'Match amical piloté',stage:'Amical'};
+  state.liveMatchResult=null;state.liveSubOutId=null;state.liveMatchMeta={official:false,competitionName:'Match amical piloté',stage:'Amical',sportId,sex};
   state.liveMatchSession=LiveMatch.createSession(sportId,user,opponent,{seed,autoCoachHome:false,autoCoachAway:true,knockout:false});
   state.modal={type:'livematch'};
   openModal();
@@ -3006,13 +3008,25 @@ function liveCoachCommand(command,tactic){
   stopLivePlayback();
   const s=state.liveMatchSession;if(!s||s.finished)return;
   const cmd=command==='tactic'?{type:'tactic',tactic}:command==='timeout'?{type:'timeout'}:command==='rotate'?{type:'rotate'}:{type:command};
-  const ok=LiveMatch.applyCommand(s,'home',cmd);if(!ok)toast(command==='timeout'?'Plus de temps mort disponible ou action impossible.':'Action impossible pour le moment.');
+  const ok=LiveMatch.applyCommand(s,'home',cmd);
+  if(ok&&command==='tactic'&&state.liveMatchMeta?.sportId&&state.liveMatchMeta?.sex){
+    const fed=federationFor(state.liveMatchMeta.sportId);
+    if(fed){fed.tactics=fed.tactics||{M:'balanced',F:'balanced'};fed.tactics[state.liveMatchMeta.sex]=tactic;persist();}
+  }
+  if(!ok)toast(command==='timeout'?'Plus de temps mort disponible ou action impossible.':'Action impossible pour le moment.');
   openModal();
 }
 function liveCoachScheme(scheme){
   stopLivePlayback();
   const s=state.liveMatchSession;if(!s||s.finished)return;
   const ok=LiveMatch.applyCommand(s,'home',{type:'scheme',scheme});
+  if(ok&&state.liveMatchMeta?.sportId&&state.liveMatchMeta?.sex){
+    const fed=federationFor(state.liveMatchMeta.sportId);
+    if(fed){
+      fed.defenseSchemes=fed.defenseSchemes||{M:state.liveMatchMeta.sportId==='handball'?'6-0':state.liveMatchMeta.sportId==='basketball'?'man':'standard',F:state.liveMatchMeta.sportId==='handball'?'6-0':state.liveMatchMeta.sportId==='basketball'?'man':'standard'};
+      fed.defenseSchemes[state.liveMatchMeta.sex]=scheme;persist();
+    }
+  }
   if(!ok)toast('Organisation défensive déjà utilisée ou indisponible.');
   openModal();
 }
@@ -3416,7 +3430,8 @@ function userTeamForEvent(event){
   const team=Engine.teamStrength(state.save.athletes,event,{coach:fed?.headCoach.rating,efficiency:fed?.efficiency,morale:fed?.morale,budgetFactor:Engine.budgetFactor(sp)});
   const tactic=fed?.tactics?.[event.sex]||'balanced';
   const familiarity=clamp((fed?.tacticalFamiliarity?.[event.sex]||70)+fac.tacticalBonus*4,35,100);
-  return {id:state.save.countryId,nationId:state.save.countryId,name:`${currentCountry().name} ${sexLabel(event.sex)}`,roster:team.roster,strength:team.score,form:avg(team.roster.map(a=>a.form)),confidence:avg(team.roster.map(a=>a.confidence)),fatigue:avg(team.roster.map(a=>a.fatigue)),experience:avg(team.roster.map(a=>a.experience)),tactic,familiarity,diagnostics:team};
+  const defenseScheme=fed?.defenseSchemes?.[event.sex]||(event.sportId==='handball'?'6-0':event.sportId==='basketball'?'man':'standard');
+  return {id:state.save.countryId,nationId:state.save.countryId,name:`${currentCountry().name} ${sexLabel(event.sex)}`,roster:team.roster,strength:team.score,form:avg(team.roster.map(a=>a.form)),confidence:avg(team.roster.map(a=>a.confidence)),fatigue:avg(team.roster.map(a=>a.fatigue)),experience:avg(team.roster.map(a=>a.experience)),tactic,defenseScheme,familiarity,diagnostics:team};
 }
 function applyTeamTournamentLoad(team,event,tournament,userRank){
   if(!team?.roster?.length)return;
