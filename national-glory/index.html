@@ -2225,6 +2225,7 @@ function normalizeSave(save){
 }
 
 
+function displayVersion(v){return v==='0.99-fix3'?'0.99 2D RC':(v||'0.3');}
 function currentCountry(){ return COUNTRIES[state.save?.countryId || 'france']; }
 function dateLabel(save = state.save){ return `${String(save.day).padStart(2,'0')}/${String(save.month).padStart(2,'0')}/${save.year}`; }
 function nextCompetition(){ return (state.save?.competitions||[]).filter(c=>['upcoming','live-pending'].includes(c.status)).sort(byCompetitionDate)[0] || null; }
@@ -2333,7 +2334,7 @@ function shellHtml(){
         ${navBtn('finances','Finances','💰')}
       </div>
       <div class="sidebar-footer">
-        <div>Version ${state.save.version || '0.3'}</div>
+        <div>Version ${displayVersion(state.save.version)}</div>
         <div>${state.save.name}</div>
       </div>
     </aside>
@@ -2737,7 +2738,7 @@ function bindModal(){
 }
 function saveListModal(isDelete){
   const saves = listSaves();
-  return `<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-label="Fenêtre de jeu"><div class="modal"><div class="modal-top"><h2>${isDelete?'Supprimer une partie':'Charger une partie'}</h2><button class="btn ghost" id="closeModal">Fermer</button></div>${saves.length ? saves.map(s=>`<div class="save-card"><div><b>${s.name}</b><div class="row-sub">${s.countryName || s.countryId} · ${s.mode} · ${s.version||'0.1'}</div></div><button class="btn ${isDelete?'danger':'primary'}" ${isDelete?`data-delete-save="${s.id}"`:`data-load-save="${s.id}"`}>${isDelete?'Supprimer':'Charger'}</button></div>`).join('') : '<div class="empty">Aucune sauvegarde locale.</div>'}</div></div>`;
+  return `<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-label="Fenêtre de jeu"><div class="modal"><div class="modal-top"><h2>${isDelete?'Supprimer une partie':'Charger une partie'}</h2><button class="btn ghost" id="closeModal">Fermer</button></div>${saves.length ? saves.map(s=>`<div class="save-card"><div><b>${s.name}</b><div class="row-sub">${s.countryName || s.countryId} · ${s.mode} · ${displayVersion(s.version)}</div></div><button class="btn ${isDelete?'danger':'primary'}" ${isDelete?`data-delete-save="${s.id}"`:`data-load-save="${s.id}"`}>${isDelete?'Supprimer':'Charger'}</button></div>`).join('') : '<div class="empty">Aucune sauvegarde locale.</div>'}</div></div>`;
 }
 function newCareerModal(){
   const d = state.modal.data;
