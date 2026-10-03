@@ -618,20 +618,28 @@ button{cursor:pointer}
   function buildLineup(team,sportId){
     const rule=RULES[sportId],r=[...team.roster];
     let chosen=[];
+    const take=(role,count)=>{
+      const pool=r.filter(x=>x.discipline===role&&!chosen.includes(x)).sort((a,b)=>playerValue(b)-playerValue(a));
+      chosen.push(...pool.slice(0,count));
+    };
     if(sportId==='handball'){
-      const needs=[['Gardien',1],['Ailier',2],['Arrière',3],['Pivot',1]];
-      needs.forEach(([role,count])=>{const pool=r.filter(x=>x.discipline===role&&!chosen.includes(x)).sort((a,b)=>playerValue(b)-playerValue(a));chosen.push(...pool.slice(0,count))});
-      chosen.push(...r.filter(p=>!chosen.includes(p)).sort((a,b)=>playerValue(b)-playerValue(a)).slice(0,rule.lineup-chosen.length));
+      take('Gardien',1);take('Ailier',2);take('Arrière',3);take('Pivot',1);
+      if(chosen.length<rule.lineup){
+        const fill=r.filter(p=>!chosen.includes(p)&&p.discipline!=='Gardien').sort((a,b)=>playerValue(b)-playerValue(a));
+        chosen.push(...fill.slice(0,rule.lineup-chosen.length));
+      }
+      if(chosen.length<rule.lineup){
+        chosen.push(...r.filter(p=>!chosen.includes(p)).sort((a,b)=>playerValue(b)-playerValue(a)).slice(0,rule.lineup-chosen.length));
+      }
     }else if(sportId==='basketball'){
-      const needs=[['Meneur',1],['Arrière',1],['Ailier',1],['Intérieur',1]];
-      needs.forEach(([role,count])=>{const pool=r.filter(x=>x.discipline===role&&!chosen.includes(x)).sort((a,b)=>playerValue(b)-playerValue(a));chosen.push(...pool.slice(0,count))});
+      take('Meneur',1);take('Arrière',1);take('Ailier',2);take('Intérieur',1);
       chosen.push(...r.filter(p=>!chosen.includes(p)).sort((a,b)=>playerValue(b)-playerValue(a)).slice(0,rule.lineup-chosen.length));
     }else{
-      const needs=[['Passeur',1],['Central',2],['Réceptionneur',2],['Libéro',1]];
-      needs.forEach(([role,count])=>{const pool=r.filter(x=>x.discipline===role&&!chosen.includes(x)).sort((a,b)=>playerValue(b)-playerValue(a));chosen.push(...pool.slice(0,count))});
+      take('Passeur',1);take('Central',2);take('Réceptionneur',2);take('Libéro',1);
       chosen.push(...r.filter(p=>!chosen.includes(p)).sort((a,b)=>playerValue(b)-playerValue(a)).slice(0,rule.lineup-chosen.length));
     }
-    team.lineup=chosen.slice(0,rule.lineup);team.bench=r.filter(p=>!team.lineup.includes(p));
+    team.lineup=chosen.slice(0,rule.lineup);
+    team.bench=r.filter(p=>!team.lineup.includes(p));
   }
   function initPlayerStats(team,sportId){
     return Object.fromEntries(team.roster.map(p=>[p.id,{id:p.id,sourceId:p.sourceId||null,name:p.name,role:p.discipline,minutes:0,fatigueStart:p.fatigue,fatigueEnd:p.fatigue,injury:null,
@@ -732,7 +740,7 @@ button{cursor:pointer}
   function timeLabel(s){if(s.sportId==='handball'){const min=Math.min(60,Math.ceil((s.period-1)*30+s.unit/RULES.handball.unitsPerPeriod*30));return `${min}'`}if(s.sportId==='basketball'){const remain=Math.max(0,10-Math.floor(s.unit/RULES.basketball.unitsPerPeriod*10));return `Q${s.period} ${remain}:00`}return `S${s.period} ${s.setPoints.home}-${s.setPoints.away}`}
   function createSession(sportId,homeInput,awayInput,options={}){
     const rng=options.rng||makeRng(options.seed||1),home=normalizeTeam(homeInput,sportId,rng),away=normalizeTeam(awayInput,sportId,rng);buildLineup(home,sportId);buildLineup(away,sportId);
-    const s={sportId,home,away,rng,period:1,unit:0,finished:false,events:[],rotations:[],injuries:[],periods:[],setPoints:{home:0,away:0},servingSide:rng()<.5?'home':'away',setStartServingSide:null,teamFouls:{home:0,away:0},volleyballRotation:{home:0,away:0},playerStats:{home:null,away:null},options,autoCoach:{home:options.autoCoachHome!==false,away:options.autoCoachAway!==false},lastPeriodHome:0,lastPeriodAway:0};
+    const s={sportId,home,away,rng,period:1,unit:0,finished:false,events:[],rotations:[],injuries:[],periods:[],setPoints:{home:0,away:0},servingSide:rng()<.5?'home':'away',setStartServingSide:null,teamFouls:{home:0,away:0},volleyballRotation:{home:0,away:0},visual:{side:'home',action:'engagement',actorId:null,targetId:null,outcome:'',label:'Mise en place'},playerStats:{home:null,away:null},options,autoCoach:{home:options.autoCoachHome!==false,away:options.autoCoachAway!==false},lastPeriodHome:0,lastPeriodAway:0};
     s.setStartServingSide=s.servingSide;s.playerStats.home=initPlayerStats(home,sportId);s.playerStats.away=initPlayerStats(away,sportId);return s;
   }
   function applyCommand(session,side,cmd){const team=session[side],opp=session[side==='home'?'away':'home'];if(session.finished)return false;if(cmd.type==='timeout')return useTimeout(session,team,'Coach : temps mort');if(cmd.type==='tactic')return changeTactic(session,team,cmd.tactic,'Coach');if(cmd.type==='rotate')return autoRotate(session,team,session.rng,true);if(cmd.type==='substitute')return substitute(session,team,cmd.outId,cmd.inId);if(cmd.type==='auto') {session.autoCoach[side]=!!cmd.enabled;return true}return false}
@@ -848,7 +856,7 @@ button{cursor:pointer}
     return {aces:sum(rows,'aces'),blocks:sum(rows,'blocks'),serviceErrors:sum(rows,'errors'),attackPoints:sum(rows,'kills'),digs:sum(rows,'digs')};}
   function sum(rows,k){return rows.reduce((n,r)=>n+(+r[k]||0),0)}
   function simulateAuto(sportId,home,away,options={}){const s=createSession(sportId,home,away,{...options,autoCoachHome:options.autoCoachHome!==false,autoCoachAway:options.autoCoachAway!==false});while(!s.finished)advance(s,10);return finalize(s)}
-  function publicState(s){return {sportId:s.sportId,home:s.home.name,away:s.away.name,homeScore:s.home.score,awayScore:s.away.score,period:s.period,unit:s.unit,time:timeLabel(s),finished:s.finished,setPoints:{...s.setPoints},servingSide:s.servingSide,teamFouls:{...s.teamFouls},volleyballRotation:{...(s.volleyballRotation||{home:0,away:0})},tactics:{home:s.home.tactic,away:s.away.tactic},timeouts:{home:s.home.timeoutsUsed,away:s.away.timeoutsUsed},timeoutStatus:{home:timeoutStatus(s,s.home),away:timeoutStatus(s,s.away)},lineups:{home:s.home.lineup.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut,suspendedUnits:p.suspendedUnits||0})),away:s.away.lineup.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut,suspendedUnits:p.suspendedUnits||0}))},benches:{home:s.home.bench.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut})),away:s.away.bench.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut}))},substitutions:{home:s.home.substitutionsUsed,away:s.away.substitutionsUsed,totalHome:s.home.totalSubstitutionsUsed,totalAway:s.away.totalSubstitutionsUsed},events:s.events.slice(-8),coaching:{home:s.home.coachLog.slice(-6),away:s.away.coachLog.slice(-6)}}}
+  function publicState(s){return {sportId:s.sportId,home:s.home.name,away:s.away.name,homeScore:s.home.score,awayScore:s.away.score,period:s.period,unit:s.unit,time:timeLabel(s),finished:s.finished,setPoints:{...s.setPoints},servingSide:s.servingSide,teamFouls:{...s.teamFouls},volleyballRotation:{...(s.volleyballRotation||{home:0,away:0})},visual:{...(s.visual||{})},tactics:{home:s.home.tactic,away:s.away.tactic},timeouts:{home:s.home.timeoutsUsed,away:s.away.timeoutsUsed},timeoutStatus:{home:timeoutStatus(s,s.home),away:timeoutStatus(s,s.away)},lineups:{home:s.home.lineup.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut,suspendedUnits:p.suspendedUnits||0})),away:s.away.lineup.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut,suspendedUnits:p.suspendedUnits||0}))},benches:{home:s.home.bench.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut})),away:s.away.bench.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut}))},substitutions:{home:s.home.substitutionsUsed,away:s.away.substitutionsUsed,totalHome:s.home.totalSubstitutionsUsed,totalAway:s.away.totalSubstitutionsUsed},events:s.events.slice(-8),coaching:{home:s.home.coachLog.slice(-6),away:s.away.coachLog.slice(-6)}}}
   return {RULES,makeRng,createSession,advance,applyCommand,finalize,simulateAuto,publicState,profile,effective,timeoutStatus};
 });
 
