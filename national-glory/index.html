@@ -435,7 +435,7 @@ button{cursor:pointer}
 
   function generateFederationObjectives(sport,year,{olympicYear=false}={}){
     const objectives=[
-      {id:`rank_${year}`,type:'ranking',label:`Atteindre le top ${Math.max(1,Math.min(sport.ranking, sport.ranking-1))}`,target:Math.max(1,sport.ranking-1),baseline:sport.ranking,weight:40},
+      {id:`rank_${year}`,type:'ranking',label:(sport.ranking<=1?'Conserver la place de n°1':`Atteindre le top ${Math.max(1,sport.ranking-1)}`),target:Math.max(1,sport.ranking-1),baseline:sport.ranking,weight:40},
       {id:`youth_${year}`,type:'youth',label:`Porter la formation à ${Math.min(98,sport.youth+2)}/100`,target:Math.min(98,sport.youth+2),baseline:sport.youth,weight:30},
       {id:`infra_${year}`,type:'infrastructure',label:`Porter les infrastructures à ${Math.min(99,sport.infrastructure+1)}/100`,target:Math.min(99,sport.infrastructure+1),baseline:sport.infrastructure,weight:30}
     ];
@@ -1538,12 +1538,18 @@ function listSaves(){
     .filter(Boolean)
     .sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0));
 }
+function storageUsageBytes(){
+  let chars=0;try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);chars+=(k?.length||0)+(localStorage.getItem(k)?.length||0);}}catch{}
+  return chars*2;
+}
+state.storageWarned=!!state.storageWarned;
 function persist(){
   if(!state.save) return false;
   state.save.updatedAt = Date.now();
   try{
     localStorage.setItem(saveKey(state.save.id), JSON.stringify(state.save));
     localStorage.setItem(LAST_SAVE_KEY, state.save.id);
+    if(storageUsageBytes()>3.5*1024*1024&&!state.storageWarned){state.storageWarned=true;setTimeout(()=>toast('⚠️ Stockage local presque plein : exporte tes sauvegardes et supprime les anciennes parties.'),0);}
     return true;
   }catch(err){
     if(err?.name==='QuotaExceededError'){
@@ -1610,7 +1616,7 @@ function generateAthletes(countryId='france', year=2034){
   SPORTS.forEach((sport, si)=>{
     const events=Engine.eventsForSport(sport.id);
     const team=Engine.isTeamSport(sport.id);
-    const minCoverage=team?20:Math.max(8,events.length*2);
+    const minCoverage=team?(GameConfig.TEAM_RULES[sport.id].preferred*2):Math.max(8,events.length*2);
     const count=Math.max(minCoverage,basePerSport+(si<baseTarget%SPORTS.length?1:0)+(isStrength(country,sport.id)?2:0));
     const disciplines=GameConfig.DISCIPLINES[sport.id]||['Épreuve'];
     for(let i=0;i<count;i++){
@@ -1719,6 +1725,48 @@ function buildFederationState(sports,country,year=2034){
     tacticalFamiliarity:{M:70,F:70},
     lastInvestment:null
   }]));
+}
+const TEAM_ROLE_CYCLES={
+  handball:['Gardien','Ailier','Ailier','Arrière','Arrière','Arrière','Pivot'],
+  basketball:['Meneur','Arrière','Arrière','Ailier','Ailier','Intérieur','Intérieur'],
+  volleyball:['Passeur','Central','Central','Réceptionneur','Réceptionneur','Libéro']
+};
+function ensureTeamRosterDepth(save){
+  if(!save?.athletes)return;
+  const country=COUNTRIES[save.countryId]||COUNTRIES.france;
+  const used=new Set([...(save.athletes||[]),...(save.retiredAthletes||[])].map(a=>a.name));
+  for(const sportId of GameConfig.TEAM_SPORTS){
+    const target=GameConfig.TEAM_RULES[sportId].preferred;
+    const roles=TEAM_ROLE_CYCLES[sportId]||GameConfig.DISCIPLINES[sportId];
+    const sp=save.sports?.find(x=>x.id===sportId);
+    for(const sex of ['M','F']){
+      let group=save.athletes.filter(a=>a.sportId===sportId&&a.sex===sex);
+      while(group.length<target){
+        const index=group.length;
+        const rng=rngObj(hashSeed(`${save.id||save.countryId}-${save.year||2034}-${sportId}-${sex}-${index}-depth-fix3`));
+        const firsts=firstPool(save.countryId,sex),lasts=(COUNTRY_NAMES[save.countryId]||COUNTRY_NAMES.france).last;
+        let name='',guard=0;
+        do{name=`${firsts[Math.floor(rng()*firsts.length)]} ${String(lasts[Math.floor(rng()*lasts.length)]).replace(/\\bFrancois\\b/g,'François')}`;guard++;}while((used.has(name)||RESERVED_REAL_NAMES.has(name))&&guard<80);
+        if(used.has(name))name=`${name} ${index+1}`;used.add(name);
+        const baseStrength=sp?.strengthIndex||countrySportStrength(country,sportById(sportId));
+        const age=18+Math.floor(rng()*15);
+        const ability=clamp(Math.round(42+baseStrength*.43+randomNormal(rng)*5),48,91);
+        const truePotential=clamp(Math.round(ability+5+rng()*10-Math.max(0,age-24)*.35),ability,98);
+        const role=roles[index%roles.length],regions=regionsForCountry(save.countryId);
+        const a={
+          id:`ath_depth_${sportId}_${sex}_${hashSeed(name+index).toString(36)}`,name,countryId:save.countryId,sportId,discipline:role,sex,age,
+          region:regions[Math.floor(rng()*regions.length)],ability,truePotential,
+          potentialMin:clamp(Math.round(truePotential-4-rng()*3),ability,99),potentialMax:clamp(Math.round(truePotential+2+rng()*2),ability,99),
+          form:Math.round(68+rng()*24),fatigue:Math.round(5+rng()*18),confidence:Math.round(58+rng()*30),professionalism:Math.round(55+rng()*36),
+          injuryRisk:Math.round(8+rng()*20),experience:clamp(Math.round((age-16)*4+rng()*15),2,95),
+          physical:clamp(Math.round(ability+randomNormal(rng)*4),40,99),technical:clamp(Math.round(ability+randomNormal(rng)*4),40,99),mental:clamp(Math.round(ability+randomNormal(rng)*5),40,99),
+          coach:clamp(Math.round(country.infrastructure-4+rng()*15),45,99),infrastructure:sp?.infrastructure||country.infrastructure,
+          injuredDays:0,pb:null,trend:'→',history:[],selected:false,scoutingReviews:0,developmentPlan:'balanced'
+        };
+        save.athletes.push(a);group.push(a);
+      }
+    }
+  }
 }
 function initializeSelections(athletes,forceInitial=false){
   athletes.forEach((a,i)=>{
@@ -1866,8 +1914,15 @@ function toggleSelection(athleteId){
   const a=state.save.athletes.find(x=>x.id===athleteId); if(!a)return;
   const limit=Engine.selectionLimitForSport(a.sportId);
   const scoped=Engine.isTeamSport(a.sportId)?state.save.athletes.filter(x=>x.sportId===a.sportId&&x.sex===a.sex&&x.selected):selectedForSport(a.sportId);
-  if(!a.selected && scoped.length>=limit){toast(`Maximum ${limit} athlètes sélectionnés ${Engine.isTeamSport(a.sportId)?'par catégorie ':''}pour ce sport.`);return;}
-  a.selected=!a.selected; state.selectedAthlete=a; state.modal={type:'athlete'}; persist(); render();
+  if(!a.selected&&scoped.length>=limit){toast(`Maximum ${limit} athlètes sélectionnés ${Engine.isTeamSport(a.sportId)?'par catégorie ':''}pour ce sport.`);return;}
+  a.selected=!a.selected;
+  if(!a.selected&&Engine.isTeamSport(a.sportId)){
+    const remaining=state.save.athletes.filter(x=>x.sportId===a.sportId&&x.sex===a.sex&&x.selected&&!x.injuredDays).length;
+    const min=GameConfig.TEAM_RULES[a.sportId].minimum,preferred=GameConfig.TEAM_RULES[a.sportId].preferred;
+    if(remaining<min)toast(`Sélection incomplète : ${remaining}/${min}. Les matchs seront bloqués.`);
+    else if(remaining<preferred)toast(`Effectif réduit : ${remaining}/${preferred}. Complète la sélection avant le coaching live.`);
+  }
+  state.selectedAthlete=a; state.modal={type:'athlete'}; persist(); render();
 }
 
 function competitionTemplates(year){
@@ -1997,7 +2052,7 @@ function freshSave(opts={}){
   const seed=hashSeed(`${countryId}-${Date.now()}-${Math.random()}`);
   const medalObjective=Math.max(1,Math.round(country.medalObjective*mods.objectiveMultiplier));
   const save={
-    version:'0.99-rc',id:'save_'+Date.now(),updatedAt:Date.now(),name:`${country.name} — ${opts.mode||'Classique'}`,
+    version:'0.99-fix3',id:'save_'+Date.now(),updatedAt:Date.now(),name:`${country.name} — ${opts.mode||'Classique'}`,
     countryId,countryName:country.name,mode:opts.mode||'Classique',difficulty:opts.difficulty||'Normal',duration:opts.duration||'Illimitée',
     startYear:year,careerEndYear:Engine.careerEndYear(year,opts.duration||'Illimitée'),careerComplete:false,
     year,month:1,day:8,budget:nationalBudget,worldRank:country.worldRank,medalObjective,medals:{g:0,s:0,b:0},
@@ -2053,6 +2108,7 @@ function normalizeSave(save){
   if(Engine.reserveBudget(save.budget,save.sports)<0){
     save.sports=Engine.normalizeBudgets(save.sports,save.budget,.02);  }
   if(!save.athletes) save.athletes=generateAthletes(save.countryId,save.year||2034);
+  ensureTeamRosterDepth(save);
   initializeSelections(save.athletes,previousVersion!=='0.99-fix3');
   if(!save.competitions||!save.competitions.length) save.competitions=buildCompetitionSchedule(save.year||2034,save.countryId);
   if(!save.notifications) save.notifications=[];
@@ -2258,6 +2314,7 @@ function bindShell(){
   $$('[data-sponsor-accept]').forEach(el=>el.addEventListener('click',()=>acceptSponsorOffer(el.dataset.sponsorAccept)));
   $$('[data-facility-upgrade]').forEach(el=>el.addEventListener('click',()=>upgradeNationalFacility(el.dataset.facilityUpgrade)));
   $$('[data-open-decision]').forEach(el=>el.addEventListener('click',()=>{state.modal={type:'decision',decisionId:el.dataset.openDecision};openModal();}));
+  $$('[data-ath-page]').forEach(el=>el.addEventListener('click',()=>{state.athletePage=+el.dataset.athPage||1;render();window.scrollTo?.({top:0,behavior:'smooth'});}));
   bindAthleteFilters();
 }
 function handleAction(action){
@@ -2298,7 +2355,7 @@ function dashboardScreen(){
     <div class="grid stats">
       ${metricCard('Budget national', fmtMoney(save.budget))}
       ${metricCard('Classement mondial', `#${save.worldRank}`)}
-      ${metricCard('Médailles', `🥇 ${save.medals.g} · 🥈 ${save.medals.s} · 🥉 ${save.medals.b}`)}
+      ${metricCard('Médailles Grands Jeux', `🥇 ${save.medals.g} · 🥈 ${save.medals.s} · 🥉 ${save.medals.b}`)}
       ${metricCard('Athlètes suivis', `${save.athletes.length}`)}
       ${metricCard('Pilotage', `${managementScore()}/100`)}
       ${metricCard('Prochaine grande compétition', next ? `${next.name}<small>${competitionDaysAway(next)} jours</small>` : 'Aucune')} 
@@ -2382,14 +2439,18 @@ function filteredAthletes(){
   }).sort((a,b)=>b.ability-a.ability);
 }
 function athletesScreen(){
-  const athletes = filteredAthletes();
+  const all=filteredAthletes(),pageSize=48,pages=Math.max(1,Math.ceil(all.length/pageSize));
+  state.athletePage=clamp(state.athletePage||1,1,pages);
+  const page=state.athletePage,start=(page-1)*pageSize,athletes=all.slice(start,start+pageSize);
+  const pager=pages>1?`<div class="pillbar" style="justify-content:center;margin:18px 0"><button class="btn" data-ath-page="${Math.max(1,page-1)}" ${page===1?'disabled':''}>← Précédent</button><span class="badge gold">Page ${page}/${pages} · ${all.length} athlètes</span><button class="btn" data-ath-page="${Math.min(pages,page+1)}" ${page===pages?'disabled':''}>Suivant →</button></div>`:`<div class="row-sub" style="margin:10px 0">${all.length} athlète(s)</div>`;
   return `
     <div class="section-title"><div><h2>Base athlètes</h2><p>Filtre les profils, suis la progression et entre dans le détail individuel.</p></div></div>
     ${athleteFiltersHtml()}
-    <div class="grid athlete-grid">
-      ${athletes.map(a=>athleteCard(a)).join('') || '<div class="empty">Aucun athlète ne correspond aux filtres.</div>'}
-    </div>`;
+    ${pager}
+    <div class="grid athlete-grid">${athletes.map(a=>athleteCard(a)).join('') || '<div class="empty">Aucun athlète ne correspond aux filtres.</div>'}</div>
+    ${pages>1?pager:''}`;
 }
+
 function athleteCard(a){
   return `<div class="card athlete-card" data-athlete="${a.id}">
     <div class="athlete-top"><div><h3>${a.name}</h3><div class="row-sub">${sportById(a.sportId).icon} ${sportById(a.sportId).name} · ${a.discipline} · ${sexLabel(a.sex)}</div></div><div class="rating">${Math.round(a.ability)}</div></div>
@@ -2405,7 +2466,7 @@ function bindAthleteFilters(){
       state.filters = {
         q:$('#fltQ')?.value||'', sport:$('#fltSport')?.value||'', region:$('#fltRegion')?.value||'', sex:$('#fltSex')?.value||'', age:$('#fltAge')?.value||'', potential:$('#fltPotential')?.value||'', status:$('#fltStatus')?.value||''
       };
-      state.screen='athletes'; render();
+      state.athletePage=1; state.screen='athletes'; render();
       if(id==='fltQ'){const q=$('#fltQ');if(q){q.focus();try{q.setSelectionRange(cursor,cursor);}catch{}}}
     });
   });
@@ -2758,6 +2819,12 @@ function autoResolveOfficialCompetition(competitionId){
   simulateCompetitionAuto(c,rng);persist();render();toast(`${c.name} simulée automatiquement.`);
 }
 function launchOfficialLiveMatch(c,event,tournament,pending){
+  const real=tournament?._userTeam?.roster?.length||0,need=GameConfig.TEAM_RULES[c.sportId]?.preferred||0;
+  if(real<need){
+    saveOfficialProgress(c);state.screen='competitions';state.modal=null;render();
+    toast(`Match officiel en pause : ${real}/${need} athlètes réels dans la sélection ${sexLabel(event.sex)}. Complète-la puis reprends le tournoi.`);
+    return;
+  }
   const seed=(state.officialCompetition.seed+hashSeed(`${event.id}-${tournament.matches.length}-${pending.stage}`))>>>0;
   state.liveMatchResult=null;state.liveSubOutId=null;
   state.liveMatchMeta={official:true,competitionId:c.id,eventId:event.id,eventName:event.name,competitionName:c.name,stage:pending.stage,olympics:state.officialCompetition.olympics,qualifier:state.officialCompetition.qualifier};
@@ -2834,8 +2901,17 @@ function submitOfficialLiveResult(result){
   completeOfficialEvent(c,event,tournament);advanceOfficialCompetition();return true;
 }
 
+function selectedAvailableFor(sportId,sex){
+  return state.save.athletes.filter(a=>a.sportId===sportId&&a.sex===sex&&a.selected&&!a.injuredDays);
+}
+function fullLiveRosterReady(sportId,sex){
+  const count=selectedAvailableFor(sportId,sex).length,need=GameConfig.TEAM_RULES[sportId]?.preferred||0;
+  if(count<need){toast(`Coaching live : ${count}/${need} athlètes réels disponibles. Complète la sélection ${sexLabel(sex)} avant le match.`);return false;}
+  return true;
+}
 function startLiveFriendly(sportId,sex='M'){
   if(!LiveMatch||!Engine.isTeamSport(sportId)){toast('Centre de match indisponible.');return;}
+  if(!fullLiveRosterReady(sportId,sex))return;
   if(state.liveMatchSession&&!state.liveMatchSession.finished){state.modal={type:'livematch'};openModal();toast('Un match est déjà en cours : reprise de la session.');return;}
   const event=Engine.eventsForSport(sportId).find(e=>e.sex===sex)||Engine.eventsForSport(sportId)[0];
   const seed=(state.save.seed+state.save.tick*3571+hashSeed(`${sportId}-${sex}-live`))>>>0;
@@ -3425,4 +3501,4 @@ function yearRefresh(rng){
 migrateLegacyStorage();
 if(!globalThis.__ON_TEST__&&!globalThis.__NG_TEST__){applyGameSettings();render();}
 
-</script><script src="./fix2.js?v=20261003a"></script></body></html>
+</script></body></html>
