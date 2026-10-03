@@ -1505,7 +1505,7 @@ if('serviceWorker' in navigator){
 }
 
 window.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&document.querySelector('#modal')){state.modal=null;closeModal();}
+  if(e.key==='Escape'&&document.querySelector('#modal')){if(state.modal?.type==='livematch')stopLivePlayback();state.modal=null;closeModal();}
 });
 
 const $ = s => document.querySelector(s);
@@ -2688,8 +2688,8 @@ function openModal(){
 function closeModal(){ $('#modal')?.remove(); }
 function bindModal(){
   const wrap = $('#modal'); if(!wrap) return;
-  wrap.addEventListener('click',e=>{ if(e.target.id==='modal') { state.modal=null; closeModal(); }});
-  $('#closeModal')?.addEventListener('click',()=>{ state.modal=null; closeModal(); });
+  wrap.addEventListener('click',e=>{ if(e.target.id==='modal') { if(state.modal?.type==='livematch')stopLivePlayback(); state.modal=null; closeModal(); }});
+  $('#closeModal')?.addEventListener('click',()=>{ if(state.modal?.type==='livematch')stopLivePlayback(); state.modal=null; closeModal(); });
   $('#backStep')?.addEventListener('click',()=>{ if(state.modal?.step>1){ state.modal.step--; closeModal(); openModal(); } });
   $('#nextStep')?.addEventListener('click',()=>{ if(state.modal?.step<3){ state.modal.step++; closeModal(); openModal(); } });
   $('#createCareer')?.addEventListener('click',()=>{ const d=state.modal.data; state.save=freshSave(d); state.screen='dashboard'; state.modal={type:'tutorial',step:1}; persist(); render(); toast('Nouvelle carrière créée.'); });
