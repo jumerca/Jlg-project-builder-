@@ -1487,29 +1487,46 @@ function exportSaveBundle(){
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`national-glory-sauvegardes-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   toast(`${saves.length} sauvegarde(s) exportée(s).`);
 }
+function validateImportedSave(raw){
+  if(!raw||typeof raw!=='object')return 'Le fichier ne contient pas une sauvegarde valide.';
+  if(!COUNTRIES[raw.countryId])return 'Nation absente ou inconnue.';
+  if(!Number.isFinite(+raw.year)||!Number.isFinite(+raw.month)||!Number.isFinite(+raw.day))return 'Date de carrière manquante.';
+  if(+raw.month<1||+raw.month>12||+raw.day<1||+raw.day>31)return 'Date de carrière invalide.';
+  if(!raw.medals||!Number.isFinite(+raw.medals.g)||!Number.isFinite(+raw.medals.s)||!Number.isFinite(+raw.medals.b))return 'Bloc médailles manquant.';
+  if(!Array.isArray(raw.athletes)||raw.athletes.length<1)return 'Liste des athlètes manquante.';
+  if(!Array.isArray(raw.sports)||raw.sports.length<1)return 'Données des fédérations manquantes.';
+  if(!Array.isArray(raw.competitions))return 'Calendrier de compétitions manquant.';
+  return null;
+}
 function importSaveFile(file){
   if(!file)return;
   const reader=new FileReader();
   reader.onload=()=>{
     try{
-      const parsed=JSON.parse(String(reader.result||''));
+      let parsed;
+      try{parsed=JSON.parse(String(reader.result||''));}
+      catch{throw new Error('Le fichier JSON est illisible ou corrompu.');}
       const incoming=Array.isArray(parsed?.saves)?parsed.saves:(parsed?.countryId?[parsed]:[]);
-      if(!incoming.length)throw new Error('Aucune sauvegarde reconnue');
+      if(!incoming.length)throw new Error('Aucune sauvegarde National Glory reconnue.');
       let imported=0,lastId=null;
-      incoming.forEach(raw=>{
-        if(!raw||!raw.countryId)return;
+      for(const raw of incoming){
+        const invalid=validateImportedSave(raw);if(invalid)throw new Error(invalid);
         const save=structuredClone(raw); normalizeSave(save);
         if(!save.id||localStorage.getItem(saveKey(save.id)))save.id='save_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
         save.updatedAt=Date.now(); save.version='0.99-fix3'; save.tutorialSeen=true;
-        localStorage.setItem(saveKey(save.id),JSON.stringify(save)); imported++; lastId=save.id;
-      });
-      if(!imported)throw new Error('Format non compatible');
+        try{localStorage.setItem(saveKey(save.id),JSON.stringify(save));}
+        catch(err){if(err?.name==='QuotaExceededError')throw new Error('Stockage local plein. Exporte ou supprime une ancienne partie avant d’importer.');throw err;}
+        imported++; lastId=save.id;
+      }
+      if(!imported)throw new Error('Format non compatible.');
       if(lastId)localStorage.setItem(LAST_SAVE_KEY,lastId);
-      toast(`${imported} sauvegarde(s) importée(s).`); render();
-    }catch(err){toast(`Import impossible : ${err.message||'fichier invalide'}`);}
+      toast(`${imported} sauvegarde(s) importée(s) avec succès.`); render();
+    }catch(err){toast(`Import refusé : ${err?.message||'fichier invalide'}`);}
   };
+  reader.onerror=()=>toast('Import refusé : impossible de lire le fichier.');
   reader.readAsText(file);
 }
+
 function triggerImport(){const input=document.createElement('input');input.type='file';input.accept='application/json,.json';input.addEventListener('change',()=>importSaveFile(input.files?.[0]));input.click();}
 
 function saveKey(id){ return SAVE_PREFIX + id; }
@@ -1521,10 +1538,20 @@ function listSaves(){
     .sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0));
 }
 function persist(){
-  if(!state.save) return;
+  if(!state.save) return false;
   state.save.updatedAt = Date.now();
-  localStorage.setItem(saveKey(state.save.id), JSON.stringify(state.save));
-  localStorage.setItem(LAST_SAVE_KEY, state.save.id);
+  try{
+    localStorage.setItem(saveKey(state.save.id), JSON.stringify(state.save));
+    localStorage.setItem(LAST_SAVE_KEY, state.save.id);
+    return true;
+  }catch(err){
+    if(err?.name==='QuotaExceededError'){
+      toast('⚠️ Stockage local plein : exporte ta carrière puis supprime une ancienne sauvegarde.');
+      return false;
+    }
+    toast('⚠️ Sauvegarde locale impossible.');
+    return false;
+  }
 }
 function loadSave(id){
   const raw = localStorage.getItem(saveKey(id));
@@ -1997,7 +2024,7 @@ function createWorldState(year){
   const nations={};
   WORLD_NATIONS.forEach(n=>{
     nations[n.id]={
-      id:n.id,name:n.name,flag:n.flag,worldRank:n.worldRank,budget:n.budget,
+      id:n.id,name:n.name,flag:n.flag,worldRank:n.worldRank,rankingRating:100-Math.max(0,(n.worldRank||20)-1)*2.6,budget:n.budget,
       medalTable:{g:0,s:0,b:0},
       sports:Object.fromEntries(SPORTS.map(s=>{
         const base=clamp(countrySportStrength(n,s)+Math.round(randomNormal(rng)*1.8),45,99);
@@ -2033,6 +2060,7 @@ function normalizeSave(save){
   if(!save.retiredAthletes) save.retiredAthletes=[];
   if(!save.olympicEditions) save.olympicEditions=[];
   if(!save.world) save.world=createWorldState(save.year||2034);
+  Object.values(save.world?.nations||{}).forEach(n=>{if(!Number.isFinite(n.rankingRating))n.rankingRating=100-Math.max(0,(n.worldRank||20)-1)*2.6;});
   if(!['0.98-qa','0.99-rc','0.99-fix3'].includes(previousVersion)&&save.world?.nations){for(const n of Object.values(save.world.nations)){const meta=WORLD_BY_ID[n.id]||n;n.sports=n.sports||{};for(const sp of SPORTS){const old=n.sports[sp.id]||{};n.sports[sp.id]={...old,strength:countrySportStrength({...meta,worldRank:n.worldRank||meta.worldRank},sp),form:old.form||75};}}}
   if(!save.qualifications) save.qualifications=createQualificationState();
   SPORTS.forEach(sp=>{
@@ -2583,7 +2611,7 @@ function newCareerModal(){
     ${step===1?`
       <h3>1 — Choisir son pays</h3>
       <div class="option-grid countries">${COUNTRY_LIST.map(c=>`<div class="option ${d.countryId===c.id?'active':''}" data-pick-country="${c.id}"><b>${c.flag} ${c.name}</b><span>${c.blurb}</span><div class="row-sub">Population ${c.population} · Budget ${fmtMoney(c.budget)} · Rang #${c.worldRank}</div></div>`).join('')}</div>
-      <div class="country-card" style="margin-top:16px"><h3>${country.flag} ${country.name}</h3><div class="row-sub">${country.blurb}</div><div class="country-facts"><div><span>Population</span><b>${country.population}</b></div><div><span>Budget</span><b>${fmtMoney(country.budget)}</b></div><div><span>Culture</span><b>${country.culture}/100</b></div><div><span>Objectif</span><b>${country.medalObjective} médailles</b></div></div></div>`:''}
+      <div class="country-card" style="margin-top:16px"><h3>${country.flag} ${country.name}</h3><div class="row-sub">${country.blurb}</div><div class="country-facts"><div><span>Population</span><b>${country.population}</b></div><div><span>Budget de référence</span><b>${fmtMoney(country.budget)}</b></div><div><span>Culture</span><b>${country.culture}/100</b></div><div><span>Objectif</span><b>${country.medalObjective} médailles</b></div></div></div>`:''}
     ${step===2?`
       <h3>2 — Type de carrière</h3>
       <div class="option-grid">${['Classique','Bâtisseur','Puissance mondiale','Libre'].map(mode=>`<div class="option ${d.mode===mode?'active':''}" data-pick-mode="${mode}"><b>${mode}</b><span>${mode==='Classique'?'Équilibre entre développement et résultats immédiats.':mode==='Bâtisseur'?'Petit ou moyen pays, budget plus contraint, progression sur le long terme.':mode==='Puissance mondiale'?'Pression maximale, objectifs élevés, obligation de performer.':'Configuration souple pour construire ta carrière sans orientation imposée.'}</span></div>`).join('')}</div>`:''}
@@ -2772,9 +2800,10 @@ function finalizeOfficialCompetition(c){
     state.save.history.push({kind:'competition',name:c.name,date:dateLabel(),summary:`${userMedals.length} médaille(s) après coaching officiel · meilleur rang ${Number.isFinite(userBest)?userBest:'—'}.`});
     state.save.notifications.unshift({id:`official_done_${c.id}`,type:'olympics',title:`Grands Jeux — ${sportById(c.sportId).name}`,text:`Tournoi coaché terminé : ${userMedals.length} médaille(s).`,target:'competitions',competitionId:c.id});
   }else{
-    state.save.history.push({kind:'competition',name:c.name,date:dateLabel(),summary:`${winner?`Victoire ${winner.nation}`:'Tournoi terminé'}. Meilleur résultat national : ${Number.isFinite(userBest)?userBest+'e':'—'} · coaching officiel.`});
+    state.save.history.push({kind:'competition',name:c.name,date:dateLabel(),summary:`${winner?`Vainqueur : ${winner.nation}`:'Tournoi terminé'}. Meilleur rang ${currentCountry().name} : ${Number.isFinite(userBest)?userBest+'e':'—'} · coaching officiel.`});
     state.save.notifications.unshift({id:`official_done_${c.id}`,type:context.qualifier?'qualification':'result',title:`Résultat — ${c.name}`,text:context.qualifier?`${qualificationEventCount(c.sportId)} épreuve(s) qualifiée(s) après tournoi coaché.`:`Meilleur résultat ${currentCountry().name} : ${Number.isFinite(userBest)?userBest+'e':'—'}.`,target:'competitions',competitionId:c.id});
   }
+  if(context.olympics)updateWorldRankFromOlympics();else applyWorldRankingFromCompetition(c,results);
   state.officialCompetition=null;state.officialTournament=null;state.liveMatchMeta=null;persist();render();toast('Compétition officielle terminée et enregistrée.');
 }
 function advanceOfficialCompetition(){
@@ -2907,8 +2936,14 @@ function settingsModal(){
   const st=gameSettings();return `<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-label="Fenêtre de jeu"><div class="modal"><div class="modal-top"><h2>Paramètres</h2><button class="btn ghost" id="closeModal">Fermer</button></div><div class="option-grid"><label class="option active"><b>Réduire les animations</b><span>Pour les appareils moins puissants ou si tu préfères une interface plus sobre.</span><input type="checkbox" id="settingMotion" ${st.reducedMotion?'checked':''}></label><label class="option active"><b>Interface compacte</b><span>Réduit légèrement les espacements sur tablette et ordinateur.</span><input type="checkbox" id="settingCompact" ${st.compact?'checked':''}></label></div><div class="country-card" style="margin-top:16px"><b>Sauvegarde automatique</b><div class="row-sub">Activée : les changements importants et simulations sont enregistrés automatiquement.</div></div><div class="pillbar"><button class="btn" id="settingsTutorial">Revoir le tutoriel</button><button class="btn" id="settingsExport">Exporter les sauvegardes</button><button class="btn" id="settingsImport">Importer</button></div><div class="row-sub" style="margin-top:14px">National Glory est un univers fictif de management sportif, sans affiliation à une organisation ou compétition officielle. Les identités d’athlètes sont générées et toute ressemblance avec une personne réelle est fortuite.</div></div></div>`;
 }
 function moreModal(){
-  const extra = [['management','🧭 Direction'],['olympics','🔥 Grands Jeux'],['nation','🌍 Nation'],['history','🏛️ Histoire'],['finances','💰 Finances']];
-  return `<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-label="Fenêtre de jeu"><div class="modal"><div class="modal-top"><h2>Plus</h2><button class="btn ghost" id="closeModal">Fermer</button></div><div class="option-grid">${extra.map(([id,label])=>`<div class="option active" data-more-nav="${id}"><b>${label}</b><span>Accéder à l’écran ${label.toLowerCase()}.</span></div>`).join('')}</div></div></div>`;
+  const extra = [
+    ['management','🧭 Direction','Décisions, staffs et pilotage des fédérations'],
+    ['olympics','🔥 Grands Jeux','Qualifications, médailles et cycle international'],
+    ['nation','🌍 Nation','Vivier régional et hiérarchie mondiale'],
+    ['history','🏛️ Histoire','Records, légendes et archives de carrière'],
+    ['finances','💰 Finances','Budgets, sponsors et infrastructures']
+  ];
+  return `<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-label="Fenêtre de jeu"><div class="modal"><div class="modal-top"><h2>Plus</h2><button class="btn ghost" id="closeModal">Fermer</button></div><div class="option-grid">${extra.map(([id,label,desc])=>`<div class="option active" data-more-nav="${id}"><b>${label}</b><span>${desc}</span></div>`).join('')}</div></div></div>`;
 }
 
 function showOfficialTimeBlock(result){
@@ -2983,7 +3018,7 @@ function advanceOneDay(){
   const due = s.competitions.filter(c=>c.status==='upcoming' && c.year===s.year && c.month===s.month && c.day===s.day);
   for(const c of due){simulateCompetition(c,rng);if(c.status==='live-pending')return {advanced:true,reason:'official',competitionId:c.id};}
   if(s.tick%14===0 && rng()<0.4) generateStory(rng);
-  if(s.tick%45===0 && rng()<0.65 && !nextDecisionItem()) createManagementDecision(rng);
+  if(s.tick%45===0 && rng()<0.65 && s.notifications.filter(n=>n.decision&&!n.resolved).length<3) createManagementDecision(rng);
   if(s.notifications.length>22){
     const pending=s.notifications.filter(n=>n.decision&&!n.resolved);
     const rest=s.notifications.filter(n=>!(n.decision&&!n.resolved)).slice(0,Math.max(0,18-pending.length));
@@ -3031,6 +3066,34 @@ function performanceScore(a,rng){
   return a.ability*.52+a.physical*.08+a.technical*.10+a.mental*.07+a.form*.09+a.confidence*.06+a.experience*.05-a.fatigue*.05+staff+selectedBonus+budget+randomNormal(rng)*variance;
 }
 
+function ensureWorldRankingRatings(){
+  Object.values(state.save.world?.nations||{}).forEach(n=>{
+    if(!Number.isFinite(n.rankingRating))n.rankingRating=100-Math.max(0,(n.worldRank||20)-1)*2.6;
+  });
+}
+function recalculateWorldRanks(){
+  ensureWorldRankingRatings();
+  const rows=Object.values(state.save.world.nations).sort((a,b)=>b.rankingRating-a.rankingRating||a.name.localeCompare(b.name));
+  rows.forEach((n,i)=>n.worldRank=i+1);
+  const me=state.save.world.nations[state.save.countryId];
+  if(me)state.save.worldRank=me.worldRank;
+}
+function applyWorldRankingFromCompetition(c,results=[]){
+  if(!c||c.type==='national'||c.type==='olympics'||!results.length)return;
+  ensureWorldRankingRatings();
+  const me=state.save.world.nations[state.save.countryId];if(!me)return;
+  const ranks=results.map(r=>r.bestRank).filter(Number.isFinite);
+  if(ranks.length){
+    const avgRank=ranks.reduce((s,x)=>s+x,0)/ranks.length;
+    const delta=avgRank<=1.5?2.4:avgRank<=3?1.5:avgRank<=5?.8:avgRank<=8?.25:-.35;
+    me.rankingRating+=delta;
+  }
+  const medalImpact={};
+  results.forEach(r=>(r.podium||[]).slice(0,3).forEach((p,i)=>{if(p.nationId===state.save.countryId)return;medalImpact[p.nationId]=(medalImpact[p.nationId]||0)+[1.2,.7,.35][i];}));
+  const scale=Math.max(1,results.length);
+  Object.entries(medalImpact).forEach(([id,pts])=>{const n=state.save.world.nations[id];if(n)n.rankingRating+=pts/scale;});
+  recalculateWorldRanks();
+}
 function olympicEventCount(sportId){ return Engine.eventsForSport(sportId).length; }
 function updateWorldRankFromOlympics(){
   const rows=sortedWorldMedals();
@@ -3190,8 +3253,9 @@ function simulateCompetitionAuto(c,rng){
   c.results=podiums;
   c.matchReports=results.flatMap(r=>r.matchReports||[]).slice(-40);
   const userBest=results.length?Math.min(...results.map(r=>r.bestRank)):Infinity,winner=podiums[0];
-  state.save.history.push({kind:'competition',name:c.name,date:dateLabel(),summary:`${winner?`Victoire ${winner.nation}`:'Épreuve sans résultat'}. Meilleur résultat national : ${Number.isFinite(userBest)?userBest+'e':'—'}.`});
+  state.save.history.push({kind:'competition',name:c.name,date:dateLabel(),summary:`${winner?`Vainqueur : ${winner.nation}`:'Épreuve sans résultat'}. Meilleur rang ${currentCountry().name} : ${Number.isFinite(userBest)?userBest+'e':'—'}.`});
   state.save.notifications.unshift({id:uid('n',rng),type:qualifier?'qualification':'result',title:`Résultat — ${c.name}`,text:qualifier?`${qualificationEventCount(c.sportId)} épreuve(s) désormais qualifiée(s).`:`Meilleur résultat ${currentCountry().name} : ${Number.isFinite(userBest)?userBest+'e':'—'}.`,target:'competitions'});
+  applyWorldRankingFromCompetition(c,results);
 }
 function qualificationEventCount(sportId){return Object.values(state.save.qualifications?.[sportId]?.events||{}).filter(e=>e.qualified).length;}
 
