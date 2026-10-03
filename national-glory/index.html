@@ -448,7 +448,7 @@ button{cursor:pointer}
     if(objective.type==='ranking'){
       const achieved=sport.ranking<=objective.target;
       const denom=Math.max(1,objective.baseline-objective.target);
-      const progress=clamp((objective.baseline-sport.ranking)/denom,0,1);
+      const progress=achieved?1:clamp((objective.baseline-sport.ranking)/denom,0,1);
       return {achieved,progress,value:sport.ranking};
     }
     if(objective.type==='youth'){
@@ -586,7 +586,8 @@ button{cursor:pointer}
   function normalizeTeam(team,sportId,rng){
     const rule=RULES[sportId],source=team.roster||[],base=+team.strength||+team.score||74;
     const roster=[];
-    for(let i=0;i<rule.roster;i++){
+    const target=source.length?Math.min(rule.roster,source.length):rule.roster;
+    for(let i=0;i<target;i++){
       const p=source[i];
       const role=rule.roles[i%rule.roles.length];
       roster.push(clonePlayer(p||{ability:base+normal(rng)*2,technical:base+normal(rng)*2,physical:base+normal(rng)*2,mental:base+normal(rng)*2,experience:base-5+normal(rng)*2,form:+team.form||76,confidence:+team.confidence||74,fatigue:+team.fatigue||15},i,role,team.name));
@@ -1322,7 +1323,7 @@ const Development = globalThis.ON_DEVELOPMENT;
 
 const REGIONS = ['Nouvelle-Aquitaine','Occitanie','Île-de-France','Auvergne-Rhône-Alpes','Bretagne','Pays de la Loire','Grand Est','Hauts-de-France','Normandie','Bourgogne-Franche-Comté','Centre-Val de Loire','Provence-Alpes-Côte d’Azur'];
 const FIRST = ['Lucas','Léa','Emma','Noah','Jules','Clara','Tom','Manon','Antoine','Camille','Hugo','Sarah','Mathis','Inès','Louis','Zoé','Nathan','Lou','Ethan','Jade','Enzo','Chloé','Maël','Nina','Théo','Alice','Gabriel','Lina','Arthur','Romane','Maxime','Eva','Rayan','Mila','Axel','Juliette','Bastien','Ambre','Martin','Agathe','Sacha','Yanis','Maëlys','Pauline'];
-const LAST = ['Martin','Bernard','Thomas','Robert','Richard','Petit','Durand','Dubois','Moreau','Laurent','Simon','Michel','Lefèvre','Leroy','Roux','David','Bertrand','Morel','Fournier','Girard','Bonnet','Dupont','Lambert','Fontaine','Rousseau','Vincent','Muller','Faure','André','Mercier','Blanc','Guerin','Boyer','Garnier','Chevalier','Francois','Legrand','Gauthier','Marchand','Robin','Renaud','Colin'];
+const LAST = ['Martin','Bernard','Thomas','Robert','Richard','Petit','Durand','Dubois','Moreau','Laurent','Simon','Michel','Lefèvre','Leroy','Roux','David','Bertrand','Morel','Fournier','Girard','Bonnet','Dupont','Lambert','Fontaine','Rousseau','Vincent','Muller','Faure','André','Mercier','Blanc','Guerin','Boyer','Garnier','Chevalier','François','Legrand','Gauthier','Marchand','Robin','Renaud','Colin'];
 const COUNTRY_NAMES = {
   france:{first:FIRST,last:LAST},
   usa:{first:['Liam','Noah','Ethan','Mason','Logan','Aiden','Jackson','Caleb','Emma','Olivia','Ava','Mia','Sophia','Chloe','Grace','Harper'],last:['Johnson','Williams','Brown','Davis','Wilson','Miller','Taylor','Anderson','Thomas','Moore','Martin','Jackson','White','Harris','Clark','Lewis']},
@@ -1331,6 +1332,28 @@ const COUNTRY_NAMES = {
   brazil:{first:['Lucas','Gabriel','Matheus','Rafael','Thiago','Bruno','Pedro','João','Ana','Beatriz','Camila','Larissa','Mariana','Julia','Leticia','Isabela'],last:['Silva','Santos','Oliveira','Souza','Pereira','Costa','Rodrigues','Almeida','Nascimento','Lima','Araújo','Fernandes','Carvalho','Gomes','Martins','Rocha']},
   canada:{first:['Liam','Noah','Owen','William','Ethan','Lucas','Nathan','Alex','Emma','Olivia','Charlotte','Amelia','Sophie','Chloe','Élodie','Camille'],last:['Smith','Brown','Tremblay','Martin','Roy','Wilson','Gagnon','Johnson','Taylor','Bouchard','MacDonald','Lee','Campbell','Anderson','Clark','Côté']}
 };
+const FIRST_BY_SEX = {
+  france:{M:['Lucas','Noah','Jules','Tom','Antoine','Hugo','Mathis','Louis','Nathan','Ethan','Enzo','Maël','Théo','Gabriel','Arthur','Maxime','Rayan','Axel','Bastien','Martin','Yanis'],F:['Léa','Emma','Clara','Manon','Camille','Sarah','Inès','Zoé','Lou','Jade','Chloé','Nina','Alice','Lina','Romane','Eva','Mila','Juliette','Ambre','Agathe','Sacha','Maëlys','Pauline']},
+  usa:{M:['Liam','Noah','Ethan','Mason','Logan','Aiden','Jackson','Caleb'],F:['Emma','Olivia','Ava','Mia','Sophia','Chloe','Grace','Harper']},
+  japan:{M:['Haruto','Ren','Yuto','Sota','Kaito','Riku','Takumi'],F:['Hina','Yui','Aoi','Mio','Sakura','Rin','Mei','Akari','Nana']},
+  kenya:{M:['Brian','David','Eliud','Joseph','Samuel','Dennis','Peter'],F:['Faith','Mary','Vivian','Agnes','Joyce','Mercy','Ruth','Irene','Caroline']},
+  brazil:{M:['Lucas','Gabriel','Matheus','Rafael','Thiago','Bruno','Pedro','João'],F:['Ana','Beatriz','Camila','Larissa','Mariana','Julia','Leticia','Isabela']},
+  canada:{M:['Liam','Noah','Owen','William','Ethan','Lucas','Nathan','Alex'],F:['Emma','Olivia','Charlotte','Amelia','Sophie','Chloe','Élodie','Camille']}
+};
+function firstPool(countryId,sex){
+  const p=FIRST_BY_SEX[countryId]||FIRST_BY_SEX.france;
+  return p[sex==='F'?'F':'M'];
+}
+function normalizeAthleteIdentity(a,countryId){
+  if(!a)return;
+  if(a.name)a.name=a.name.replace(/\bFrancois\b/g,'François');
+  const parts=String(a.name||'').trim().split(/\s+/);if(parts.length<2)return;
+  const first=parts[0],target=firstPool(countryId,a.sex),other=firstPool(countryId,a.sex==='F'?'M':'F');
+  if(other.includes(first)&&!target.includes(first)){
+    const idx=hashSeed(String(a.id||a.name)+':'+a.sex)%target.length;
+    a.name=[target[idx],...parts.slice(1)].join(' ');
+  }
+}
 const RESERVED_REAL_NAMES = new Set([
   'Eliud Kipchoge','Samuel Wanjiru','Vivian Cheruiyot','Faith Kipyegon','David Rudisha','Mary Keitany','Agnes Tirop','Beatrice Chebet',
   'Teddy Riner','Clarisse Agbegnenou','Léon Marchand','Pauline Ferrand-Prévot',
@@ -1477,7 +1500,7 @@ function importSaveFile(file){
         if(!raw||!raw.countryId)return;
         const save=structuredClone(raw); normalizeSave(save);
         if(!save.id||localStorage.getItem(saveKey(save.id)))save.id='save_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
-        save.updatedAt=Date.now(); save.version='0.99-rc'; save.tutorialSeen=true;
+        save.updatedAt=Date.now(); save.version='0.99-fix3'; save.tutorialSeen=true;
         localStorage.setItem(saveKey(save.id),JSON.stringify(save)); imported++; lastId=save.id;
       });
       if(!imported)throw new Error('Format non compatible');
@@ -1563,10 +1586,11 @@ function generateAthletes(countryId='france', year=2034){
     const count=Math.max(minCoverage,basePerSport+(si<baseTarget%SPORTS.length?1:0)+(isStrength(country,sport.id)?2:0));
     const disciplines=GameConfig.DISCIPLINES[sport.id]||['Épreuve'];
     for(let i=0;i<count;i++){
-      let name;
-      do { name = `${names.first[Math.floor(rng()*names.first.length)]} ${names.last[Math.floor(rng()*names.last.length)]}`; } while(used.has(name)||RESERVED_REAL_NAMES.has(name));
-      used.add(name);
       const sex=i%2===0?'M':'F';
+      const firsts=firstPool(countryId,sex);
+      let name;
+      do { name = `${firsts[Math.floor(rng()*firsts.length)]} ${names.last[Math.floor(rng()*names.last.length)]}`; } while(used.has(name)||RESERVED_REAL_NAMES.has(name));
+      used.add(name);
       const discipline=disciplines[Math.floor(i/2)%disciplines.length];
       const regionPool = regionalPreference(countryId, sport.id);
       const region = regionPool.length && rng()<0.55 ? regionPool[Math.floor(rng()*regionPool.length)] : regions[Math.floor(rng()*regions.length)];
@@ -1668,22 +1692,24 @@ function buildFederationState(sports,country,year=2034){
     lastInvestment:null
   }]));
 }
-function initializeSelections(athletes){
+function initializeSelections(athletes,forceInitial=false){
   athletes.forEach((a,i)=>{
     if(!a.sex)a.sex=(i%2===0?'M':'F');if(typeof a.selected!=='boolean')a.selected=false;if(typeof a.scoutingReviews!=='number')a.scoutingReviews=0;
     if(!a.developmentPlan)a.developmentPlan='balanced';
     a.potentialMin=Math.round(a.potentialMin);a.potentialMax=Math.round(a.potentialMax);
+    normalizeAthleteIdentity(a,a.countryId||state.save?.countryId||'france');
   });
+  const alreadyConfigured=athletes.some(a=>a.selected);
+  if(alreadyConfigured&&!forceInitial)return;
   SPORTS.forEach(s=>{
     if(Engine.isTeamSport(s.id)){
       GameConfig.SEXES.forEach(sex=>{
-        const target=GameConfig.TEAM_RULES[s.id].minimum+2;
-        const selected=athletes.filter(a=>a.sportId===s.id&&a.sex===sex.id&&a.selected);
-        athletes.filter(a=>a.sportId===s.id&&a.sex===sex.id&&!a.selected).sort((a,b)=>b.ability-a.ability).slice(0,Math.max(0,target-selected.length)).forEach(a=>a.selected=true);
+        const target=GameConfig.TEAM_RULES[s.id].preferred;
+        athletes.filter(a=>a.sportId===s.id&&a.sex===sex.id&&!a.injuredDays)
+          .sort((a,b)=>b.ability-a.ability).slice(0,target).forEach(a=>a.selected=true);
       });
     }else{
       Engine.eventsForSport(s.id).forEach(ev=>{
-        if(athletes.some(a=>a.selected&&Engine.eligibleForEvent(a,ev)))return;
         const best=athletes.filter(a=>Engine.eligibleForEvent(a,ev)).sort((a,b)=>b.ability-a.ability)[0];if(best)best.selected=true;
       });
     }
@@ -1736,8 +1762,9 @@ function generateYouthProspects(sportId,count=3){
   const used=new Set([...state.save.athletes,...(state.save.retiredAthletes||[])].map(a=>a.name));const sp=state.save.sports.find(x=>x.id===sportId);const fed=federationFor(sportId);
   const mods=Engine.careerModifiers(state.save.mode,state.save.difficulty);const disciplines=GameConfig.DISCIPLINES[sportId]||['Épreuve'];const added=[];
   for(let i=0;i<count;i++){
-    let name;do{name=`${names.first[Math.floor(rng()*names.first.length)]} ${names.last[Math.floor(rng()*names.last.length)]}`}while(used.has(name)||RESERVED_REAL_NAMES.has(name));used.add(name);
-    const age=15+Math.floor(rng()*4),sex=i%2===0?'M':'F',discipline=disciplines[(state.save.athletes.filter(a=>a.sportId===sportId).length+i)%disciplines.length];
+    const sex=i%2===0?'M':'F',firsts=firstPool(country.id,sex);
+    let name;do{name=`${firsts[Math.floor(rng()*firsts.length)]} ${names.last[Math.floor(rng()*names.last.length)]}`}while(used.has(name)||RESERVED_REAL_NAMES.has(name));used.add(name);
+    const age=15+Math.floor(rng()*4),discipline=disciplines[(state.save.athletes.filter(a=>a.sportId===sportId).length+i)%disciplines.length];
     const budgetBoost=(Engine.budgetFactor(sp)-1)*5;
     const base=clamp(Math.round(48+sp.youth*.18+fed.youthDirector.rating*.12+budgetBoost+randomNormal(rng)*6),43,80);
     const truePotential=clamp(Math.round(base+(12+rng()*18+fed.youthDirector.rating*.04)*mods.youthMultiplier+facilityEffects().youthPotentialBonus),base,99);
@@ -1992,13 +2019,13 @@ function normalizeSave(save){
   if(save.careerEndYear===undefined) save.careerEndYear=Engine.careerEndYear(save.startYear,save.duration);
   if(typeof save.careerComplete!=='boolean') save.careerComplete=false;
   const currentObjective=Math.max(1,Math.round((country.medalObjective||12)*Engine.careerModifiers(save.mode,save.difficulty).objectiveMultiplier));
-  if(!save.medalObjective||!['0.98-qa','0.99-rc'].includes(previousVersion)) save.medalObjective=currentObjective;
+  if(!save.medalObjective||!['0.98-qa','0.99-rc','0.99-fix3'].includes(previousVersion)) save.medalObjective=currentObjective;
   if(!save.sports||!save.sports.length) save.sports=buildSportsForCountry(country,save.budget||country.budget);
-  save.sports.forEach(sp=>{if(!sp.recommendedBudget)sp.recommendedBudget=Math.max(2,sp.budget);if(!['0.98-qa','0.99-rc'].includes(previousVersion)){sp.strengthIndex=countrySportStrength(country,sp);sp.ranking=initialSportRanking(country,sp,sp.strengthIndex);}});
+  save.sports.forEach(sp=>{if(!sp.recommendedBudget)sp.recommendedBudget=Math.max(2,sp.budget);if(!['0.98-qa','0.99-rc','0.99-fix3'].includes(previousVersion)){sp.strengthIndex=countrySportStrength(country,sp);sp.ranking=initialSportRanking(country,sp,sp.strengthIndex);}});
   if(Engine.reserveBudget(save.budget,save.sports)<0){
     save.sports=Engine.normalizeBudgets(save.sports,save.budget,.02);  }
   if(!save.athletes) save.athletes=generateAthletes(save.countryId,save.year||2034);
-  initializeSelections(save.athletes);
+  initializeSelections(save.athletes,previousVersion!=='0.99-fix3');
   if(!save.competitions||!save.competitions.length) save.competitions=buildCompetitionSchedule(save.year||2034,save.countryId);
   if(!save.notifications) save.notifications=[];
   if(!save.history) save.history=[];
@@ -2006,7 +2033,7 @@ function normalizeSave(save){
   if(!save.retiredAthletes) save.retiredAthletes=[];
   if(!save.olympicEditions) save.olympicEditions=[];
   if(!save.world) save.world=createWorldState(save.year||2034);
-  if(!['0.98-qa','0.99-rc'].includes(previousVersion)&&save.world?.nations){for(const n of Object.values(save.world.nations)){const meta=WORLD_BY_ID[n.id]||n;n.sports=n.sports||{};for(const sp of SPORTS){const old=n.sports[sp.id]||{};n.sports[sp.id]={...old,strength:countrySportStrength({...meta,worldRank:n.worldRank||meta.worldRank},sp),form:old.form||75};}}}
+  if(!['0.98-qa','0.99-rc','0.99-fix3'].includes(previousVersion)&&save.world?.nations){for(const n of Object.values(save.world.nations)){const meta=WORLD_BY_ID[n.id]||n;n.sports=n.sports||{};for(const sp of SPORTS){const old=n.sports[sp.id]||{};n.sports[sp.id]={...old,strength:countrySportStrength({...meta,worldRank:n.worldRank||meta.worldRank},sp),form:old.form||75};}}}
   if(!save.qualifications) save.qualifications=createQualificationState();
   SPORTS.forEach(sp=>{
     if(!save.qualifications[sp.id]) save.qualifications[sp.id]={qualified:false,score:0,status:'À qualifier',events:{}};
@@ -2082,7 +2109,7 @@ function landingHtml(){
             <span>Sports Management Simulator</span>
           </div>
         </div>
-        <div class="landing-version">V0.99 FIX2 · effectifs live réels · QA externe corrigée</div>
+        <div class="landing-version">V0.99 FIX3 · audit externe corrigé</div>
       </div>
       <div class="landing-hero">
         <div class="landing-copy">
@@ -2156,7 +2183,7 @@ function shellHtml(){
     <main class="main">
       <div class="topbar">
         <div class="topbar-left"><strong>${country.flag} ${country.name}</strong><span>${state.save.mode} · Difficulté ${state.save.difficulty} · ${dateLabel()}</span></div>
-        <div class="date-chip"><span>🌟 Objectif</span><b>${state.save.medalObjective} médailles</b></div>
+        <div style="display:flex;gap:8px;align-items:center"><button class="btn ghost" data-action="back">☰ Menu</button><div class="date-chip"><span>🌟 Objectif</span><b>${state.save.medalObjective} médailles</b></div></div>
       </div>
       <div class="content">${screenHtml()}</div>
       <div class="bottom-nav">
@@ -2207,7 +2234,7 @@ function bindShell(){
 function handleAction(action){
   if(action==='save') { persist(); toast('Partie sauvegardée.'); return; }
   if(action==='install') { installApp(); return; }
-  if(action==='back') { state.screen='landing'; state.save=null; render(); return; }
+  if(action==='back') { persist(); state.screen='landing'; state.save=null; state.modal=null; render(); return; }
   if(action==='nextDecision') { const d=nextDecisionItem(); if(d){state.modal={type:'decision',decisionId:d.id};openModal();}else advanceUntil('decision'); return; }
   if(action==='nextCompetition') { advanceUntil('competition'); return; }
   if(action==='day') { advanceTime(1); return; }
@@ -2317,8 +2344,8 @@ function filteredAthletes(){
     if(state.filters.age==='young' && !(a.age<=20)) return false;
     if(state.filters.age==='prime' && !(a.age>=21 && a.age<=27)) return false;
     if(state.filters.age==='veteran' && !(a.age>=28)) return false;
-    if(state.filters.potential==='elite' && !(a.potentialMax>=92)) return false;
-    if(state.filters.potential==='high' && !(a.potentialMax>=85)) return false;
+    if(state.filters.potential==='elite' && !(a.potentialMin>=92)) return false;
+    if(state.filters.potential==='high' && !(a.potentialMin>=85)) return false;
     if(state.filters.status==='injured' && !(a.injuredDays>0)) return false;
     if(state.filters.status==='hot' && !(a.form>=86)) return false;
     if(state.filters.status==='rising' && !(a.trend==='↗')) return false;
@@ -2345,10 +2372,12 @@ function bindAthleteFilters(){
   ['fltQ','fltSport','fltRegion','fltSex','fltAge','fltPotential','fltStatus'].forEach(id=>{
     const el = $('#'+id); if(!el) return;
     el.addEventListener(id==='fltQ'?'input':'change', ()=>{
+      const cursor=id==='fltQ'?(el.selectionStart??el.value.length):null;
       state.filters = {
         q:$('#fltQ')?.value||'', sport:$('#fltSport')?.value||'', region:$('#fltRegion')?.value||'', sex:$('#fltSex')?.value||'', age:$('#fltAge')?.value||'', potential:$('#fltPotential')?.value||'', status:$('#fltStatus')?.value||''
       };
       state.screen='athletes'; render();
+      if(id==='fltQ'){const q=$('#fltQ');if(q){q.focus();try{q.setSelectionRange(cursor,cursor);}catch{}}}
     });
   });
 }
@@ -2834,8 +2863,8 @@ function closeFinishedLiveMatch(){
   if(state.liveMatchResult)applyLiveMatchToCareer(state.liveMatchResult);
   state.liveMatchSession=null;state.liveMatchResult=null;state.liveSubOutId=null;state.liveMatchMeta=null;state.modal=null;closeModal();render();toast('Rapport de match enregistré.');
 }
-function livePlayerLine(player){const selected=state.liveSubOutId===player.id;const unavailable=player.injured||player.fouledOut;const status=player.injured?' · ⚠️ blessé':player.fouledOut?' · ⛔ 5 fautes':player.suspendedUnits>0?' · ⏳ 2 min':'';return `<div class="list-row ${selected?'selected-live-player':''}"><div class="grow"><div class="row-title">${player.name}</div><div class="row-sub">${player.role}${status}</div></div><span class="badge ${player.fatigue>=65?'bad':player.fatigue>=45?'warn':'good'}">Fatigue ${player.fatigue}</span>${!unavailable?`<button class="btn ${selected?'primary':''}" data-live-sub-out="${player.id}">${selected?'À remplacer':'Sortir'}</button>`:''}</div>`}
-function liveBenchLine(player){return `<div class="list-row"><div class="grow"><div class="row-title">${player.name}</div><div class="row-sub">${player.role}${player.injured?' · ⚠️ blessé':''}</div></div><span class="badge ${player.fatigue>=65?'bad':player.fatigue>=45?'warn':'good'}">Fatigue ${player.fatigue}</span>${state.liveSubOutId&&!player.injured?`<button class="btn primary" data-live-sub-in="${player.id}">Faire entrer</button>`:''}</div>`}
+function livePlayerLine(player){const selected=state.liveSubOutId===player.id;const unavailable=player.injured||player.fouledOut;const status=player.injured?' · ⚠️ blessé':player.fouledOut?' · ⛔ 5 fautes':player.suspendedUnits>0?' · ⏳ 2 min':'';return `<div class="list-row ${selected?'selected-live-player':''}"><div class="grow"><div class="row-title">${player.name}</div><div class="row-sub">${player.role}${status}</div></div><span class="badge ${player.fatigue>=65?'bad':player.fatigue>=45?'warn':'good'}">Fatigue ${player.fatigue}</span>${!unavailable&&!state.liveMatchSession?.finished?`<button class="btn ${selected?'primary':''}" data-live-sub-out="${player.id}">${selected?'À remplacer':'Sortir'}</button>`:''}</div>`}
+function liveBenchLine(player){return `<div class="list-row"><div class="grow"><div class="row-title">${player.name}</div><div class="row-sub">${player.role}${player.injured?' · ⚠️ blessé':''}</div></div><span class="badge ${player.fatigue>=65?'bad':player.fatigue>=45?'warn':'good'}">Fatigue ${player.fatigue}</span>${state.liveSubOutId&&!player.injured&&!state.liveMatchSession?.finished?`<button class="btn primary" data-live-sub-in="${player.id}">Faire entrer</button>`:''}</div>`}
 function livePlayerStatLine(sportId,p){let text='';if(sportId==='handball')text=`${p.goals} b · ${p.assists} pd · ${p.saves} arr · ${p.shots} tirs`;else if(sportId==='basketball')text=`${p.points} pts · ${p.rebounds} rbds · ${p.assists} pd · ${p.turnovers} bp · ${p.fouls||0} fautes`;else text=`${p.points} pts · ${p.kills} att · ${p.blocks} bl · ${p.aces} aces`;return `<div class="list-row"><div class="grow"><div class="row-title">${p.name}</div><div class="row-sub">${p.role} · ${text}</div></div><span class="badge">${Math.round(p.fatigueEnd)} fatigue</span></div>`}
 function liveMatchModal(){
   const s=state.liveMatchSession;if(!s)return '';
@@ -3219,22 +3248,18 @@ function processRetirements(rng){
 }
 
 function ensureMinimumSelections(){
-  SPORTS.forEach(sp=>{
-    if(Engine.isTeamSport(sp.id)){
-      GameConfig.SEXES.forEach(sex=>{
-        const min=GameConfig.TEAM_RULES[sp.id].minimum+1;
-        const current=state.save.athletes.filter(a=>a.sportId===sp.id&&a.sex===sex.id&&a.selected);
-        const need=Math.max(0,min-current.length);
-        state.save.athletes.filter(a=>a.sportId===sp.id&&a.sex===sex.id&&!a.selected).sort((a,b)=>b.ability-a.ability).slice(0,need).forEach(a=>a.selected=true);
-      });
-    }else{
-      Engine.eventsForSport(sp.id).forEach(ev=>{
-        if(state.save.athletes.some(a=>a.selected&&Engine.eligibleForEvent(a,ev)))return;
-        const best=state.save.athletes.filter(a=>Engine.eligibleForEvent(a,ev)).sort((a,b)=>b.ability-a.ability)[0];if(best)best.selected=true;
-      });
-    }
+  SPORTS.filter(sp=>Engine.isTeamSport(sp.id)).forEach(sp=>{
+    GameConfig.SEXES.forEach(sex=>{
+      const rule=GameConfig.TEAM_RULES[sp.id];
+      const count=state.save.athletes.filter(a=>a.sportId===sp.id&&a.sex===sex.id&&a.selected&&!a.injuredDays).length;
+      const id=`selection_warn_${state.save.year}_${sp.id}_${sex.id}`;
+      if(count<rule.minimum&&!state.save.notifications.some(n=>n.id===id)){
+        state.save.notifications.unshift({id,type:'selection',title:`Sélection incomplète — ${sportById(sp.id).name} ${sex.label}`,text:`${count}/${rule.minimum} athlètes disponibles. Complète toi-même la sélection avant la prochaine compétition.`,target:'athletes'});
+      }
+    });
   });
 }
+
 function rebalanceBudgetIfNeeded(){
   const before=Engine.reserveBudget(state.save.budget,state.save.sports);if(before>=0)return false;
   state.save.sports=Engine.normalizeBudgets(state.save.sports,state.save.budget,.02);
