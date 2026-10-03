@@ -2716,11 +2716,11 @@ function bindModal(){
   $$('[data-live-start]').forEach(el=>el.addEventListener('click',()=>startLiveFriendly(el.dataset.liveStart,el.dataset.teamSex||'M')));
   $$('[data-live-resume]').forEach(el=>el.addEventListener('click',()=>{if(state.liveMatchSession){state.modal={type:'livematch'};openModal();}}));
   $$('[data-live-abandon]').forEach(el=>el.addEventListener('click',()=>abandonLiveMatch()));
-  $('[data-live-advance]').forEach(el=>el.addEventListener('click',()=>{stopLivePlayback();advanceLiveMatch(Number(el.dataset.liveAdvance)||1);}));
-  $('[data-live-speed]').forEach(el=>el.addEventListener('click',()=>startLivePlayback(Number(el.dataset.liveSpeed)||1)));
+  $$('[data-live-advance]').forEach(el=>el.addEventListener('click',()=>{stopLivePlayback();advanceLiveMatch(Number(el.dataset.liveAdvance)||1);}));
+  $$('[data-live-speed]').forEach(el=>el.addEventListener('click',()=>startLivePlayback(Number(el.dataset.liveSpeed)||1)));
   $('#livePause')?.addEventListener('click',()=>{stopLivePlayback();openModal();});
-  $('[data-live-command]').forEach(el=>el.addEventListener('click',()=>liveCoachCommand(el.dataset.liveCommand,el.dataset.tactic||null)));
-  $('[data-live-scheme]').forEach(el=>el.addEventListener('click',()=>liveCoachScheme(el.dataset.liveScheme)));
+  $$('[data-live-command]').forEach(el=>el.addEventListener('click',()=>liveCoachCommand(el.dataset.liveCommand,el.dataset.tactic||null)));
+  $$('[data-live-scheme]').forEach(el=>el.addEventListener('click',()=>liveCoachScheme(el.dataset.liveScheme)));
   $('[data-live-sub-out]').forEach(el=>el.addEventListener('click',()=>{stopLivePlayback();state.liveSubOutId=el.dataset.liveSubOut;openModal();}));
   $$('[data-live-sub-in]').forEach(el=>el.addEventListener('click',()=>completeLiveSubstitution(el.dataset.liveSubIn)));
   $('#liveFinish')?.addEventListener('click',finishLiveMatch);
