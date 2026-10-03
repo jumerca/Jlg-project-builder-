@@ -176,6 +176,25 @@ button{cursor:pointer}
 .live-match-modal .list-row .btn{padding:8px 10px;font-size:12px}
 @media(max-width:760px){.live-scoreboard{grid-template-columns:1fr auto 1fr;gap:8px;padding:14px}.live-scoreboard b{font-size:40px}.live-scoreboard span{font-size:11px}.live-clock{min-width:86px;font-size:13px}.live-match-modal .modal-top{align-items:flex-start}.live-match-modal .pillbar .btn{flex:1 1 auto}.live-match-modal .list-row{align-items:flex-start;flex-wrap:wrap}.live-match-modal .list-row .grow{min-width:160px}}
 
+
+/* National Glory 2D Match Centre */
+.sport2d-wrap{margin:16px 0 20px;border:1px solid rgba(242,197,101,.28);border-radius:22px;overflow:hidden;background:#061126;box-shadow:0 18px 44px rgba(0,0,0,.22)}
+.sport2d-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;background:rgba(7,18,40,.94);border-bottom:1px solid rgba(255,255,255,.08)}
+.sport2d-head strong{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#f2c565}
+.sport2d-head span{font-size:12px;color:#b8c3db;text-align:right}
+.sport2d-canvas{position:relative;aspect-ratio:2/1;min-height:250px}
+.sport2d-canvas svg{display:block;width:100%;height:100%;min-height:250px}
+.sport2d-player{filter:drop-shadow(0 3px 5px rgba(0,0,0,.35));animation:sport2dEnter .32s ease-out}
+.sport2d-player:hover circle{r:24}
+.sport2d-ball{animation:sport2dBall .72s ease-in-out infinite alternate;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.sport2d-last{padding:9px 14px;background:rgba(5,13,30,.9);border-top:1px solid rgba(255,255,255,.07);font-size:12px;color:#dce4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sport2d-legend{display:flex;gap:10px;flex-wrap:wrap;padding:8px 14px 12px;background:rgba(5,13,30,.82)}
+.sport2d-legend span{font-size:11px;color:#aebbd6}
+.sport2d-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+@keyframes sport2dEnter{from{opacity:.25;transform:scale(.86)}to{opacity:1;transform:scale(1)}}
+@keyframes sport2dBall{from{opacity:.72}to{opacity:1}}
+@media(max-width:760px){.sport2d-wrap{border-radius:15px;margin:12px 0 15px}.sport2d-head{align-items:flex-start;flex-direction:column;gap:3px;padding:9px 10px}.sport2d-head span{text-align:left}.sport2d-canvas,.sport2d-canvas svg{min-height:205px}.sport2d-last{padding:8px 10px}}
+
 /* V0.98 QA — identité National Glory + onboarding */
 .brand-logo,.sidebar-logo{object-fit:cover;background:#071228}
 .landing-logo{aspect-ratio:auto;object-fit:contain;background:#071228}
@@ -2972,6 +2991,50 @@ function closeFinishedLiveMatch(){
 function livePlayerLine(player){const selected=state.liveSubOutId===player.id;const unavailable=player.injured||player.fouledOut;const status=player.injured?' · ⚠️ blessé':player.fouledOut?' · ⛔ 5 fautes':player.suspendedUnits>0?' · ⏳ 2 min':'';return `<div class="list-row ${selected?'selected-live-player':''}"><div class="grow"><div class="row-title">${player.name}</div><div class="row-sub">${player.role}${status}</div></div><span class="badge ${player.fatigue>=65?'bad':player.fatigue>=45?'warn':'good'}">Fatigue ${player.fatigue}</span>${!unavailable&&!state.liveMatchSession?.finished?`<button class="btn ${selected?'primary':''}" data-live-sub-out="${player.id}">${selected?'À remplacer':'Sortir'}</button>`:''}</div>`}
 function liveBenchLine(player){return `<div class="list-row"><div class="grow"><div class="row-title">${player.name}</div><div class="row-sub">${player.role}${player.injured?' · ⚠️ blessé':''}</div></div><span class="badge ${player.fatigue>=65?'bad':player.fatigue>=45?'warn':'good'}">Fatigue ${player.fatigue}</span>${state.liveSubOutId&&!player.injured&&!state.liveMatchSession?.finished?`<button class="btn primary" data-live-sub-in="${player.id}">Faire entrer</button>`:''}</div>`}
 function livePlayerStatLine(sportId,p){let text='';if(sportId==='handball')text=`${p.goals} b · ${p.assists} pd · ${p.saves} arr · ${p.shots} tirs`;else if(sportId==='basketball')text=`${p.points} pts · ${p.rebounds} rbds · ${p.assists} pd · ${p.turnovers} bp · ${p.fouls||0} fautes`;else text=`${p.points} pts · ${p.kills} att · ${p.blocks} bl · ${p.aces} aces`;return `<div class="list-row"><div class="grow"><div class="row-title">${p.name}</div><div class="row-sub">${p.role} · ${text}</div></div><span class="badge">${Math.round(p.fatigueEnd)} fatigue</span></div>`}
+
+function sport2dEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[ch]})}
+function sport2dShort(name){var p=String(name||'').trim().split(/\s+/);if(p.length<=1)return p[0]||'?';return (p[0]+' '+p[p.length-1].slice(0,1)+'.').slice(0,15)}
+function sport2dPossession(s){if(s.sportId==='volleyball')return s.servingSide||'home';return s.unit%2===1?'home':'away'}
+function sport2dPosFor(sport,side,lineup,isAttack,tactic){
+  var mirror=function(pos){return{x:1000-pos.x,y:pos.y}},positions=[];
+  if(sport==='handball'){
+    var attack={Gardien:[{x:72,y:250}],Ailier:[{x:735,y:82},{x:735,y:418}],'Arrière':[{x:555,y:142},{x:515,y:250},{x:555,y:358}],Pivot:[{x:760,y:250}]};
+    if(isAttack){
+      var counters={};positions=lineup.map(function(p,idx){var r=p.role||'Arrière',n=counters[r]||0;counters[r]=n+1;var pool=attack[r]||[{x:520,y:120+idx*48}],base=pool[Math.min(n,pool.length-1)]||{x:520,y:120+idx*48};if(tactic==='transition'&&r!=='Gardien')base={x:Math.min(835,base.x+55),y:base.y};if(tactic==='positional'&&r==='Arrière')base={x:base.x-25,y:base.y};return base})
+    }else{
+      var defY=[105,165,225,285,345,405],di=0;positions=lineup.map(function(p){if(p.role==='Gardien')return{x:74,y:250};var x=tactic==='aggressive'&&di===0?355:(tactic==='transition'?250:285),y=defY[Math.min(di,defY.length-1)];di++;return{x:x,y:y}})
+    }
+  }else if(sport==='basketball'){
+    if(isAttack){
+      var roleSlots={Meneur:[{x:525,y:250}],'Arrière':[{x:650,y:105},{x:650,y:395}],Ailier:[{x:700,y:120},{x:700,y:380}],'Intérieur':[{x:815,y:185},{x:815,y:315}]},counts={};
+      positions=lineup.map(function(p,idx){var r=p.role||'Ailier',n=counts[r]||0;counts[r]=n+1;var pool=roleSlots[r]||[{x:620,y:90+idx*80}],pos=pool[Math.min(n,pool.length-1)]||{x:620,y:90+idx*80};if(tactic==='pace')pos={x:Math.min(860,pos.x+50),y:pos.y};if(tactic==='perimeter'&&r!=='Intérieur')pos={x:Math.max(520,pos.x-35),y:pos.y<250?Math.max(72,pos.y-24):Math.min(428,pos.y+24)};return pos})
+    }else{
+      var zone=tactic==='defense'?[{x:285,y:160},{x:285,y:340},{x:365,y:105},{x:365,y:250},{x:365,y:395}]:[{x:260,y:250},{x:320,y:115},{x:320,y:385},{x:385,y:175},{x:385,y:325}];positions=lineup.map(function(p,i){return zone[i]||{x:330,y:100+i*70}})
+    }
+  }else{
+    var hs=[{x:160,y:90},{x:160,y:250},{x:160,y:410},{x:385,y:90},{x:385,y:250},{x:385,y:410}],as=hs.map(mirror);positions=(side==='home'?hs:as).slice(0,lineup.length)
+  }
+  if(side==='away'&&sport!=='volleyball')positions=positions.map(mirror);return positions
+}
+function sport2dPlayerSvg(player,pos,side,index){
+  var home=side==='home',fill=home?'#f2c565':'#e8eefb',stroke=home?'#6e5115':'#697793',bad=player.injured||player.fouledOut||player.suspendedUnits>0,ring=bad?'#ee7183':player.fatigue>=65?'#f0b95f':stroke,label=sport2dEsc(sport2dShort(player.name)),role=sport2dEsc(player.role||'');
+  return '<g class="sport2d-player" transform="translate('+pos.x+' '+pos.y+')"><circle r="19" fill="'+fill+'" stroke="'+ring+'" stroke-width="'+(bad?5:3)+'"/><text x="0" y="5" text-anchor="middle" font-size="11" font-weight="900" fill="#071228">'+(index+1)+'</text><text x="0" y="35" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">'+label+'</text><text x="0" y="49" text-anchor="middle" font-size="9" fill="#d4ddf0">'+role+'</text></g>'
+}
+function sport2dCourtLines(sport){
+  if(sport==='handball')return '<rect x="28" y="28" width="944" height="444" rx="7" fill="#166781" stroke="#fff" stroke-width="4"/><line x1="500" y1="28" x2="500" y2="472" stroke="#fff" stroke-width="3"/><circle cx="500" cy="250" r="52" fill="none" stroke="#fff" stroke-width="3"/><rect x="21" y="188" width="16" height="124" fill="none" stroke="#fff" stroke-width="4"/><rect x="963" y="188" width="16" height="124" fill="none" stroke="#fff" stroke-width="4"/><path d="M30 112 Q205 250 30 388" fill="none" stroke="#fff" stroke-width="4"/><path d="M970 112 Q795 250 970 388" fill="none" stroke="#fff" stroke-width="4"/><path d="M30 75 Q265 250 30 425" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="12 10"/><path d="M970 75 Q735 250 970 425" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="12 10"/>';
+  if(sport==='basketball')return '<defs><linearGradient id="wood" x1="0" x2="1"><stop stop-color="#c28b52"/><stop offset=".5" stop-color="#d9a86a"/><stop offset="1" stop-color="#c28b52"/></linearGradient></defs><rect x="28" y="28" width="944" height="444" rx="7" fill="url(#wood)" stroke="#fff" stroke-width="4"/><line x1="500" y1="28" x2="500" y2="472" stroke="#fff" stroke-width="3"/><circle cx="500" cy="250" r="62" fill="none" stroke="#fff" stroke-width="3"/><rect x="28" y="145" width="185" height="210" fill="none" stroke="#fff" stroke-width="3"/><rect x="787" y="145" width="185" height="210" fill="none" stroke="#fff" stroke-width="3"/><circle cx="213" cy="250" r="62" fill="none" stroke="#fff" stroke-width="3"/><circle cx="787" cy="250" r="62" fill="none" stroke="#fff" stroke-width="3"/><path d="M105 62 Q360 250 105 438" fill="none" stroke="#fff" stroke-width="3"/><path d="M895 62 Q640 250 895 438" fill="none" stroke="#fff" stroke-width="3"/><line x1="83" y1="220" x2="83" y2="280" stroke="#fff" stroke-width="5"/><line x1="917" y1="220" x2="917" y2="280" stroke="#fff" stroke-width="5"/><circle cx="96" cy="250" r="9" fill="none" stroke="#ef6c31" stroke-width="4"/><circle cx="904" cy="250" r="9" fill="none" stroke="#ef6c31" stroke-width="4"/>';
+  return '<rect x="28" y="70" width="944" height="360" rx="5" fill="#d99155" stroke="#fff" stroke-width="4"/><line x1="500" y1="55" x2="500" y2="445" stroke="#f7f9ff" stroke-width="8"/><line x1="500" y1="55" x2="500" y2="445" stroke="#071228" stroke-width="2" stroke-dasharray="10 8"/><line x1="333" y1="70" x2="333" y2="430" stroke="#fff" stroke-width="3"/><line x1="667" y1="70" x2="667" y2="430" stroke="#fff" stroke-width="3"/>'
+}
+function sport2dBallPos(s,view,ph,pa){
+  var side=sport2dPossession(s);
+  if(s.sportId==='volleyball'){var server=side==='home',line=server?ph:pa,p=line[Math.max(0,line.length-1)]||{x:server?120:880,y:410};return{x:server?Math.max(42,p.x-70):Math.min(958,p.x+70),y:p.y}}
+  var arr=side==='home'?ph:pa,cand=arr.filter(function(x,i){return i>0}),p=cand[(s.unit||0)%Math.max(1,cand.length)]||arr[0]||{x:500,y:250};return{x:p.x+(side==='home'?24:-24),y:p.y-18}
+}
+function sport2dView(s,view){
+  var possession=sport2dPossession(s),ha=s.sportId==='volleyball'?false:possession==='home',aa=s.sportId==='volleyball'?false:possession==='away',ph=sport2dPosFor(s.sportId,'home',view.lineups.home,ha,view.tactics.home),pa=sport2dPosFor(s.sportId,'away',view.lineups.away,aa,view.tactics.away),ball=sport2dBallPos(s,view,ph,pa),last=view.events&&view.events.length?view.events[view.events.length-1]:null,pl=s.sportId==='volleyball'?'Service':'Possession',sl=s.sportId==='handball'?'Handball 40×20':s.sportId==='basketball'?'Basket 28×15':'Volley 18×9',bf=s.sportId==='basketball'?'#ef6c31':s.sportId==='volleyball'?'#f7df55':'#f2c565';
+  return '<div class="sport2d-wrap"><div class="sport2d-head"><strong>Vue tactique 2D · '+sl+'</strong><span>'+pl+' : '+sport2dEsc(possession==='home'?view.home:view.away)+' · '+sport2dEsc(tacticLabelForUI(s.sportId,view.tactics.home))+'</span></div><div class="sport2d-canvas"><svg viewBox="0 0 1000 500" role="img" aria-label="Terrain 2D '+sport2dEsc(sportById(s.sportId).name)+'"><rect width="1000" height="500" fill="#08152f"/>'+sport2dCourtLines(s.sportId)+ph.map(function(p,i){return sport2dPlayerSvg(view.lineups.home[i],p,'home',i)}).join('')+pa.map(function(p,i){return sport2dPlayerSvg(view.lineups.away[i],p,'away',i)}).join('')+'<g class="sport2d-ball" transform="translate('+ball.x+' '+ball.y+')"><circle r="11" fill="'+bf+'" stroke="#071228" stroke-width="3"/></g></svg></div><div class="sport2d-last">⚡ '+sport2dEsc(last?last.time+' · '+last.text:'Engagement — les blocs se mettent en place')+'</div><div class="sport2d-legend"><span><i class="sport2d-dot" style="background:#f2c565"></i>'+sport2dEsc(view.home)+'</span><span><i class="sport2d-dot" style="background:#e8eefb"></i>'+sport2dEsc(view.away)+'</span><span>Placement lié à la possession, la tactique et aux remplacements.</span></div></div>'
+}
+
 function liveMatchModal(){
   const s=state.liveMatchSession;if(!s)return '';
   const view=LiveMatch.publicState(s),result=state.liveMatchResult|| (s.finished?LiveMatch.finalize(s):null);if(s.finished&&!state.liveMatchResult)state.liveMatchResult=result;
@@ -2982,6 +3045,7 @@ function liveMatchModal(){
   const meta=state.liveMatchMeta||{};
   return `<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-label="Fenêtre de jeu"><div class="modal wide-modal live-match-modal"><div class="modal-top"><div><h2>🎧 ${meta.official?'Match officiel':'Centre de match'} · ${sportById(s.sportId).name}</h2><div class="row-sub">${meta.official?`${meta.competitionName} · ${meta.stage} · `:''}${view.finished?'Match terminé':`${view.time} · période ${view.period}`}${scoreExtra}</div></div>${view.finished?`<button class="btn primary" id="liveClose">${meta.official?'Enregistrer et continuer':'Enregistrer et fermer'}</button>`:'<button class="btn ghost" id="closeModal">Quitter le centre</button>'}</div>
     <div class="live-scoreboard"><div><span>${view.home}</span><b>${view.homeScore}</b></div><div class="live-clock">${view.finished?'TERMINÉ':view.time}<small>${tacticLabelForUI(s.sportId,view.tactics.home)} vs ${tacticLabelForUI(s.sportId,view.tactics.away)}</small></div><div><span>${view.away}</span><b>${view.awayScore}</b></div></div>
+    ${sport2dView(s,view)}
     ${!view.finished?`<div class="section-title"><div><h2>Coaching</h2><p>Chaque choix est appliqué avant la prochaine séquence de jeu. L’IA adverse s’adapte automatiquement.</p></div><span class="badge ${timeoutInfo.allowed?'gold':'warn'}">${remaining} temps mort(s) · ${timeoutInfo.label}</span></div><div class="pillbar"><button class="btn" data-live-command="timeout" ${timeoutInfo.allowed?'':'disabled'}>⏱ Temps mort</button><button class="btn" data-live-command="rotate">🔄 Rotation</button>${tactics.map(([id,t])=>`<button class="btn ${view.tactics.home===id?'primary':''}" data-live-command="tactic" data-tactic="${id}">${t.label}</button>`).join('')}</div><div class="pillbar live-advance"><button class="btn primary" data-live-advance="5">▶ 5 actions</button><button class="btn" data-live-advance="15">▶ 15 actions</button><button class="btn danger" id="liveFinish">⏩ Simuler la fin</button></div>`:''}
     <div class="grid two-col" style="margin-top:18px"><div><div class="section-title"><div><h2>Sur le terrain</h2><p>Clique sur « Sortir », puis choisis le remplaçant. ${s.sportId==='volleyball'?`Changements ce set : ${view.substitutions.home}/6.`:'Changements libres.'}</p></div></div><div class="card list">${view.lineups.home.map(livePlayerLine).join('')}</div><div class="section-title"><div><h2>Banc</h2><p>${state.liveSubOutId?'Choisis maintenant le joueur à faire entrer.':'Sélectionne d’abord un joueur sur le terrain.'}</p></div></div><div class="card list">${view.benches.home.map(liveBenchLine).join('')}</div></div><div><div class="section-title"><div><h2>Temps forts</h2><p>Derniers événements et adaptations tactiques.</p></div></div><div class="card list">${view.events.length?view.events.slice().reverse().map(e=>`<div class="list-row"><span class="badge">${e.time}</span><div class="grow"><div class="row-title">${e.text}</div></div></div>`).join(''):'<div class="empty">Le match commence.</div>'}</div></div></div>
     <div class="grid two-col" style="margin-top:18px"><div><div class="section-title"><div><h2>Statistiques individuelles</h2><p>Les données sont produites possession par possession.</p></div></div><div class="card list">${homeStats.map(p=>livePlayerStatLine(s.sportId,p)).join('')}</div></div><div><div class="section-title"><div><h2>Journal du coach</h2><p>Tes décisions et les adaptations IA sont mémorisées.</p></div></div><div class="card list">${[...(view.coaching.home||[]),...(view.coaching.away||[])].slice(-10).reverse().map(x=>`<div class="list-row"><span class="badge">${x.time}</span><div class="grow"><div class="row-title">${x.text}</div></div></div>`).join('')||'<div class="empty">Aucune décision pour l’instant.</div>'}</div></div></div>
