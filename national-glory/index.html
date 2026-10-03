@@ -2139,7 +2139,7 @@ function normalizeSave(save){
   if(!Array.isArray(save.economy.sponsorHistory))save.economy.sponsorHistory=[];
   save.athletes.forEach(a=>{if(!a.developmentPlan)a.developmentPlan='balanced';});
   if(typeof save.tutorialSeen!=='boolean')save.tutorialSeen=true;
-  save.version='0.99-rc';
+  save.version='0.99-fix3';
   if(!save.federations) save.federations={};
   for(const sp of save.sports){
     if(!save.federations[sp.id]) save.federations[sp.id]=buildFederationState([sp],country,save.year||2034)[sp.id];
