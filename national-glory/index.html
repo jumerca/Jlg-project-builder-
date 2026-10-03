@@ -187,12 +187,16 @@ button{cursor:pointer}
 .sport2d-player{filter:drop-shadow(0 3px 5px rgba(0,0,0,.35));animation:sport2dEnter .32s ease-out}
 .sport2d-player:hover circle{r:24}
 .sport2d-ball{animation:sport2dBall .72s ease-in-out infinite alternate;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.sport2d-player.active circle{animation:sport2dActor .7s ease-in-out infinite alternate;stroke:#55e6ff!important;stroke-width:6!important}
+.sport2d-trail{stroke:#55e6ff;stroke-width:5;stroke-dasharray:14 10;stroke-linecap:round;opacity:.9;animation:sport2dDash .8s linear infinite}
 .sport2d-last{padding:9px 14px;background:rgba(5,13,30,.9);border-top:1px solid rgba(255,255,255,.07);font-size:12px;color:#dce4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sport2d-legend{display:flex;gap:10px;flex-wrap:wrap;padding:8px 14px 12px;background:rgba(5,13,30,.82)}
 .sport2d-legend span{font-size:11px;color:#aebbd6}
 .sport2d-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
 @keyframes sport2dEnter{from{opacity:.25;transform:scale(.86)}to{opacity:1;transform:scale(1)}}
 @keyframes sport2dBall{from{opacity:.72}to{opacity:1}}
+@keyframes sport2dActor{from{filter:drop-shadow(0 0 2px #55e6ff)}to{filter:drop-shadow(0 0 11px #55e6ff)}}
+@keyframes sport2dDash{to{stroke-dashoffset:-48}}
 @media(max-width:760px){.sport2d-wrap{border-radius:15px;margin:12px 0 15px}.sport2d-head{align-items:flex-start;flex-direction:column;gap:3px;padding:9px 10px}.sport2d-head span{text-align:left}.sport2d-canvas,.sport2d-canvas svg{min-height:205px}.sport2d-last{padding:8px 10px}}
 
 /* V0.98 QA — identité National Glory + onboarding */
@@ -2703,10 +2707,12 @@ function bindModal(){
   $$('[data-live-start]').forEach(el=>el.addEventListener('click',()=>startLiveFriendly(el.dataset.liveStart,el.dataset.teamSex||'M')));
   $$('[data-live-resume]').forEach(el=>el.addEventListener('click',()=>{if(state.liveMatchSession){state.modal={type:'livematch'};openModal();}}));
   $$('[data-live-abandon]').forEach(el=>el.addEventListener('click',()=>abandonLiveMatch()));
-  $$('[data-live-advance]').forEach(el=>el.addEventListener('click',()=>advanceLiveMatch(Number(el.dataset.liveAdvance)||5)));
+  $('[data-live-advance]').forEach(el=>el.addEventListener('click',()=>{stopLivePlayback();advanceLiveMatch(Number(el.dataset.liveAdvance)||1);}));
+  $('[data-live-speed]').forEach(el=>el.addEventListener('click',()=>startLivePlayback(Number(el.dataset.liveSpeed)||1)));
+  $('#livePause')?.addEventListener('click',()=>{stopLivePlayback();openModal();});
   $('[data-live-command]').forEach(el=>el.addEventListener('click',()=>liveCoachCommand(el.dataset.liveCommand,el.dataset.tactic||null)));
   $('[data-live-scheme]').forEach(el=>el.addEventListener('click',()=>liveCoachScheme(el.dataset.liveScheme)));
-  $$('[data-live-sub-out]').forEach(el=>el.addEventListener('click',()=>{state.liveSubOutId=el.dataset.liveSubOut;openModal();}));
+  $('[data-live-sub-out]').forEach(el=>el.addEventListener('click',()=>{stopLivePlayback();state.liveSubOutId=el.dataset.liveSubOut;openModal();}));
   $$('[data-live-sub-in]').forEach(el=>el.addEventListener('click',()=>completeLiveSubstitution(el.dataset.liveSubIn)));
   $('#liveFinish')?.addEventListener('click',finishLiveMatch);
   $('#liveClose')?.addEventListener('click',closeFinishedLiveMatch);
@@ -2987,26 +2993,47 @@ function startLiveFriendly(sportId,sex='M'){
   openModal();
 }
 function abandonLiveMatch(){
+  stopLivePlayback();
   if(!state.liveMatchSession)return;
   if(state.liveMatchMeta?.official){toast('Un match officiel ne peut pas être abandonné. Termine-le ou simule la compétition depuis le calendrier.');return;}
   state.liveMatchSession=null;state.liveMatchResult=null;state.liveSubOutId=null;state.liveMatchMeta=null;state.modal=null;closeModal();render();toast('Match en cours abandonné sans enregistrer de statistiques.');
 }
 function liveCoachCommand(command,tactic){
+  stopLivePlayback();
   const s=state.liveMatchSession;if(!s||s.finished)return;
   const cmd=command==='tactic'?{type:'tactic',tactic}:command==='timeout'?{type:'timeout'}:command==='rotate'?{type:'rotate'}:{type:command};
   const ok=LiveMatch.applyCommand(s,'home',cmd);if(!ok)toast(command==='timeout'?'Plus de temps mort disponible ou action impossible.':'Action impossible pour le moment.');
   openModal();
 }
 function liveCoachScheme(scheme){
+  stopLivePlayback();
   const s=state.liveMatchSession;if(!s||s.finished)return;
   const ok=LiveMatch.applyCommand(s,'home',{type:'scheme',scheme});
   if(!ok)toast('Organisation défensive déjà utilisée ou indisponible.');
   openModal();
 }
 function completeLiveSubstitution(inId){
+  stopLivePlayback();
   const s=state.liveMatchSession;if(!s||!state.liveSubOutId)return;
   const ok=LiveMatch.applyCommand(s,'home',{type:'substitute',outId:state.liveSubOutId,inId});
   state.liveSubOutId=null;if(!ok)toast('Changement impossible avec les règles actuelles.');openModal();
+}
+function stopLivePlayback(){
+  if(state.livePlaybackTimer){clearTimeout(state.livePlaybackTimer);state.livePlaybackTimer=null}
+  state.livePlaybackSpeed=0;
+}
+function startLivePlayback(speed=1){
+  const s=state.liveMatchSession;if(!s||s.finished)return;
+  stopLivePlayback();state.livePlaybackSpeed=[1,2,4].includes(speed)?speed:1;
+  const tick=()=>{
+    const session=state.liveMatchSession;
+    if(!session||session.finished||state.livePlaybackSpeed===0){stopLivePlayback();return;}
+    LiveMatch.advance(session,1);
+    if(session.finished&&!state.liveMatchResult){state.liveMatchResult=LiveMatch.finalize(session);stopLivePlayback();}
+    openModal();
+    if(state.livePlaybackSpeed){const delay=state.livePlaybackSpeed===1?900:state.livePlaybackSpeed===2?520:300;state.livePlaybackTimer=setTimeout(tick,delay);}
+  };
+  tick();
 }
 function advanceLiveMatch(steps=5){
   const s=state.liveMatchSession;if(!s)return;
@@ -3015,6 +3042,7 @@ function advanceLiveMatch(steps=5){
   openModal();
 }
 function finishLiveMatch(){
+  stopLivePlayback();
   const s=state.liveMatchSession;if(!s)return;
   let guard=0;while(!s.finished&&guard++<1000)LiveMatch.advance(s,20);
   state.liveMatchResult=LiveMatch.finalize(s);openModal();
@@ -3032,6 +3060,7 @@ function applyLiveMatchToCareer(result){
   result._careerApplied=true;persist();
 }
 function closeFinishedLiveMatch(){
+  stopLivePlayback();
   if(state.liveMatchMeta?.official&&state.liveMatchResult){submitOfficialLiveResult(state.liveMatchResult);return;}
   if(state.liveMatchResult)applyLiveMatchToCareer(state.liveMatchResult);
   state.liveMatchSession=null;state.liveMatchResult=null;state.liveSubOutId=null;state.liveMatchMeta=null;state.modal=null;closeModal();render();toast('Rapport de match enregistré.');
@@ -3067,9 +3096,9 @@ function sport2dPosFor(sport,side,lineup,isAttack,tactic,scheme,rotation){
   }
   if(side==='away'&&sport!=='volleyball')positions=positions.map(mirror);return positions
 }
-function sport2dPlayerSvg(player,pos,side,index){
-  var home=side==='home',fill=home?'#f2c565':'#e8eefb',stroke=home?'#6e5115':'#697793',bad=player.injured||player.fouledOut||player.suspendedUnits>0,ring=bad?'#ee7183':player.fatigue>=65?'#f0b95f':stroke,label=sport2dEsc(sport2dShort(player.name)),role=sport2dEsc(player.role||'');
-  return '<g class="sport2d-player" transform="translate('+pos.x+' '+pos.y+')"><circle r="19" fill="'+fill+'" stroke="'+ring+'" stroke-width="'+(bad?5:3)+'"/><text x="0" y="5" text-anchor="middle" font-size="11" font-weight="900" fill="#071228">'+(index+1)+'</text><text x="0" y="35" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">'+label+'</text><text x="0" y="49" text-anchor="middle" font-size="9" fill="#d4ddf0">'+role+'</text></g>'
+function sport2dPlayerSvg(player,pos,side,index,activeId){
+  var home=side==='home',fill=home?'#f2c565':'#e8eefb',stroke=home?'#6e5115':'#697793',bad=player.injured||player.fouledOut||player.suspendedUnits>0,ring=bad?'#ee7183':player.fatigue>=65?'#f0b95f':stroke,label=sport2dEsc(sport2dShort(player.name)),role=sport2dEsc(player.role||''),active=player.id===activeId;
+  return '<g class="sport2d-player'+(active?' active':'')+'" transform="translate('+pos.x+' '+pos.y+')"><circle r="19" fill="'+fill+'" stroke="'+ring+'" stroke-width="'+(bad?5:3)+'"/><text x="0" y="5" text-anchor="middle" font-size="11" font-weight="900" fill="#071228">'+(index+1)+'</text><text x="0" y="35" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">'+label+'</text><text x="0" y="49" text-anchor="middle" font-size="9" fill="#d4ddf0">'+role+'</text></g>'
 }
 function sport2dCourtLines(sport){
   if(sport==='handball')return '<rect x="28" y="28" width="944" height="444" rx="7" fill="#166781" stroke="#fff" stroke-width="4"/><line x1="500" y1="28" x2="500" y2="472" stroke="#fff" stroke-width="3"/><circle cx="500" cy="250" r="52" fill="none" stroke="#fff" stroke-width="3"/><rect x="21" y="188" width="16" height="124" fill="none" stroke="#fff" stroke-width="4"/><rect x="963" y="188" width="16" height="124" fill="none" stroke="#fff" stroke-width="4"/><path d="M30 112 Q205 250 30 388" fill="none" stroke="#fff" stroke-width="4"/><path d="M970 112 Q795 250 970 388" fill="none" stroke="#fff" stroke-width="4"/><path d="M30 75 Q265 250 30 425" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="12 10"/><path d="M970 75 Q735 250 970 425" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="12 10"/>';
@@ -3087,9 +3116,22 @@ function sport2dBallPos(s,view,ph,pa){
   if(s.sportId==='volleyball'&&['kill','block','defense','rally'].includes(visual.action))return{x:side==='home'?535:465,y:160+((s.unit||0)%3)*90};
   return{x:p.x+(side==='home'?24:-24),y:p.y-18}
 }
+function sport2dTrail(s,view,ph,pa,ball){
+  var v=view.visual||{},side=v.side||sport2dPossession(s),line=side==='home'?ph:pa,players=side==='home'?view.lineups.home:view.lineups.away,idx=players.findIndex(function(p){return p.id===v.actorId}),from=idx>=0?line[idx]:null;
+  if(!from)return '';
+  var target=null;
+  if(v.action==='shot')target={x:side==='home'?960:40,y:250};
+  else if(v.action==='shot2'||v.action==='shot3')target={x:side==='home'?904:96,y:250};
+  else if(s.sportId==='volleyball'&&['serve','ace','kill','block','defense'].includes(v.action))target={x:side==='home'?600:400,y:ball.y};
+  else if(v.targetId){
+    var opp=side==='home'?view.lineups.away:view.lineups.home,oppPos=side==='home'?pa:ph,ti=opp.findIndex(function(p){return p.id===v.targetId});if(ti>=0)target=oppPos[ti];
+  }
+  if(!target)return '';
+  return '<line class="sport2d-trail" x1="'+from.x+'" y1="'+from.y+'" x2="'+target.x+'" y2="'+target.y+'"/>'
+}
 function sport2dView(s,view){
   var possession=sport2dPossession(s),ha=s.sportId==='volleyball'?false:possession==='home',aa=s.sportId==='volleyball'?false:possession==='away',rh=view.volleyballRotation?.home||0,ra=view.volleyballRotation?.away||0,lh=view.lineups.home,la=view.lineups.away,ph=sport2dPosFor(s.sportId,'home',lh,ha,view.tactics.home,view.schemes?.home,rh),pa=sport2dPosFor(s.sportId,'away',la,aa,view.tactics.away,view.schemes?.away,ra),ball=sport2dBallPos(s,view,ph,pa),last=view.events&&view.events.length?view.events[view.events.length-1]:null,pl=s.sportId==='volleyball'?'Service':'Possession',sl=s.sportId==='handball'?'Handball 40×20':s.sportId==='basketball'?'Basket 28×15':'Volley 18×9',bf=s.sportId==='basketball'?'#ef6c31':s.sportId==='volleyball'?'#fff4a3':'#f2c565',br=s.sportId==='volleyball'?16:11,shape=s.sportId==='handball'?'Défense '+schemeLabelForUI(s.sportId,view.schemes?.home):s.sportId==='basketball'?schemeLabelForUI(s.sportId,view.schemes?.home):'Rotation '+(rh+1);
-  return '<div class="sport2d-wrap"><div class="sport2d-head"><strong>Vue tactique 2D · '+sl+'</strong><span>'+pl+' : '+sport2dEsc(possession==='home'?view.home:view.away)+' · '+sport2dEsc(tacticLabelForUI(s.sportId,view.tactics.home))+' · '+shape+'</span></div><div class="sport2d-canvas"><svg viewBox="0 0 1000 500" role="img" aria-label="Terrain 2D '+sport2dEsc(sportById(s.sportId).name)+'"><rect width="1000" height="500" fill="#08152f"/>'+sport2dCourtLines(s.sportId)+ph.map(function(p,i){return sport2dPlayerSvg(lh[i],p,'home',i)}).join('')+pa.map(function(p,i){return sport2dPlayerSvg(la[i],p,'away',i)}).join('')+'<g class="sport2d-ball" transform="translate('+ball.x+' '+ball.y+')"><circle r="'+(br+9)+'" fill="none" stroke="#ffffff" stroke-opacity=".42" stroke-width="3"/><circle r="'+br+'" fill="'+bf+'" stroke="'+(s.sportId==='volleyball'?'#1f5da8':s.sportId==='basketball'?'#3a1807':'#ffffff')+'" stroke-width="'+(s.sportId==='volleyball'?5:4)+'"/>'+(s.sportId==='basketball'?'<path d="M-12 0H12M0-12V12M-9-9Q0 0 9 9M9-9Q0 0-9 9" stroke="#3a1807" stroke-width="2" fill="none"/>':s.sportId==='volleyball'?'<path d="M-11-8Q0-16 11-8M-14 2Q0-5 14 2M-9 11Q0 5 9 11" stroke="#1f5da8" stroke-width="3" fill="none"/>':'<path d="M-10-7Q0-13 10-7M-12 3Q0-3 12 3M-8 10Q0 5 8 10" stroke="#d94f4f" stroke-width="2.5" fill="none"/>')+'</g></svg></div><div class="sport2d-last">⚡ '+sport2dEsc(view.visual?.label||(last?last.time+' · '+last.text:'Engagement — les blocs se mettent en place'))+'</div><div class="sport2d-legend"><span><i class="sport2d-dot" style="background:#f2c565"></i>'+sport2dEsc(view.home)+'</span><span><i class="sport2d-dot" style="background:#e8eefb"></i>'+sport2dEsc(view.away)+'</span><span>Placement lié à la possession, la tactique et aux remplacements.</span></div></div>'
+  return '<div class="sport2d-wrap"><div class="sport2d-head"><strong>Vue tactique 2D · '+sl+'</strong><span>'+pl+' : '+sport2dEsc(possession==='home'?view.home:view.away)+' · '+sport2dEsc(tacticLabelForUI(s.sportId,view.tactics.home))+' · '+shape+'</span></div><div class="sport2d-canvas"><svg viewBox="0 0 1000 500" role="img" aria-label="Terrain 2D '+sport2dEsc(sportById(s.sportId).name)+'"><rect width="1000" height="500" fill="#08152f"/>'+sport2dCourtLines(s.sportId)+sport2dTrail(s,view,ph,pa,ball)+ph.map(function(p,i){return sport2dPlayerSvg(lh[i],p,'home',i,view.visual?.actorId)}).join('')+pa.map(function(p,i){return sport2dPlayerSvg(la[i],p,'away',i,view.visual?.actorId)}).join('')+'<g class="sport2d-ball" transform="translate('+ball.x+' '+ball.y+')"><circle r="'+(br+9)+'" fill="none" stroke="#ffffff" stroke-opacity=".42" stroke-width="3"/><circle r="'+br+'" fill="'+bf+'" stroke="'+(s.sportId==='volleyball'?'#1f5da8':s.sportId==='basketball'?'#3a1807':'#ffffff')+'" stroke-width="'+(s.sportId==='volleyball'?5:4)+'"/>'+(s.sportId==='basketball'?'<path d="M-12 0H12M0-12V12M-9-9Q0 0 9 9M9-9Q0 0-9 9" stroke="#3a1807" stroke-width="2" fill="none"/>':s.sportId==='volleyball'?'<path d="M-11-8Q0-16 11-8M-14 2Q0-5 14 2M-9 11Q0 5 9 11" stroke="#1f5da8" stroke-width="3" fill="none"/>':'<path d="M-10-7Q0-13 10-7M-12 3Q0-3 12 3M-8 10Q0 5 8 10" stroke="#d94f4f" stroke-width="2.5" fill="none"/>')+'</g></svg></div><div class="sport2d-last">⚡ '+sport2dEsc(view.visual?.label||(last?last.time+' · '+last.text:'Engagement — les blocs se mettent en place'))+'</div><div class="sport2d-legend"><span><i class="sport2d-dot" style="background:#f2c565"></i>'+sport2dEsc(view.home)+'</span><span><i class="sport2d-dot" style="background:#e8eefb"></i>'+sport2dEsc(view.away)+'</span><span>Placement lié à la possession, la tactique et aux remplacements.</span></div></div>'
 }
 
 function liveMatchModal(){
@@ -3104,7 +3146,7 @@ function liveMatchModal(){
   return `<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-label="Fenêtre de jeu"><div class="modal wide-modal live-match-modal"><div class="modal-top"><div><h2>🎧 ${meta.official?'Match officiel':'Centre de match'} · ${sportById(s.sportId).name}</h2><div class="row-sub">${meta.official?`${meta.competitionName} · ${meta.stage} · `:''}${view.finished?'Match terminé':`${view.time} · période ${view.period}`}${scoreExtra}</div></div>${view.finished?`<button class="btn primary" id="liveClose">${meta.official?'Enregistrer et continuer':'Enregistrer et fermer'}</button>`:'<button class="btn ghost" id="closeModal">Quitter le centre</button>'}</div>
     <div class="live-scoreboard"><div><span>${view.home}</span><b>${view.homeScore}</b></div><div class="live-clock">${view.finished?'TERMINÉ':view.time}<small>${tacticLabelForUI(s.sportId,view.tactics.home)} vs ${tacticLabelForUI(s.sportId,view.tactics.away)}</small></div><div><span>${view.away}</span><b>${view.awayScore}</b></div></div>
     ${sport2dView(s,view)}
-    ${!view.finished?`<div class="section-title"><div><h2>Coaching</h2><p>Chaque choix est appliqué avant la prochaine séquence de jeu. L’IA adverse s’adapte automatiquement.</p></div><span class="badge ${timeoutInfo.allowed?'gold':'warn'}">${remaining} temps mort(s) · ${timeoutInfo.label}</span></div><div class="pillbar"><button class="btn" data-live-command="timeout" ${timeoutInfo.allowed?'':'disabled'}>⏱ Temps mort</button><button class="btn" data-live-command="rotate">🔄 Rotation</button>${tactics.map(([id,t])=>`<button class="btn ${view.tactics.home===id?'primary':''}" data-live-command="tactic" data-tactic="${id}">${t.label}</button>`).join('')}</div>${schemeOptions.length?`<div class="pillbar"><span class="badge">Organisation défensive</span>${schemeOptions.map(([id,label])=>`<button class="btn ${view.schemes?.home===id?'primary':''}" data-live-scheme="${id}">${label}</button>`).join('')}</div>`:''}<div class="pillbar live-advance"><button class="btn primary" data-live-advance="1">▶ x1 · 1 action</button><button class="btn" data-live-advance="5">▶ x2 · 5 actions</button><button class="btn" data-live-advance="15">▶ x4 · 15 actions</button><button class="btn danger" id="liveFinish">⏩ Résultat direct</button></div>`:''}
+    ${!view.finished?`<div class="section-title"><div><h2>Coaching</h2><p>Chaque choix est appliqué avant la prochaine séquence de jeu. L’IA adverse s’adapte automatiquement.</p></div><span class="badge ${timeoutInfo.allowed?'gold':'warn'}">${remaining} temps mort(s) · ${timeoutInfo.label}</span></div><div class="pillbar"><button class="btn" data-live-command="timeout" ${timeoutInfo.allowed?'':'disabled'}>⏱ Temps mort</button><button class="btn" data-live-command="rotate">🔄 Rotation</button>${tactics.map(([id,t])=>`<button class="btn ${view.tactics.home===id?'primary':''}" data-live-command="tactic" data-tactic="${id}">${t.label}</button>`).join('')}</div>${schemeOptions.length?`<div class="pillbar"><span class="badge">Organisation défensive</span>${schemeOptions.map(([id,label])=>`<button class="btn ${view.schemes?.home===id?'primary':''}" data-live-scheme="${id}">${label}</button>`).join('')}</div>`:''}<div class="pillbar live-advance"><button class="btn" data-live-advance="1">⏯ 1 action</button><button class="btn ${state.livePlaybackSpeed===1?'primary':''}" data-live-speed="1">▶ x1</button><button class="btn ${state.livePlaybackSpeed===2?'primary':''}" data-live-speed="2">▶ x2</button><button class="btn ${state.livePlaybackSpeed===4?'primary':''}" data-live-speed="4">▶ x4</button><button class="btn" id="livePause" ${state.livePlaybackSpeed?'':'disabled'}>⏸ Pause</button><button class="btn danger" id="liveFinish">⏩ Résultat direct</button></div>`:''}
     <div class="grid two-col" style="margin-top:18px"><div><div class="section-title"><div><h2>Sur le terrain</h2><p>Clique sur « Sortir », puis choisis le remplaçant. ${s.sportId==='volleyball'?`Changements ce set : ${view.substitutions.home}/6.`:'Changements libres.'}</p></div></div><div class="card list">${view.lineups.home.map(livePlayerLine).join('')}</div><div class="section-title"><div><h2>Banc</h2><p>${state.liveSubOutId?'Choisis maintenant le joueur à faire entrer.':'Sélectionne d’abord un joueur sur le terrain.'}</p></div></div><div class="card list">${view.benches.home.map(liveBenchLine).join('')}</div></div><div><div class="section-title"><div><h2>Temps forts</h2><p>Derniers événements et adaptations tactiques.</p></div></div><div class="card list">${view.events.length?view.events.slice().reverse().map(e=>`<div class="list-row"><span class="badge">${e.time}</span><div class="grow"><div class="row-title">${e.text}</div></div></div>`).join(''):'<div class="empty">Le match commence.</div>'}</div></div></div>
     <div class="grid two-col" style="margin-top:18px"><div><div class="section-title"><div><h2>Statistiques individuelles</h2><p>Les données sont produites possession par possession.</p></div></div><div class="card list">${homeStats.map(p=>livePlayerStatLine(s.sportId,p)).join('')}</div></div><div><div class="section-title"><div><h2>Journal du coach</h2><p>Tes décisions et les adaptations IA sont mémorisées.</p></div></div><div class="card list">${[...(view.coaching.home||[]),...(view.coaching.away||[])].slice(-10).reverse().map(x=>`<div class="list-row"><span class="badge">${x.time}</span><div class="grow"><div class="row-title">${x.text}</div></div></div>`).join('')||'<div class="empty">Aucune décision pour l’instant.</div>'}</div></div></div>
     ${result?`<div class="section-title"><div><h2>Rapport final</h2><p>Rotations, blessures et statistiques détaillées sont enregistrées dans la carrière.</p></div></div>${matchStatsHtml(result)}`:''}
