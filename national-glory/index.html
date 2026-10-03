@@ -817,7 +817,7 @@ button{cursor:pointer}
     const S=s.playerStats[serverSide],R=s.playerStats[serverSide==='home'?'away':'home'];
     const sp=profile(server),rp=profile(receiver),base=effective(server,'volleyball',receiver.tactic)-effective(receiver,'volleyball',server.tactic);
     const srv=rolePick(server,['Réceptionneur','Passeur'],rng)||weightedPick(server.lineup,p=>p.technical,rng);if(!srv)return;
-    let winner=receiver,pointType='rally',attacker=null,blocker=null;
+    let winner=receiver,pointType='rally',attacker=null,blocker=null,dig=null;
     s.visual={side:serverSide,action:'serve',actorId:srv.id,targetId:null,outcome:'pending',label:'Service · '+srv.name};
     if(rng()<clamp(.08+(server.tactic==='serve'?.035:0)-(srv.mental-70)*.001,.035,.16)){S[srv.id].errors++;winner=receiver;pointType='serviceError'}
     else if(rng()<clamp(.05+(server.tactic==='serve'?.035:0)+(srv.technical-rp.technical)*.0015,.02,.14)){S[srv.id].aces++;S[srv.id].points++;winner=server;pointType='ace'}
@@ -827,10 +827,12 @@ button{cursor:pointer}
       const receptionBoost=receiver.tactic==='reception'?.035:0;
       const pWin=clamp(.50+base*.002+(attacker.technical-rp.technical)*.0017+(attacker.physical-rp.physical)*.0012-(attacker.fatigue-35)*.001-receptionBoost,.33,.68);
       if(rng()<pWin){S[attacker.id].kills++;S[attacker.id].points++;winner=server;pointType='kill'}
-      else{winner=receiver;if(blocker&&rng()<.28+(receiver.tactic==='block'?.04:0)){R[blocker.id].blocks++;R[blocker.id].points++;pointType='block'}else{const dig=weightedPick(receiver.lineup,p=>p.discipline==='Libéro'?120:p.mental+p.technical,rng);if(dig)R[dig.id].digs++;pointType='defense'}}
+      else{winner=receiver;if(blocker&&rng()<.28+(receiver.tactic==='block'?.04:0)){R[blocker.id].blocks++;R[blocker.id].points++;pointType='block'}else{dig=weightedPick(receiver.lineup,p=>p.discipline==='Libéro'?120:p.mental+p.technical,rng);if(dig)R[dig.id].digs++;pointType='defense'}}
     }
     if(winner===s.home){s.setPoints.home++;s.home.run++;s.away.run=0}else{s.setPoints.away++;s.away.run++;s.home.run=0}
-    s.visual={side:serverSide,action:pointType,actorId:pointType==='kill'&&attacker?attacker.id:pointType==='block'&&blocker?blocker.id:srv.id,targetId:null,outcome:winner===server?'won':'lost',label:pointType==='ace'?'Ace · '+srv.name:pointType==='serviceError'?'Faute de service · '+srv.name:pointType==='kill'&&attacker?'Attaque gagnante · '+attacker.name:pointType==='block'&&blocker?'Block · '+blocker.name:'Échange remporté · '+(winner===s.home?s.home.name:s.away.name)};
+    const receiverSide=serverSide==='home'?'away':'home',visualSide=(pointType==='block'||pointType==='defense')?receiverSide:serverSide;
+    const visualActor=pointType==='kill'&&attacker?attacker.id:pointType==='block'&&blocker?blocker.id:pointType==='defense'&&dig?dig.id:srv.id;
+    s.visual={side:visualSide,action:pointType,actorId:visualActor,targetId:null,outcome:winner===server?'won':'lost',label:pointType==='ace'?'Ace · '+srv.name:pointType==='serviceError'?'Faute de service · '+srv.name:pointType==='kill'&&attacker?'Attaque gagnante · '+attacker.name:pointType==='block'&&blocker?'Block · '+blocker.name:pointType==='defense'&&dig?'Défense · '+dig.name:'Échange remporté · '+(winner===s.home?s.home.name:s.away.name)};
     // Rally-point scoring: the winning side serves the next rally; service is NOT alternated automatically.
     var winnerSide=winner===s.home?'home':'away';if(winnerSide!==serverSide){s.volleyballRotation=s.volleyballRotation||{home:0,away:0};s.volleyballRotation[winnerSide]=(s.volleyballRotation[winnerSide]+1)%6;}s.servingSide=winnerSide;
     for(const p of [...server.lineup,...receiver.lineup]){const st=s.playerStats[sideOf(s,server.lineup.includes(p)?server:receiver)][p.id];if(st)st.rallies++}
@@ -1790,6 +1792,7 @@ function buildFederationState(sports,country,year=2034){
     seasonObjectives:Management.generateFederationObjectives(s,year,{olympicYear:year%4===0}),
     objectiveHistory:[],
     tactics:{M:'balanced',F:'balanced'},
+    defenseSchemes:{M:s.id==='handball'?'6-0':s.id==='basketball'?'man':'standard',F:s.id==='handball'?'6-0':s.id==='basketball'?'man':'standard'},
     tacticalFamiliarity:{M:70,F:70},
     lastInvestment:null
   }]));
@@ -2216,11 +2219,13 @@ function normalizeSave(save){
     if(!Array.isArray(f.seasonObjectives)||!f.seasonObjectives.length) f.seasonObjectives=Management.generateFederationObjectives(sp,save.year||2034,{olympicYear:(save.year||2034)%4===0});
     if(!Array.isArray(f.objectiveHistory)) f.objectiveHistory=[];
     if(!f.tactics)f.tactics={M:'balanced',F:'balanced'};
+    if(!f.defenseSchemes)f.defenseSchemes={M:sp.id==='handball'?'6-0':sp.id==='basketball'?'man':'standard',F:sp.id==='handball'?'6-0':sp.id==='basketball'?'man':'standard'};
     if(!f.tacticalFamiliarity)f.tacticalFamiliarity={M:70,F:70};
   }
 }
 
 
+function displayVersion(v){return v==='0.99-fix3'?'0.99 2D RC':(v||'0.3');}
 function currentCountry(){ return COUNTRIES[state.save?.countryId || 'france']; }
 function dateLabel(save = state.save){ return `${String(save.day).padStart(2,'0')}/${String(save.month).padStart(2,'0')}/${save.year}`; }
 function nextCompetition(){ return (state.save?.competitions||[]).filter(c=>['upcoming','live-pending'].includes(c.status)).sort(byCompetitionDate)[0] || null; }
@@ -2329,7 +2334,7 @@ function shellHtml(){
         ${navBtn('finances','Finances','💰')}
       </div>
       <div class="sidebar-footer">
-        <div>Version ${state.save.version || '0.3'}</div>
+        <div>Version ${displayVersion(state.save.version)}</div>
         <div>${state.save.name}</div>
       </div>
     </aside>
@@ -2733,7 +2738,7 @@ function bindModal(){
 }
 function saveListModal(isDelete){
   const saves = listSaves();
-  return `<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-label="Fenêtre de jeu"><div class="modal"><div class="modal-top"><h2>${isDelete?'Supprimer une partie':'Charger une partie'}</h2><button class="btn ghost" id="closeModal">Fermer</button></div>${saves.length ? saves.map(s=>`<div class="save-card"><div><b>${s.name}</b><div class="row-sub">${s.countryName || s.countryId} · ${s.mode} · ${s.version||'0.1'}</div></div><button class="btn ${isDelete?'danger':'primary'}" ${isDelete?`data-delete-save="${s.id}"`:`data-load-save="${s.id}"`}>${isDelete?'Supprimer':'Charger'}</button></div>`).join('') : '<div class="empty">Aucune sauvegarde locale.</div>'}</div></div>`;
+  return `<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-label="Fenêtre de jeu"><div class="modal"><div class="modal-top"><h2>${isDelete?'Supprimer une partie':'Charger une partie'}</h2><button class="btn ghost" id="closeModal">Fermer</button></div>${saves.length ? saves.map(s=>`<div class="save-card"><div><b>${s.name}</b><div class="row-sub">${s.countryName || s.countryId} · ${s.mode} · ${displayVersion(s.version)}</div></div><button class="btn ${isDelete?'danger':'primary'}" ${isDelete?`data-delete-save="${s.id}"`:`data-load-save="${s.id}"`}>${isDelete?'Supprimer':'Charger'}</button></div>`).join('') : '<div class="empty">Aucune sauvegarde locale.</div>'}</div></div>`;
 }
 function newCareerModal(){
   const d = state.modal.data;
@@ -2898,7 +2903,7 @@ function launchOfficialLiveMatch(c,event,tournament,pending){
   }
   const seed=(state.officialCompetition.seed+hashSeed(`${event.id}-${tournament.matches.length}-${pending.stage}`))>>>0;
   state.liveMatchResult=null;state.liveSubOutId=null;
-  state.liveMatchMeta={official:true,competitionId:c.id,eventId:event.id,eventName:event.name,competitionName:c.name,stage:pending.stage,olympics:state.officialCompetition.olympics,qualifier:state.officialCompetition.qualifier};
+  state.liveMatchMeta={official:true,competitionId:c.id,eventId:event.id,eventName:event.name,competitionName:c.name,stage:pending.stage,olympics:state.officialCompetition.olympics,qualifier:state.officialCompetition.qualifier,sportId:c.sportId,sex:event.sex};
   state.liveMatchSession=LiveMatch.createSession(c.sportId,pending.home,pending.away,{seed,autoCoachHome:false,autoCoachAway:true,knockout:pending.phase!=='group'});
   saveOfficialProgress(c);
   state.modal={type:'livematch'};openModal();
@@ -2991,7 +2996,7 @@ function startLiveFriendly(sportId,sex='M'){
   const foreign=Object.values(state.save.world.nations).filter(n=>n.id!==state.save.countryId).map(n=>foreignTeamForEvent(n,event,rng,false));
   foreign.sort((a,b)=>Math.abs(a.strength-user.strength)-Math.abs(b.strength-user.strength));
   const opponent=foreign[0];
-  state.liveMatchResult=null;state.liveSubOutId=null;state.liveMatchMeta={official:false,competitionName:'Match amical piloté',stage:'Amical'};
+  state.liveMatchResult=null;state.liveSubOutId=null;state.liveMatchMeta={official:false,competitionName:'Match amical piloté',stage:'Amical',sportId,sex};
   state.liveMatchSession=LiveMatch.createSession(sportId,user,opponent,{seed,autoCoachHome:false,autoCoachAway:true,knockout:false});
   state.modal={type:'livematch'};
   openModal();
@@ -3006,13 +3011,25 @@ function liveCoachCommand(command,tactic){
   stopLivePlayback();
   const s=state.liveMatchSession;if(!s||s.finished)return;
   const cmd=command==='tactic'?{type:'tactic',tactic}:command==='timeout'?{type:'timeout'}:command==='rotate'?{type:'rotate'}:{type:command};
-  const ok=LiveMatch.applyCommand(s,'home',cmd);if(!ok)toast(command==='timeout'?'Plus de temps mort disponible ou action impossible.':'Action impossible pour le moment.');
+  const ok=LiveMatch.applyCommand(s,'home',cmd);
+  if(ok&&command==='tactic'&&state.liveMatchMeta?.sportId&&state.liveMatchMeta?.sex){
+    const fed=federationFor(state.liveMatchMeta.sportId);
+    if(fed){fed.tactics=fed.tactics||{M:'balanced',F:'balanced'};fed.tactics[state.liveMatchMeta.sex]=tactic;persist();}
+  }
+  if(!ok)toast(command==='timeout'?'Plus de temps mort disponible ou action impossible.':'Action impossible pour le moment.');
   openModal();
 }
 function liveCoachScheme(scheme){
   stopLivePlayback();
   const s=state.liveMatchSession;if(!s||s.finished)return;
   const ok=LiveMatch.applyCommand(s,'home',{type:'scheme',scheme});
+  if(ok&&state.liveMatchMeta?.sportId&&state.liveMatchMeta?.sex){
+    const fed=federationFor(state.liveMatchMeta.sportId);
+    if(fed){
+      fed.defenseSchemes=fed.defenseSchemes||{M:state.liveMatchMeta.sportId==='handball'?'6-0':state.liveMatchMeta.sportId==='basketball'?'man':'standard',F:state.liveMatchMeta.sportId==='handball'?'6-0':state.liveMatchMeta.sportId==='basketball'?'man':'standard'};
+      fed.defenseSchemes[state.liveMatchMeta.sex]=scheme;persist();
+    }
+  }
   if(!ok)toast('Organisation défensive déjà utilisée ou indisponible.');
   openModal();
 }
@@ -3416,7 +3433,8 @@ function userTeamForEvent(event){
   const team=Engine.teamStrength(state.save.athletes,event,{coach:fed?.headCoach.rating,efficiency:fed?.efficiency,morale:fed?.morale,budgetFactor:Engine.budgetFactor(sp)});
   const tactic=fed?.tactics?.[event.sex]||'balanced';
   const familiarity=clamp((fed?.tacticalFamiliarity?.[event.sex]||70)+fac.tacticalBonus*4,35,100);
-  return {id:state.save.countryId,nationId:state.save.countryId,name:`${currentCountry().name} ${sexLabel(event.sex)}`,roster:team.roster,strength:team.score,form:avg(team.roster.map(a=>a.form)),confidence:avg(team.roster.map(a=>a.confidence)),fatigue:avg(team.roster.map(a=>a.fatigue)),experience:avg(team.roster.map(a=>a.experience)),tactic,familiarity,diagnostics:team};
+  const defenseScheme=fed?.defenseSchemes?.[event.sex]||(event.sportId==='handball'?'6-0':event.sportId==='basketball'?'man':'standard');
+  return {id:state.save.countryId,nationId:state.save.countryId,name:`${currentCountry().name} ${sexLabel(event.sex)}`,roster:team.roster,strength:team.score,form:avg(team.roster.map(a=>a.form)),confidence:avg(team.roster.map(a=>a.confidence)),fatigue:avg(team.roster.map(a=>a.fatigue)),experience:avg(team.roster.map(a=>a.experience)),tactic,defenseScheme,familiarity,diagnostics:team};
 }
 function applyTeamTournamentLoad(team,event,tournament,userRank){
   if(!team?.roster?.length)return;
