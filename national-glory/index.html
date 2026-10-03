@@ -229,7 +229,7 @@ button{cursor:pointer}
     archery:['Individuel'],
     handball:['Arrière','Ailier','Pivot','Gardien'],
     basketball:['Meneur','Arrière','Ailier','Intérieur'],
-    volleyball:['Réceptionneur','Central','Passeur','Libéro']
+    volleyball:['Réceptionneur','Central','Passeur','Pointu','Libéro']
   };
   const SEXES=[{id:'M',label:'Hommes'},{id:'F',label:'Femmes'}];
   const TEAM_RULES={
@@ -253,7 +253,7 @@ button{cursor:pointer}
   const TEAM_ROLE_NEEDS={
     handball:{'Gardien':2,'Ailier':2,'Arrière':3,'Pivot':1},
     basketball:{'Meneur':1,'Arrière':2,'Ailier':2,'Intérieur':2},
-    volleyball:{'Passeur':1,'Central':2,'Réceptionneur':2,'Libéro':1}
+    volleyball:{'Passeur':1,'Central':2,'Réceptionneur':2,'Pointu':1,'Libéro':1}
   };
   const STAFF_ROLES={
     headCoach:{label:'Entraîneur national',baseYears:2},
@@ -589,7 +589,7 @@ button{cursor:pointer}
   const RULES={
     handball:{lineup:7,roster:16,timeouts:3,periods:2,unitsPerPeriod:60,roles:['Gardien','Gardien','Ailier','Ailier','Arrière','Arrière','Arrière','Pivot','Ailier','Arrière','Pivot','Ailier','Arrière','Arrière','Ailier','Pivot']},
     basketball:{lineup:5,roster:12,timeouts:5,periods:4,unitsPerPeriod:35,roles:['Meneur','Arrière','Arrière','Ailier','Ailier','Intérieur','Intérieur','Meneur','Arrière','Ailier','Intérieur','Ailier']},
-    volleyball:{lineup:6,roster:12,timeouts:2,periods:5,unitsPerPeriod:999,roles:['Passeur','Central','Central','Réceptionneur','Réceptionneur','Libéro','Passeur','Central','Réceptionneur','Libéro','Central','Réceptionneur']}
+    volleyball:{lineup:6,roster:12,timeouts:2,periods:5,unitsPerPeriod:999,roles:['Passeur','Central','Central','Réceptionneur','Réceptionneur','Pointu','Libéro','Passeur','Central','Réceptionneur','Pointu','Libéro']}
   };
   function tacticLabel(s,id){return Tactics?.tacticFor?.(s,id)?.label||id||'Équilibré'}
   function defaultDefenseScheme(sportId){return sportId==='handball'?'6-0':sportId==='basketball'?'man':'standard'}
@@ -658,7 +658,7 @@ button{cursor:pointer}
       take('Meneur',1);take('Arrière',1);take('Ailier',2);take('Intérieur',1);
       chosen.push(...r.filter(p=>!chosen.includes(p)).sort((a,b)=>playerValue(b)-playerValue(a)).slice(0,rule.lineup-chosen.length));
     }else{
-      take('Passeur',1);take('Central',2);take('Réceptionneur',2);take('Libéro',1);
+      take('Passeur',1);take('Central',1);take('Réceptionneur',2);take('Pointu',1);take('Libéro',1);
       chosen.push(...r.filter(p=>!chosen.includes(p)).sort((a,b)=>playerValue(b)-playerValue(a)).slice(0,rule.lineup-chosen.length));
     }
     team.lineup=chosen.slice(0,rule.lineup);
@@ -817,7 +817,7 @@ button{cursor:pointer}
     const rng=s.rng,serverSide=s.servingSide||'home',server=s[serverSide],receiver=s[serverSide==='home'?'away':'home'];
     const S=s.playerStats[serverSide],R=s.playerStats[serverSide==='home'?'away':'home'];
     const sp=profile(server),rp=profile(receiver),base=effective(server,'volleyball',receiver.tactic)-effective(receiver,'volleyball',server.tactic);
-    const srv=rolePick(server,['Réceptionneur','Passeur'],rng)||weightedPick(server.lineup,p=>p.technical,rng);if(!srv)return;
+    const srv=weightedPick(server.lineup.filter(p=>p.discipline!=='Libéro'),p=>p.technical+p.mental*.35,rng);if(!srv)return;
     let winner=receiver,pointType='rally',attacker=null,blocker=null,dig=null;
     s.visual={side:serverSide,action:'serve',actorId:srv.id,targetId:null,outcome:'pending',label:'Service · '+srv.name};
     if(rng()<clamp(.08+(server.tactic==='serve'?.035:0)-(srv.mental-70)*.001,.035,.16)){S[srv.id].errors++;winner=receiver;pointType='serviceError'}
@@ -1801,7 +1801,7 @@ function buildFederationState(sports,country,year=2034){
 const TEAM_ROLE_CYCLES={
   handball:['Gardien','Ailier','Ailier','Arrière','Arrière','Arrière','Pivot'],
   basketball:['Meneur','Arrière','Arrière','Ailier','Ailier','Intérieur','Intérieur'],
-  volleyball:['Passeur','Central','Central','Réceptionneur','Réceptionneur','Libéro']
+  volleyball:['Passeur','Central','Central','Réceptionneur','Réceptionneur','Pointu','Libéro']
 };
 function ensureTeamRosterDepth(save){
   if(!save?.athletes)return;
@@ -1813,6 +1813,7 @@ function ensureTeamRosterDepth(save){
     const sp=save.sports?.find(x=>x.id===sportId);
     for(const sex of ['M','F']){
       let group=save.athletes.filter(a=>a.sportId===sportId&&a.sex===sex);
+      if(sportId==='volleyball'&&!group.some(a=>a.discipline==='Pointu')){const candidate=[...group].filter(a=>a.discipline==='Réceptionneur').sort((a,b)=>a.ability-b.ability)[0]||[...group].filter(a=>a.discipline!=='Passeur'&&a.discipline!=='Libéro').sort((a,b)=>a.ability-b.ability)[0];if(candidate)candidate.discipline='Pointu';}
       while(group.length<target){
         const index=group.length;
         const rng=rngObj(hashSeed(`${save.id||save.countryId}-${save.year||2034}-${sportId}-${sex}-${index}-depth-fix3`));
