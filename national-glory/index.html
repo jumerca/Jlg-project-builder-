@@ -817,7 +817,7 @@ button{cursor:pointer}
     const S=s.playerStats[serverSide],R=s.playerStats[serverSide==='home'?'away':'home'];
     const sp=profile(server),rp=profile(receiver),base=effective(server,'volleyball',receiver.tactic)-effective(receiver,'volleyball',server.tactic);
     const srv=rolePick(server,['Réceptionneur','Passeur'],rng)||weightedPick(server.lineup,p=>p.technical,rng);if(!srv)return;
-    let winner=receiver,pointType='rally',attacker=null,blocker=null;
+    let winner=receiver,pointType='rally',attacker=null,blocker=null,dig=null;
     s.visual={side:serverSide,action:'serve',actorId:srv.id,targetId:null,outcome:'pending',label:'Service · '+srv.name};
     if(rng()<clamp(.08+(server.tactic==='serve'?.035:0)-(srv.mental-70)*.001,.035,.16)){S[srv.id].errors++;winner=receiver;pointType='serviceError'}
     else if(rng()<clamp(.05+(server.tactic==='serve'?.035:0)+(srv.technical-rp.technical)*.0015,.02,.14)){S[srv.id].aces++;S[srv.id].points++;winner=server;pointType='ace'}
@@ -827,10 +827,12 @@ button{cursor:pointer}
       const receptionBoost=receiver.tactic==='reception'?.035:0;
       const pWin=clamp(.50+base*.002+(attacker.technical-rp.technical)*.0017+(attacker.physical-rp.physical)*.0012-(attacker.fatigue-35)*.001-receptionBoost,.33,.68);
       if(rng()<pWin){S[attacker.id].kills++;S[attacker.id].points++;winner=server;pointType='kill'}
-      else{winner=receiver;if(blocker&&rng()<.28+(receiver.tactic==='block'?.04:0)){R[blocker.id].blocks++;R[blocker.id].points++;pointType='block'}else{const dig=weightedPick(receiver.lineup,p=>p.discipline==='Libéro'?120:p.mental+p.technical,rng);if(dig)R[dig.id].digs++;pointType='defense'}}
+      else{winner=receiver;if(blocker&&rng()<.28+(receiver.tactic==='block'?.04:0)){R[blocker.id].blocks++;R[blocker.id].points++;pointType='block'}else{dig=weightedPick(receiver.lineup,p=>p.discipline==='Libéro'?120:p.mental+p.technical,rng);if(dig)R[dig.id].digs++;pointType='defense'}}
     }
     if(winner===s.home){s.setPoints.home++;s.home.run++;s.away.run=0}else{s.setPoints.away++;s.away.run++;s.home.run=0}
-    s.visual={side:serverSide,action:pointType,actorId:pointType==='kill'&&attacker?attacker.id:pointType==='block'&&blocker?blocker.id:srv.id,targetId:null,outcome:winner===server?'won':'lost',label:pointType==='ace'?'Ace · '+srv.name:pointType==='serviceError'?'Faute de service · '+srv.name:pointType==='kill'&&attacker?'Attaque gagnante · '+attacker.name:pointType==='block'&&blocker?'Block · '+blocker.name:'Échange remporté · '+(winner===s.home?s.home.name:s.away.name)};
+    const receiverSide=serverSide==='home'?'away':'home',visualSide=(pointType==='block'||pointType==='defense')?receiverSide:serverSide;
+    const visualActor=pointType==='kill'&&attacker?attacker.id:pointType==='block'&&blocker?blocker.id:pointType==='defense'&&dig?dig.id:srv.id;
+    s.visual={side:visualSide,action:pointType,actorId:visualActor,targetId:null,outcome:winner===server?'won':'lost',label:pointType==='ace'?'Ace · '+srv.name:pointType==='serviceError'?'Faute de service · '+srv.name:pointType==='kill'&&attacker?'Attaque gagnante · '+attacker.name:pointType==='block'&&blocker?'Block · '+blocker.name:pointType==='defense'&&dig?'Défense · '+dig.name:'Échange remporté · '+(winner===s.home?s.home.name:s.away.name)};
     // Rally-point scoring: the winning side serves the next rally; service is NOT alternated automatically.
     var winnerSide=winner===s.home?'home':'away';if(winnerSide!==serverSide){s.volleyballRotation=s.volleyballRotation||{home:0,away:0};s.volleyballRotation[winnerSide]=(s.volleyballRotation[winnerSide]+1)%6;}s.servingSide=winnerSide;
     for(const p of [...server.lineup,...receiver.lineup]){const st=s.playerStats[sideOf(s,server.lineup.includes(p)?server:receiver)][p.id];if(st)st.rallies++}
