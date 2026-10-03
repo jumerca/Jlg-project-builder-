@@ -1,4 +1,4 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#08152f"><meta name="description" content="National Glory — Simulateur de management sportif. Dirigez une nation, développez vos athlètes et visez les plus grandes compétitions."><title>National Glory — Simulateur de management sportif</title><style>:root{
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#08152f"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml"><meta name="description" content="National Glory — Simulateur de management sportif. Dirigez une nation, développez vos athlètes et visez les plus grandes compétitions."><title>National Glory — Simulateur de management sportif</title><style>:root{
   --bg:#071228; --bg2:#0a1834; --panel:#0f2246; --panel2:#132957; --text:#f7f9ff; --muted:#9ca9c6;
   --gold:#f2c565; --gold2:#dcae48; --line:rgba(255,255,255,.08); --good:#59d68d; --warn:#f0b95f; --bad:#ee7183;
   --shadow:0 18px 50px rgba(0,0,0,.28); --radius:22px;
@@ -187,12 +187,16 @@ button{cursor:pointer}
 .sport2d-player{filter:drop-shadow(0 3px 5px rgba(0,0,0,.35));animation:sport2dEnter .32s ease-out}
 .sport2d-player:hover circle{r:24}
 .sport2d-ball{animation:sport2dBall .72s ease-in-out infinite alternate;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.sport2d-player.active circle{animation:sport2dActor .7s ease-in-out infinite alternate;stroke:#55e6ff!important;stroke-width:6!important}
+.sport2d-trail{stroke:#55e6ff;stroke-width:5;stroke-dasharray:14 10;stroke-linecap:round;opacity:.9;animation:sport2dDash .8s linear infinite}
 .sport2d-last{padding:9px 14px;background:rgba(5,13,30,.9);border-top:1px solid rgba(255,255,255,.07);font-size:12px;color:#dce4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sport2d-legend{display:flex;gap:10px;flex-wrap:wrap;padding:8px 14px 12px;background:rgba(5,13,30,.82)}
 .sport2d-legend span{font-size:11px;color:#aebbd6}
 .sport2d-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
 @keyframes sport2dEnter{from{opacity:.25;transform:scale(.86)}to{opacity:1;transform:scale(1)}}
 @keyframes sport2dBall{from{opacity:.72}to{opacity:1}}
+@keyframes sport2dActor{from{filter:drop-shadow(0 0 2px #55e6ff)}to{filter:drop-shadow(0 0 11px #55e6ff)}}
+@keyframes sport2dDash{to{stroke-dashoffset:-48}}
 @media(max-width:760px){.sport2d-wrap{border-radius:15px;margin:12px 0 15px}.sport2d-head{align-items:flex-start;flex-direction:column;gap:3px;padding:9px 10px}.sport2d-head span{text-align:left}.sport2d-canvas,.sport2d-canvas svg{min-height:205px}.sport2d-last{padding:8px 10px}}
 
 /* V0.98 QA — identité National Glory + onboarding */
@@ -588,6 +592,25 @@ button{cursor:pointer}
     volleyball:{lineup:6,roster:12,timeouts:2,periods:5,unitsPerPeriod:999,roles:['Passeur','Central','Central','Réceptionneur','Réceptionneur','Libéro','Passeur','Central','Réceptionneur','Libéro','Central','Réceptionneur']}
   };
   function tacticLabel(s,id){return Tactics?.tacticFor?.(s,id)?.label||id||'Équilibré'}
+  function defaultDefenseScheme(sportId){return sportId==='handball'?'6-0':sportId==='basketball'?'man':'standard'}
+  function schemeLabel(sportId,id){
+    const labels={handball:{'6-0':'6–0','5-1':'5–1','3-2-1':'3–2–1'},basketball:{man:'Homme à homme','2-3':'Zone 2–3','3-2':'Zone 3–2'}};
+    return labels[sportId]?.[id]||id||'Standard'
+  }
+  function schemeAllowed(sportId,id){return sportId==='handball'?['6-0','5-1','3-2-1'].includes(id):sportId==='basketball'?['man','2-3','3-2'].includes(id):id==='standard'}
+  function defenseSchemeBonus(sportId,scheme,oppTactic){
+    if(sportId==='handball'){
+      if(scheme==='6-0')return oppTactic==='positional'?1.0:oppTactic==='transition'?.25:.55;
+      if(scheme==='5-1')return oppTactic==='balanced'?.85:oppTactic==='positional'?.55:.35;
+      if(scheme==='3-2-1')return oppTactic==='transition'?.9:oppTactic==='balanced'?.65:.2;
+    }
+    if(sportId==='basketball'){
+      if(scheme==='man')return oppTactic==='perimeter'?.6:.45;
+      if(scheme==='2-3')return oppTactic==='pace'?.7:oppTactic==='balanced'?.6:.25;
+      if(scheme==='3-2')return oppTactic==='perimeter'?.8:oppTactic==='pace'?.4:.2;
+    }
+    return 0;
+  }
   function matchup(s,a,b){return Tactics?.matchupBonus?.(s,a,b)||0}
   function fit(s,t,r){return Tactics?.tacticFit?.(s,t,r)||0}
   function clonePlayer(p,i,role,teamName){
@@ -612,26 +635,34 @@ button{cursor:pointer}
       roster.push(clonePlayer(p||{ability:base+normal(rng)*2,technical:base+normal(rng)*2,physical:base+normal(rng)*2,mental:base+normal(rng)*2,experience:base-5+normal(rng)*2,form:+team.form||76,confidence:+team.confidence||74,fatigue:+team.fatigue||15},i,role,team.name));
     }
     const tactic=team.tactic||'balanced';
-    return {id:team.id||team.nationId,name:team.name,roster,tactic,familiarity:clamp(+team.familiarity||72,30,100),timeoutsUsed:0,totalTimeoutsUsed:0,timeoutsBySegment:{first:0,second:0,late:0,ot:0},lastTimeoutUnit:-999,substitutionsUsed:0,totalSubstitutionsUsed:0,coachLog:[],lineup:[],bench:[],score:0,periodScores:[],run:0,lastScoreAt:0};
+    return {id:team.id||team.nationId,name:team.name,roster,tactic,defenseScheme:schemeAllowed(sportId,team.defenseScheme)?team.defenseScheme:defaultDefenseScheme(sportId),familiarity:clamp(+team.familiarity||72,30,100),timeoutsUsed:0,totalTimeoutsUsed:0,timeoutsBySegment:{first:0,second:0,late:0,ot:0},lastTimeoutUnit:-999,substitutionsUsed:0,totalSubstitutionsUsed:0,coachLog:[],lineup:[],bench:[],score:0,periodScores:[],run:0,lastScoreAt:0};
   }
   function playerValue(p){return p.technical*.37+p.physical*.25+p.mental*.20+p.form*.12+p.experience*.06-p.fatigue*.10}
   function buildLineup(team,sportId){
     const rule=RULES[sportId],r=[...team.roster];
     let chosen=[];
+    const take=(role,count)=>{
+      const pool=r.filter(x=>x.discipline===role&&!chosen.includes(x)).sort((a,b)=>playerValue(b)-playerValue(a));
+      chosen.push(...pool.slice(0,count));
+    };
     if(sportId==='handball'){
-      const needs=[['Gardien',1],['Ailier',2],['Arrière',3],['Pivot',1]];
-      needs.forEach(([role,count])=>{const pool=r.filter(x=>x.discipline===role&&!chosen.includes(x)).sort((a,b)=>playerValue(b)-playerValue(a));chosen.push(...pool.slice(0,count))});
-      chosen.push(...r.filter(p=>!chosen.includes(p)).sort((a,b)=>playerValue(b)-playerValue(a)).slice(0,rule.lineup-chosen.length));
+      take('Gardien',1);take('Ailier',2);take('Arrière',3);take('Pivot',1);
+      if(chosen.length<rule.lineup){
+        const fill=r.filter(p=>!chosen.includes(p)&&p.discipline!=='Gardien').sort((a,b)=>playerValue(b)-playerValue(a));
+        chosen.push(...fill.slice(0,rule.lineup-chosen.length));
+      }
+      if(chosen.length<rule.lineup){
+        chosen.push(...r.filter(p=>!chosen.includes(p)).sort((a,b)=>playerValue(b)-playerValue(a)).slice(0,rule.lineup-chosen.length));
+      }
     }else if(sportId==='basketball'){
-      const needs=[['Meneur',1],['Arrière',1],['Ailier',1],['Intérieur',1]];
-      needs.forEach(([role,count])=>{const pool=r.filter(x=>x.discipline===role&&!chosen.includes(x)).sort((a,b)=>playerValue(b)-playerValue(a));chosen.push(...pool.slice(0,count))});
+      take('Meneur',1);take('Arrière',1);take('Ailier',2);take('Intérieur',1);
       chosen.push(...r.filter(p=>!chosen.includes(p)).sort((a,b)=>playerValue(b)-playerValue(a)).slice(0,rule.lineup-chosen.length));
     }else{
-      const needs=[['Passeur',1],['Central',2],['Réceptionneur',2],['Libéro',1]];
-      needs.forEach(([role,count])=>{const pool=r.filter(x=>x.discipline===role&&!chosen.includes(x)).sort((a,b)=>playerValue(b)-playerValue(a));chosen.push(...pool.slice(0,count))});
+      take('Passeur',1);take('Central',2);take('Réceptionneur',2);take('Libéro',1);
       chosen.push(...r.filter(p=>!chosen.includes(p)).sort((a,b)=>playerValue(b)-playerValue(a)).slice(0,rule.lineup-chosen.length));
     }
-    team.lineup=chosen.slice(0,rule.lineup);team.bench=r.filter(p=>!team.lineup.includes(p));
+    team.lineup=chosen.slice(0,rule.lineup);
+    team.bench=r.filter(p=>!team.lineup.includes(p));
   }
   function initPlayerStats(team,sportId){
     return Object.fromEntries(team.roster.map(p=>[p.id,{id:p.id,sourceId:p.sourceId||null,name:p.name,role:p.discipline,minutes:0,fatigueStart:p.fatigue,fatigueEnd:p.fatigue,injury:null,
@@ -725,6 +756,13 @@ button{cursor:pointer}
       const setDiff=team.score-opp.score;if(setDiff<0)desired=p.technical>p.physical?'serve':'block';else if(setDiff>0)desired='reception';
     }
     if(desired!==team.tactic&&rng()<.65)changeTactic(session,team,desired,'Adaptation IA');
+    if(session.sportId==='handball'){
+      const wanted=team.tactic==='aggressive'?'5-1':team.tactic==='transition'?'3-2-1':'6-0';
+      if(wanted!==team.defenseScheme&&rng()<.55)changeDefenseScheme(session,team,wanted,'Adaptation IA');
+    }else if(session.sportId==='basketball'){
+      const wanted=team.tactic==='defense'?'2-3':team.tactic==='perimeter'?'3-2':'man';
+      if(wanted!==team.defenseScheme&&rng()<.55)changeDefenseScheme(session,team,wanted,'Adaptation IA');
+    }
     const timeoutNeeded=session.sportId==='volleyball' ? ((team===session.home?session.setPoints.home:session.setPoints.away)+4 <= (team===session.home?session.setPoints.away:session.setPoints.home)) : diff<=-(session.sportId==='basketball'?10:5);
     if(timeoutNeeded&&rng()<.5)useTimeout(session,team,'IA : stopper la série adverse');
     autoRotate(session,team,rng,false);
@@ -732,29 +770,33 @@ button{cursor:pointer}
   function timeLabel(s){if(s.sportId==='handball'){const min=Math.min(60,Math.ceil((s.period-1)*30+s.unit/RULES.handball.unitsPerPeriod*30));return `${min}'`}if(s.sportId==='basketball'){const remain=Math.max(0,10-Math.floor(s.unit/RULES.basketball.unitsPerPeriod*10));return `Q${s.period} ${remain}:00`}return `S${s.period} ${s.setPoints.home}-${s.setPoints.away}`}
   function createSession(sportId,homeInput,awayInput,options={}){
     const rng=options.rng||makeRng(options.seed||1),home=normalizeTeam(homeInput,sportId,rng),away=normalizeTeam(awayInput,sportId,rng);buildLineup(home,sportId);buildLineup(away,sportId);
-    const s={sportId,home,away,rng,period:1,unit:0,finished:false,events:[],rotations:[],injuries:[],periods:[],setPoints:{home:0,away:0},servingSide:rng()<.5?'home':'away',setStartServingSide:null,teamFouls:{home:0,away:0},volleyballRotation:{home:0,away:0},playerStats:{home:null,away:null},options,autoCoach:{home:options.autoCoachHome!==false,away:options.autoCoachAway!==false},lastPeriodHome:0,lastPeriodAway:0};
+    const s={sportId,home,away,rng,period:1,unit:0,finished:false,events:[],rotations:[],injuries:[],periods:[],setPoints:{home:0,away:0},servingSide:rng()<.5?'home':'away',setStartServingSide:null,teamFouls:{home:0,away:0},volleyballRotation:{home:0,away:0},visual:{side:'home',action:'engagement',actorId:null,targetId:null,outcome:'',label:'Mise en place'},playerStats:{home:null,away:null},options,autoCoach:{home:options.autoCoachHome!==false,away:options.autoCoachAway!==false},lastPeriodHome:0,lastPeriodAway:0};
     s.setStartServingSide=s.servingSide;s.playerStats.home=initPlayerStats(home,sportId);s.playerStats.away=initPlayerStats(away,sportId);return s;
   }
-  function applyCommand(session,side,cmd){const team=session[side],opp=session[side==='home'?'away':'home'];if(session.finished)return false;if(cmd.type==='timeout')return useTimeout(session,team,'Coach : temps mort');if(cmd.type==='tactic')return changeTactic(session,team,cmd.tactic,'Coach');if(cmd.type==='rotate')return autoRotate(session,team,session.rng,true);if(cmd.type==='substitute')return substitute(session,team,cmd.outId,cmd.inId);if(cmd.type==='auto') {session.autoCoach[side]=!!cmd.enabled;return true}return false}
+  function changeDefenseScheme(session,team,scheme,reason='Coach'){if(!schemeAllowed(session.sportId,scheme)||team.defenseScheme===scheme)return false;const old=team.defenseScheme;team.defenseScheme=scheme;team.coachLog.push({time:timeLabel(session),type:'scheme',text:`${reason} : défense ${schemeLabel(session.sportId,old)} → ${schemeLabel(session.sportId,scheme)}`});session.events.push({time:timeLabel(session),type:'scheme',text:`${team.name} passe en ${schemeLabel(session.sportId,scheme)}`});return true}
+  function applyCommand(session,side,cmd){const team=session[side],opp=session[side==='home'?'away':'home'];if(session.finished)return false;if(cmd.type==='timeout')return useTimeout(session,team,'Coach : temps mort');if(cmd.type==='tactic')return changeTactic(session,team,cmd.tactic,'Coach');if(cmd.type==='scheme')return changeDefenseScheme(session,team,cmd.scheme,'Coach');if(cmd.type==='rotate')return autoRotate(session,team,session.rng,true);if(cmd.type==='substitute')return substitute(session,team,cmd.outId,cmd.inId);if(cmd.type==='auto') {session.autoCoach[side]=!!cmd.enabled;return true}return false}
   function handballPossession(s){
-    const rng=s.rng,homeAtt=s.unit%2===1,att=homeAtt?s.home:s.away,def=homeAtt?s.away:s.home,A=s.playerStats[homeAtt?'home':'away'],D=s.playerStats[homeAtt?'away':'home'];const ap=profile(att),dp=profile(def),base=effective(att,'handball',def.tactic)-effective(def,'handball',att.tactic);
+    const rng=s.rng,homeAtt=s.unit%2===1,att=homeAtt?s.home:s.away,def=homeAtt?s.away:s.home,A=s.playerStats[homeAtt?'home':'away'],D=s.playerStats[homeAtt?'away':'home'];const ap=profile(att),dp=profile(def),base=effective(att,'handball',def.tactic)-effective(def,'handball',att.tactic)-defenseSchemeBonus('handball',def.defenseScheme,att.tactic);
     const handler=rolePick(att,['Arrière','Ailier','Pivot'],rng);if(!handler)return;
+    s.visual={side:homeAtt?'home':'away',action:'construction',actorId:handler.id,targetId:null,outcome:'',label:'Construction offensive · '+handler.name};
     const turnover=clamp(.12+(dp.mental-ap.technical)*.0022+(att.tactic==='transition'?.012:0)+(handler.fatigue-35)*.0008,.06,.24);
-    if(rng()<turnover){A[handler.id].turnovers++;if(rng()<.15)s.events.push({time:timeLabel(s),type:'turnover',text:`Ballon perdu : ${handler.name}`});fatigueTick(s,att,.34);fatigueTick(s,def,.27);benchRecovery(att,.10);benchRecovery(def,.10);addMinutes(s,att,.5);addMinutes(s,def,.5);tickSuspensions(att);tickSuspensions(def);return}
+    if(rng()<turnover){A[handler.id].turnovers++;s.visual={side:homeAtt?'home':'away',action:'turnover',actorId:handler.id,targetId:null,outcome:'lost',label:'Ballon perdu · '+handler.name};if(rng()<.15)s.events.push({time:timeLabel(s),type:'turnover',text:`Ballon perdu : ${handler.name}`});fatigueTick(s,att,.34);fatigueTick(s,def,.27);benchRecovery(att,.10);benchRecovery(def,.10);addMinutes(s,att,.5);addMinutes(s,def,.5);tickSuspensions(att);tickSuspensions(def);return}
     let shooter=handler;if(rng()<.38)shooter=rolePick(att,rng()<.5?['Ailier']:['Pivot','Arrière'],rng)||handler;A[shooter.id].shots++;
+    s.visual={side:homeAtt?'home':'away',action:'shot',actorId:shooter.id,targetId:null,outcome:'pending',label:'Tir · '+shooter.name};
     const gk=rolePick(def,['Gardien'],rng);const gkSkill=gk?(gk.technical*.45+gk.mental*.35+gk.form*.20):70;
     const seven=def.tactic==='aggressive'&&rng()<.04;if(seven)A[shooter.id].penalties++;
     const pGoal=clamp((seven?.74:.55)+base*.008+(shooter.technical-75)*.003+(shooter.mental-72)*.0015-(gkSkill-75)*.003-(shooter.fatigue-30)*.0015,.34,.86);
-    if(rng()<pGoal){att.score++;att.run++;def.run=0;A[shooter.id].goals++;const passer=weightedPick(att.lineup.filter(p=>p!==shooter&&p.discipline!=='Gardien'),p=>p.technical+p.mental,rng);if(passer&&rng()<.62)A[passer.id].assists++;if(rng()<.12||Math.abs(att.score-def.score)<=2&&s.period===2&&s.unit>45)s.events.push({time:timeLabel(s),type:'goal',text:`But ${shooter.name} (${att.name})`});}
-    else {att.run=0;if(gk)D[gk.id].saves++;}
+    if(rng()<pGoal){att.score++;att.run++;def.run=0;A[shooter.id].goals++;s.visual.outcome='goal';s.visual.label='But · '+shooter.name;const passer=weightedPick(att.lineup.filter(p=>p!==shooter&&p.discipline!=='Gardien'),p=>p.technical+p.mental,rng);if(passer&&rng()<.62)A[passer.id].assists++;if(rng()<.12||Math.abs(att.score-def.score)<=2&&s.period===2&&s.unit>45)s.events.push({time:timeLabel(s),type:'goal',text:`But ${shooter.name} (${att.name})`});}
+    else {att.run=0;if(gk)D[gk.id].saves++;s.visual.outcome='save';s.visual.targetId=gk?.id||null;s.visual.label=gk?'Arrêt · '+gk.name:'Tir manqué';}
     if(def.tactic==='aggressive'&&rng()<.022){const defender=weightedPick(def.lineup.filter(p=>p.discipline!=='Gardien'),p=>p.physical+p.mental,rng);if(defender){D[defender.id].exclusions++;defender.suspendedUnits=Math.max(defender.suspendedUnits||0,5);s.events.push({time:timeLabel(s),type:'exclusion',text:`2 minutes : ${defender.name}`})}}
     fatigueTick(s,att,.42);fatigueTick(s,def,.37);benchRecovery(att,.10);benchRecovery(def,.10);maybeInjury(s,att,rng,1.0);maybeInjury(s,def,rng,.8);addMinutes(s,att,.5);addMinutes(s,def,.5);tickSuspensions(att);tickSuspensions(def);
   }
   function basketballPossession(s){
-    const rng=s.rng,homeAtt=s.unit%2===1,att=homeAtt?s.home:s.away,def=homeAtt?s.away:s.home,A=s.playerStats[homeAtt?'home':'away'];const ap=profile(att),dp=profile(def),base=effective(att,'basketball',def.tactic)-effective(def,'basketball',att.tactic);
+    const rng=s.rng,homeAtt=s.unit%2===1,att=homeAtt?s.home:s.away,def=homeAtt?s.away:s.home,A=s.playerStats[homeAtt?'home':'away'];const ap=profile(att),dp=profile(def),base=effective(att,'basketball',def.tactic)-effective(def,'basketball',att.tactic)-defenseSchemeBonus('basketball',def.defenseScheme,att.tactic);
     const handler=rolePick(att,['Meneur','Arrière'],rng)||weightedPick(att.lineup,p=>playerValue(p),rng);if(!handler)return;
-    if(rng()<clamp(.125+(dp.mental-ap.technical)*.0015+(def.tactic==='defense'?.018:0)+(handler.fatigue-40)*.0007,.07,.20)){A[handler.id].turnovers++;fatigueTick(s,att,.22);fatigueTick(s,def,.18);benchRecovery(att,.07);benchRecovery(def,.07);addMinutes(s,att,10/35);addMinutes(s,def,10/35);return}
-    const foul=rng()<.105;if(foul){
+    s.visual={side:homeAtt?'home':'away',action:'dribble',actorId:handler.id,targetId:null,outcome:'',label:'Montée de balle · '+handler.name};
+    if(rng()<clamp(.125+(dp.mental-ap.technical)*.0015+(def.tactic==='defense'?.018:0)+(handler.fatigue-40)*.0007,.07,.20)){A[handler.id].turnovers++;s.visual={side:homeAtt?'home':'away',action:'turnover',actorId:handler.id,targetId:null,outcome:'lost',label:'Balle perdue · '+handler.name};fatigueTick(s,att,.22);fatigueTick(s,def,.18);benchRecovery(att,.07);benchRecovery(def,.07);addMinutes(s,att,10/35);addMinutes(s,def,10/35);return}
+    const foul=rng()<.105;if(foul){s.visual={side:homeAtt?'home':'away',action:'foul',actorId:handler.id,targetId:null,outcome:'whistle',label:'Faute provoquée · '+handler.name};
       const defender=weightedPick(def.lineup,p=>p.physical+p.mental,rng);const defSide=homeAtt?'away':'home';
       if(defender){const dst=s.playerStats[defSide][defender.id];dst.fouls++;s.teamFouls[defSide]++;if(dst.fouls>=5){defender.fouledOut=true;s.events.push({time:timeLabel(s),type:'foul',text:`${defender.name} sort pour 5 fautes`});replaceUnavailable(s,def,defender,rng,'5 fautes')}}
       const shooting=rng()<.48,bonus=s.teamFouls[defSide]>=5;
@@ -764,9 +806,10 @@ button{cursor:pointer}
     const threeShare=att.tactic==='perimeter'?.48:att.tactic==='pace'?.39:.34,is3=rng()<threeShare;
     let shooter=is3?rolePick(att,['Meneur','Arrière','Ailier'],rng):rolePick(att,['Intérieur','Ailier','Arrière'],rng);if(!shooter)shooter=handler;
     if(is3)A[shooter.id].fg3a++;else A[shooter.id].fg2a++;
+    s.visual={side:homeAtt?'home':'away',action:is3?'shot3':'shot2',actorId:shooter.id,targetId:null,outcome:'pending',label:(is3?'Tir à 3 pts · ':'Tir à 2 pts · ')+shooter.name};
     const p=clamp((is3?.345:.515)+base*.0032+(shooter.technical-75)*(is3?.004:.003)-(def.tactic==='defense'?.025:0)-(shooter.fatigue-35)*.0012,is3?.23:.38,is3?.52:.70);
-    if(rng()<p){const pts=is3?3:2;att.score+=pts;A[shooter.id].points+=pts;if(is3)A[shooter.id].fg3m++;else A[shooter.id].fg2m++;const passer=weightedPick(att.lineup.filter(x=>x!==shooter),x=>x.technical+x.mental,rng);if(passer&&rng()<.56)A[passer.id].assists++;}
-    else {const rebound=weightedPick([...att.lineup,...def.lineup],x=>x.physical+(x.discipline==='Intérieur'?18:0),rng);if(rebound){const side=att.lineup.includes(rebound)?A:s.playerStats[homeAtt?'away':'home'];side[rebound.id].rebounds++;}}
+    if(rng()<p){const pts=is3?3:2;att.score+=pts;A[shooter.id].points+=pts;if(is3)A[shooter.id].fg3m++;else A[shooter.id].fg2m++;s.visual.outcome='made';s.visual.label=(is3?'3 points · ':'Panier · ')+shooter.name;const passer=weightedPick(att.lineup.filter(x=>x!==shooter),x=>x.technical+x.mental,rng);if(passer&&rng()<.56)A[passer.id].assists++;}
+    else {const rebound=weightedPick([...att.lineup,...def.lineup],x=>x.physical+(x.discipline==='Intérieur'?18:0),rng);s.visual.outcome='miss';if(rebound){const side=att.lineup.includes(rebound)?A:s.playerStats[homeAtt?'away':'home'];side[rebound.id].rebounds++;s.visual.targetId=rebound.id;s.visual.label='Rebond · '+rebound.name;}else s.visual.label='Tir manqué';}
     fatigueTick(s,att,.25);fatigueTick(s,def,.22);benchRecovery(att,.07);benchRecovery(def,.07);maybeInjury(s,att,rng,.7);maybeInjury(s,def,rng,.6);addMinutes(s,att,10/35);addMinutes(s,def,10/35);
   }
   function volleyballRally(s){
@@ -774,11 +817,12 @@ button{cursor:pointer}
     const S=s.playerStats[serverSide],R=s.playerStats[serverSide==='home'?'away':'home'];
     const sp=profile(server),rp=profile(receiver),base=effective(server,'volleyball',receiver.tactic)-effective(receiver,'volleyball',server.tactic);
     const srv=rolePick(server,['Réceptionneur','Passeur'],rng)||weightedPick(server.lineup,p=>p.technical,rng);if(!srv)return;
-    let winner=receiver,pointType='rally';
+    let winner=receiver,pointType='rally',attacker=null,blocker=null;
+    s.visual={side:serverSide,action:'serve',actorId:srv.id,targetId:null,outcome:'pending',label:'Service · '+srv.name};
     if(rng()<clamp(.08+(server.tactic==='serve'?.035:0)-(srv.mental-70)*.001,.035,.16)){S[srv.id].errors++;winner=receiver;pointType='serviceError'}
     else if(rng()<clamp(.05+(server.tactic==='serve'?.035:0)+(srv.technical-rp.technical)*.0015,.02,.14)){S[srv.id].aces++;S[srv.id].points++;winner=server;pointType='ace'}
     else{
-      const attacker=weightedPick(server.lineup.filter(p=>p.discipline!=='Libéro'),p=>p.technical*.6+p.physical*.4,rng),blocker=rolePick(receiver,['Central'],rng);
+      attacker=weightedPick(server.lineup.filter(p=>p.discipline!=='Libéro'),p=>p.technical*.6+p.physical*.4,rng);blocker=rolePick(receiver,['Central'],rng);
       if(!attacker)return;
       const receptionBoost=receiver.tactic==='reception'?.035:0;
       const pWin=clamp(.50+base*.002+(attacker.technical-rp.technical)*.0017+(attacker.physical-rp.physical)*.0012-(attacker.fatigue-35)*.001-receptionBoost,.33,.68);
@@ -786,6 +830,7 @@ button{cursor:pointer}
       else{winner=receiver;if(blocker&&rng()<.28+(receiver.tactic==='block'?.04:0)){R[blocker.id].blocks++;R[blocker.id].points++;pointType='block'}else{const dig=weightedPick(receiver.lineup,p=>p.discipline==='Libéro'?120:p.mental+p.technical,rng);if(dig)R[dig.id].digs++;pointType='defense'}}
     }
     if(winner===s.home){s.setPoints.home++;s.home.run++;s.away.run=0}else{s.setPoints.away++;s.away.run++;s.home.run=0}
+    s.visual={side:serverSide,action:pointType,actorId:pointType==='kill'&&attacker?attacker.id:pointType==='block'&&blocker?blocker.id:srv.id,targetId:null,outcome:winner===server?'won':'lost',label:pointType==='ace'?'Ace · '+srv.name:pointType==='serviceError'?'Faute de service · '+srv.name:pointType==='kill'&&attacker?'Attaque gagnante · '+attacker.name:pointType==='block'&&blocker?'Block · '+blocker.name:'Échange remporté · '+(winner===s.home?s.home.name:s.away.name)};
     // Rally-point scoring: the winning side serves the next rally; service is NOT alternated automatically.
     var winnerSide=winner===s.home?'home':'away';if(winnerSide!==serverSide){s.volleyballRotation=s.volleyballRotation||{home:0,away:0};s.volleyballRotation[winnerSide]=(s.volleyballRotation[winnerSide]+1)%6;}s.servingSide=winnerSide;
     for(const p of [...server.lineup,...receiver.lineup]){const st=s.playerStats[sideOf(s,server.lineup.includes(p)?server:receiver)][p.id];if(st)st.rallies++}
@@ -848,7 +893,7 @@ button{cursor:pointer}
     return {aces:sum(rows,'aces'),blocks:sum(rows,'blocks'),serviceErrors:sum(rows,'errors'),attackPoints:sum(rows,'kills'),digs:sum(rows,'digs')};}
   function sum(rows,k){return rows.reduce((n,r)=>n+(+r[k]||0),0)}
   function simulateAuto(sportId,home,away,options={}){const s=createSession(sportId,home,away,{...options,autoCoachHome:options.autoCoachHome!==false,autoCoachAway:options.autoCoachAway!==false});while(!s.finished)advance(s,10);return finalize(s)}
-  function publicState(s){return {sportId:s.sportId,home:s.home.name,away:s.away.name,homeScore:s.home.score,awayScore:s.away.score,period:s.period,unit:s.unit,time:timeLabel(s),finished:s.finished,setPoints:{...s.setPoints},servingSide:s.servingSide,teamFouls:{...s.teamFouls},volleyballRotation:{...(s.volleyballRotation||{home:0,away:0})},tactics:{home:s.home.tactic,away:s.away.tactic},timeouts:{home:s.home.timeoutsUsed,away:s.away.timeoutsUsed},timeoutStatus:{home:timeoutStatus(s,s.home),away:timeoutStatus(s,s.away)},lineups:{home:s.home.lineup.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut,suspendedUnits:p.suspendedUnits||0})),away:s.away.lineup.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut,suspendedUnits:p.suspendedUnits||0}))},benches:{home:s.home.bench.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut})),away:s.away.bench.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut}))},substitutions:{home:s.home.substitutionsUsed,away:s.away.substitutionsUsed,totalHome:s.home.totalSubstitutionsUsed,totalAway:s.away.totalSubstitutionsUsed},events:s.events.slice(-8),coaching:{home:s.home.coachLog.slice(-6),away:s.away.coachLog.slice(-6)}}}
+  function publicState(s){return {sportId:s.sportId,home:s.home.name,away:s.away.name,homeScore:s.home.score,awayScore:s.away.score,period:s.period,unit:s.unit,time:timeLabel(s),finished:s.finished,setPoints:{...s.setPoints},servingSide:s.servingSide,teamFouls:{...s.teamFouls},volleyballRotation:{...(s.volleyballRotation||{home:0,away:0})},visual:{...(s.visual||{})},tactics:{home:s.home.tactic,away:s.away.tactic},schemes:{home:s.home.defenseScheme,away:s.away.defenseScheme},timeouts:{home:s.home.timeoutsUsed,away:s.away.timeoutsUsed},timeoutStatus:{home:timeoutStatus(s,s.home),away:timeoutStatus(s,s.away)},lineups:{home:s.home.lineup.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut,suspendedUnits:p.suspendedUnits||0})),away:s.away.lineup.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut,suspendedUnits:p.suspendedUnits||0}))},benches:{home:s.home.bench.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut})),away:s.away.bench.map(p=>({id:p.id,name:p.name,role:p.discipline,fatigue:Math.round(p.fatigue),injured:p.injured,fouledOut:p.fouledOut}))},substitutions:{home:s.home.substitutionsUsed,away:s.away.substitutionsUsed,totalHome:s.home.totalSubstitutionsUsed,totalAway:s.away.totalSubstitutionsUsed},events:s.events.slice(-8),coaching:{home:s.home.coachLog.slice(-6),away:s.away.coachLog.slice(-6)}}}
   return {RULES,makeRng,createSession,advance,applyCommand,finalize,simulateAuto,publicState,profile,effective,timeoutStatus};
 });
 
@@ -1454,9 +1499,13 @@ const SETTINGS_KEY = 'NG_SETTINGS';
 
 let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredPrompt = e; });
+window.addEventListener('appinstalled',()=>{deferredPrompt=null;});
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
+}
 
 window.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&document.querySelector('#modal')){state.modal=null;closeModal();}
+  if(e.key==='Escape'&&document.querySelector('#modal')){if(state.modal?.type==='livematch')stopLivePlayback();state.modal=null;closeModal();}
 });
 
 const $ = s => document.querySelector(s);
@@ -2213,7 +2262,7 @@ function landingHtml(){
             <span>Simulateur de management sportif</span>
           </div>
         </div>
-        <div class="landing-version">V0.99 FIX3 · audit externe corrigé</div>
+        <div class="landing-version">V0.99 2D RC · moteur FIX3</div>
       </div>
       <div class="landing-hero">
         <div class="landing-copy">
@@ -2639,8 +2688,8 @@ function openModal(){
 function closeModal(){ $('#modal')?.remove(); }
 function bindModal(){
   const wrap = $('#modal'); if(!wrap) return;
-  wrap.addEventListener('click',e=>{ if(e.target.id==='modal') { state.modal=null; closeModal(); }});
-  $('#closeModal')?.addEventListener('click',()=>{ state.modal=null; closeModal(); });
+  wrap.addEventListener('click',e=>{ if(e.target.id==='modal') { if(state.modal?.type==='livematch')stopLivePlayback(); state.modal=null; closeModal(); }});
+  $('#closeModal')?.addEventListener('click',()=>{ if(state.modal?.type==='livematch')stopLivePlayback(); state.modal=null; closeModal(); });
   $('#backStep')?.addEventListener('click',()=>{ if(state.modal?.step>1){ state.modal.step--; closeModal(); openModal(); } });
   $('#nextStep')?.addEventListener('click',()=>{ if(state.modal?.step<3){ state.modal.step++; closeModal(); openModal(); } });
   $('#createCareer')?.addEventListener('click',()=>{ const d=state.modal.data; state.save=freshSave(d); state.screen='dashboard'; state.modal={type:'tutorial',step:1}; persist(); render(); toast('Nouvelle carrière créée.'); });
@@ -2662,9 +2711,12 @@ function bindModal(){
   $$('[data-live-start]').forEach(el=>el.addEventListener('click',()=>startLiveFriendly(el.dataset.liveStart,el.dataset.teamSex||'M')));
   $$('[data-live-resume]').forEach(el=>el.addEventListener('click',()=>{if(state.liveMatchSession){state.modal={type:'livematch'};openModal();}}));
   $$('[data-live-abandon]').forEach(el=>el.addEventListener('click',()=>abandonLiveMatch()));
-  $$('[data-live-advance]').forEach(el=>el.addEventListener('click',()=>advanceLiveMatch(Number(el.dataset.liveAdvance)||5)));
-  $$('[data-live-command]').forEach(el=>el.addEventListener('click',()=>liveCoachCommand(el.dataset.liveCommand,el.dataset.tactic||null)));
-  $$('[data-live-sub-out]').forEach(el=>el.addEventListener('click',()=>{state.liveSubOutId=el.dataset.liveSubOut;openModal();}));
+  $('[data-live-advance]').forEach(el=>el.addEventListener('click',()=>{stopLivePlayback();advanceLiveMatch(Number(el.dataset.liveAdvance)||1);}));
+  $('[data-live-speed]').forEach(el=>el.addEventListener('click',()=>startLivePlayback(Number(el.dataset.liveSpeed)||1)));
+  $('#livePause')?.addEventListener('click',()=>{stopLivePlayback();openModal();});
+  $('[data-live-command]').forEach(el=>el.addEventListener('click',()=>liveCoachCommand(el.dataset.liveCommand,el.dataset.tactic||null)));
+  $('[data-live-scheme]').forEach(el=>el.addEventListener('click',()=>liveCoachScheme(el.dataset.liveScheme)));
+  $('[data-live-sub-out]').forEach(el=>el.addEventListener('click',()=>{stopLivePlayback();state.liveSubOutId=el.dataset.liveSubOut;openModal();}));
   $$('[data-live-sub-in]').forEach(el=>el.addEventListener('click',()=>completeLiveSubstitution(el.dataset.liveSubIn)));
   $('#liveFinish')?.addEventListener('click',finishLiveMatch);
   $('#liveClose')?.addEventListener('click',closeFinishedLiveMatch);
@@ -2945,20 +2997,47 @@ function startLiveFriendly(sportId,sex='M'){
   openModal();
 }
 function abandonLiveMatch(){
+  stopLivePlayback();
   if(!state.liveMatchSession)return;
   if(state.liveMatchMeta?.official){toast('Un match officiel ne peut pas être abandonné. Termine-le ou simule la compétition depuis le calendrier.');return;}
   state.liveMatchSession=null;state.liveMatchResult=null;state.liveSubOutId=null;state.liveMatchMeta=null;state.modal=null;closeModal();render();toast('Match en cours abandonné sans enregistrer de statistiques.');
 }
 function liveCoachCommand(command,tactic){
+  stopLivePlayback();
   const s=state.liveMatchSession;if(!s||s.finished)return;
   const cmd=command==='tactic'?{type:'tactic',tactic}:command==='timeout'?{type:'timeout'}:command==='rotate'?{type:'rotate'}:{type:command};
   const ok=LiveMatch.applyCommand(s,'home',cmd);if(!ok)toast(command==='timeout'?'Plus de temps mort disponible ou action impossible.':'Action impossible pour le moment.');
   openModal();
 }
+function liveCoachScheme(scheme){
+  stopLivePlayback();
+  const s=state.liveMatchSession;if(!s||s.finished)return;
+  const ok=LiveMatch.applyCommand(s,'home',{type:'scheme',scheme});
+  if(!ok)toast('Organisation défensive déjà utilisée ou indisponible.');
+  openModal();
+}
 function completeLiveSubstitution(inId){
+  stopLivePlayback();
   const s=state.liveMatchSession;if(!s||!state.liveSubOutId)return;
   const ok=LiveMatch.applyCommand(s,'home',{type:'substitute',outId:state.liveSubOutId,inId});
   state.liveSubOutId=null;if(!ok)toast('Changement impossible avec les règles actuelles.');openModal();
+}
+function stopLivePlayback(){
+  if(state.livePlaybackTimer){clearTimeout(state.livePlaybackTimer);state.livePlaybackTimer=null}
+  state.livePlaybackSpeed=0;
+}
+function startLivePlayback(speed=1){
+  const s=state.liveMatchSession;if(!s||s.finished)return;
+  stopLivePlayback();state.livePlaybackSpeed=[1,2,4].includes(speed)?speed:1;
+  const tick=()=>{
+    const session=state.liveMatchSession;
+    if(!session||session.finished||state.livePlaybackSpeed===0){stopLivePlayback();return;}
+    LiveMatch.advance(session,1);
+    if(session.finished&&!state.liveMatchResult){state.liveMatchResult=LiveMatch.finalize(session);stopLivePlayback();}
+    openModal();
+    if(state.livePlaybackSpeed){const delay=state.livePlaybackSpeed===1?900:state.livePlaybackSpeed===2?520:300;state.livePlaybackTimer=setTimeout(tick,delay);}
+  };
+  tick();
 }
 function advanceLiveMatch(steps=5){
   const s=state.liveMatchSession;if(!s)return;
@@ -2967,6 +3046,7 @@ function advanceLiveMatch(steps=5){
   openModal();
 }
 function finishLiveMatch(){
+  stopLivePlayback();
   const s=state.liveMatchSession;if(!s)return;
   let guard=0;while(!s.finished&&guard++<1000)LiveMatch.advance(s,20);
   state.liveMatchResult=LiveMatch.finalize(s);openModal();
@@ -2984,6 +3064,7 @@ function applyLiveMatchToCareer(result){
   result._careerApplied=true;persist();
 }
 function closeFinishedLiveMatch(){
+  stopLivePlayback();
   if(state.liveMatchMeta?.official&&state.liveMatchResult){submitOfficialLiveResult(state.liveMatchResult);return;}
   if(state.liveMatchResult)applyLiveMatchToCareer(state.liveMatchResult);
   state.liveMatchSession=null;state.liveMatchResult=null;state.liveSubOutId=null;state.liveMatchMeta=null;state.modal=null;closeModal();render();toast('Rapport de match enregistré.');
@@ -2995,44 +3076,78 @@ function livePlayerStatLine(sportId,p){let text='';if(sportId==='handball')text=
 function sport2dEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[ch]})}
 function sport2dShort(name){var p=String(name||'').trim().split(/\s+/);if(p.length<=1)return p[0]||'?';return (p[0]+' '+p[p.length-1].slice(0,1)+'.').slice(0,15)}
 function sport2dPossession(s){if(s.sportId==='volleyball')return s.servingSide||'home';return s.unit%2===1?'home':'away'}
-function sport2dPosFor(sport,side,lineup,isAttack,tactic){
+function sport2dPosFor(sport,side,lineup,isAttack,tactic,scheme,rotation){
   var mirror=function(pos){return{x:1000-pos.x,y:pos.y}},positions=[];
   if(sport==='handball'){
     var attack={Gardien:[{x:72,y:250}],Ailier:[{x:735,y:82},{x:735,y:418}],'Arrière':[{x:555,y:142},{x:515,y:250},{x:555,y:358}],Pivot:[{x:760,y:250}]};
     if(isAttack){
       var counters={};positions=lineup.map(function(p,idx){var r=p.role||'Arrière',n=counters[r]||0;counters[r]=n+1;var pool=attack[r]||[{x:520,y:120+idx*48}],base=pool[Math.min(n,pool.length-1)]||{x:520,y:120+idx*48};if(tactic==='transition'&&r!=='Gardien')base={x:Math.min(835,base.x+55),y:base.y};if(tactic==='positional'&&r==='Arrière')base={x:base.x-25,y:base.y};return base})
     }else{
-      var defY=[105,165,225,285,345,405],di=0;positions=lineup.map(function(p){if(p.role==='Gardien')return{x:74,y:250};var x=tactic==='aggressive'&&di===0?355:(tactic==='transition'?250:285),y=defY[Math.min(di,defY.length-1)];di++;return{x:x,y:y}})
+      var shapes={'6-0':[{x:285,y:95},{x:285,y:155},{x:285,y:215},{x:285,y:285},{x:285,y:345},{x:285,y:405}],'5-1':[{x:285,y:105},{x:285,y:175},{x:285,y:250},{x:285,y:325},{x:285,y:395},{x:385,y:250}],'3-2-1':[{x:285,y:150},{x:285,y:250},{x:285,y:350},{x:360,y:195},{x:360,y:305},{x:435,y:250}]},shape=shapes[scheme]||shapes['6-0'],fi=0;
+      positions=lineup.map(function(p){if(p.role==='Gardien')return{x:74,y:250};return shape[Math.min(fi++,shape.length-1)]})
     }
   }else if(sport==='basketball'){
     if(isAttack){
       var roleSlots={Meneur:[{x:525,y:250}],'Arrière':[{x:650,y:105},{x:650,y:395}],Ailier:[{x:700,y:120},{x:700,y:380}],'Intérieur':[{x:815,y:185},{x:815,y:315}]},counts={};
       positions=lineup.map(function(p,idx){var r=p.role||'Ailier',n=counts[r]||0;counts[r]=n+1;var pool=roleSlots[r]||[{x:620,y:90+idx*80}],pos=pool[Math.min(n,pool.length-1)]||{x:620,y:90+idx*80};if(tactic==='pace')pos={x:Math.min(860,pos.x+50),y:pos.y};if(tactic==='perimeter'&&r!=='Intérieur')pos={x:Math.max(520,pos.x-35),y:pos.y<250?Math.max(72,pos.y-24):Math.min(428,pos.y+24)};return pos})
     }else{
-      var zone=tactic==='defense'?[{x:285,y:160},{x:285,y:340},{x:365,y:105},{x:365,y:250},{x:365,y:395}]:[{x:260,y:250},{x:320,y:115},{x:320,y:385},{x:385,y:175},{x:385,y:325}];positions=lineup.map(function(p,i){return zone[i]||{x:330,y:100+i*70}})
+      var bshapes={man:[{x:275,y:250},{x:330,y:110},{x:330,y:390},{x:405,y:175},{x:405,y:325}],'2-3':[{x:320,y:175},{x:320,y:325},{x:405,y:100},{x:405,y:250},{x:405,y:400}],'3-2':[{x:315,y:105},{x:315,y:250},{x:315,y:395},{x:410,y:175},{x:410,y:325}]},zone=bshapes[scheme]||bshapes.man;
+      positions=lineup.map(function(p,i){return zone[i]||{x:330,y:100+i*70}})
     }
   }else{
-    var hs=[{x:160,y:90},{x:160,y:250},{x:160,y:410},{x:385,y:90},{x:385,y:250},{x:385,y:410}],as=hs.map(mirror);positions=(side==='home'?hs:as).slice(0,lineup.length)
+    var hs=[{x:170,y:385},{x:410,y:385},{x:410,y:250},{x:410,y:115},{x:170,y:115},{x:170,y:250}],as=hs.map(mirror),slots=side==='home'?hs:as,rot=Number(rotation||0)%6;
+    positions=lineup.map(function(p,i){return slots[(i+rot)%6]})
   }
   if(side==='away'&&sport!=='volleyball')positions=positions.map(mirror);return positions
 }
-function sport2dPlayerSvg(player,pos,side,index){
-  var home=side==='home',fill=home?'#f2c565':'#e8eefb',stroke=home?'#6e5115':'#697793',bad=player.injured||player.fouledOut||player.suspendedUnits>0,ring=bad?'#ee7183':player.fatigue>=65?'#f0b95f':stroke,label=sport2dEsc(sport2dShort(player.name)),role=sport2dEsc(player.role||'');
-  return '<g class="sport2d-player" transform="translate('+pos.x+' '+pos.y+')"><circle r="19" fill="'+fill+'" stroke="'+ring+'" stroke-width="'+(bad?5:3)+'"/><text x="0" y="5" text-anchor="middle" font-size="11" font-weight="900" fill="#071228">'+(index+1)+'</text><text x="0" y="35" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">'+label+'</text><text x="0" y="49" text-anchor="middle" font-size="9" fill="#d4ddf0">'+role+'</text></g>'
+function sport2dPlayerSvg(player,pos,side,index,activeId){
+  var home=side==='home',role=player.role||'',special=role==='Gardien'?'gk':role==='Libéro'?'libero':'field';
+  var fill=special==='gk'?(home?'#59d68d':'#8de8b4'):special==='libero'?(home?'#5ea0ff':'#9fc4ff'):(home?'#f2c565':'#e8eefb');
+  var stroke=home?'#6e5115':'#697793',bad=player.injured||player.fouledOut||player.suspendedUnits>0,ring=bad?'#ee7183':player.fatigue>=65?'#f0b95f':stroke,label=sport2dEsc(sport2dShort(player.name)),roleLabel=sport2dEsc(role),active=player.id===activeId;
+  return '<g class="sport2d-player'+(active?' active':'')+'" transform="translate('+pos.x+' '+pos.y+')"><circle r="19" fill="'+fill+'" stroke="'+ring+'" stroke-width="'+(bad?5:3)+'"/><text x="0" y="5" text-anchor="middle" font-size="11" font-weight="900" fill="#071228">'+(index+1)+'</text><text x="0" y="35" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">'+label+'</text><text x="0" y="49" text-anchor="middle" font-size="9" fill="#d4ddf0">'+roleLabel+'</text></g>'
 }
 function sport2dCourtLines(sport){
   if(sport==='handball')return '<rect x="28" y="28" width="944" height="444" rx="7" fill="#166781" stroke="#fff" stroke-width="4"/><line x1="500" y1="28" x2="500" y2="472" stroke="#fff" stroke-width="3"/><circle cx="500" cy="250" r="52" fill="none" stroke="#fff" stroke-width="3"/><rect x="21" y="188" width="16" height="124" fill="none" stroke="#fff" stroke-width="4"/><rect x="963" y="188" width="16" height="124" fill="none" stroke="#fff" stroke-width="4"/><path d="M30 112 Q205 250 30 388" fill="none" stroke="#fff" stroke-width="4"/><path d="M970 112 Q795 250 970 388" fill="none" stroke="#fff" stroke-width="4"/><path d="M30 75 Q265 250 30 425" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="12 10"/><path d="M970 75 Q735 250 970 425" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="12 10"/>';
   if(sport==='basketball')return '<defs><linearGradient id="wood" x1="0" x2="1"><stop stop-color="#c28b52"/><stop offset=".5" stop-color="#d9a86a"/><stop offset="1" stop-color="#c28b52"/></linearGradient></defs><rect x="28" y="28" width="944" height="444" rx="7" fill="url(#wood)" stroke="#fff" stroke-width="4"/><line x1="500" y1="28" x2="500" y2="472" stroke="#fff" stroke-width="3"/><circle cx="500" cy="250" r="62" fill="none" stroke="#fff" stroke-width="3"/><rect x="28" y="145" width="185" height="210" fill="none" stroke="#fff" stroke-width="3"/><rect x="787" y="145" width="185" height="210" fill="none" stroke="#fff" stroke-width="3"/><circle cx="213" cy="250" r="62" fill="none" stroke="#fff" stroke-width="3"/><circle cx="787" cy="250" r="62" fill="none" stroke="#fff" stroke-width="3"/><path d="M105 62 Q360 250 105 438" fill="none" stroke="#fff" stroke-width="3"/><path d="M895 62 Q640 250 895 438" fill="none" stroke="#fff" stroke-width="3"/><line x1="83" y1="220" x2="83" y2="280" stroke="#fff" stroke-width="5"/><line x1="917" y1="220" x2="917" y2="280" stroke="#fff" stroke-width="5"/><circle cx="96" cy="250" r="9" fill="none" stroke="#ef6c31" stroke-width="4"/><circle cx="904" cy="250" r="9" fill="none" stroke="#ef6c31" stroke-width="4"/>';
-  return '<rect x="28" y="70" width="944" height="360" rx="5" fill="#d99155" stroke="#fff" stroke-width="4"/><line x1="500" y1="55" x2="500" y2="445" stroke="#f7f9ff" stroke-width="8"/><line x1="500" y1="55" x2="500" y2="445" stroke="#071228" stroke-width="2" stroke-dasharray="10 8"/><line x1="333" y1="70" x2="333" y2="430" stroke="#fff" stroke-width="3"/><line x1="667" y1="70" x2="667" y2="430" stroke="#fff" stroke-width="3"/>'
+  return '<rect x="28" y="70" width="944" height="360" rx="5" fill="#d99155" stroke="#fff" stroke-width="4"/><line x1="500" y1="55" x2="500" y2="445" stroke="#f7f9ff" stroke-width="8"/><line x1="500" y1="55" x2="500" y2="445" stroke="#071228" stroke-width="2" stroke-dasharray="10 8"/><line x1="333" y1="70" x2="333" y2="430" stroke="#fff" stroke-width="3"/><line x1="667" y1="70" x2="667" y2="430" stroke="#fff" stroke-width="3"/><g fill="#ffffff" opacity=".22" font-size="24" font-weight="900"><text x="190" y="400">1</text><text x="410" y="400">2</text><text x="410" y="260">3</text><text x="410" y="125">4</text><text x="190" y="125">5</text><text x="190" y="260">6</text><text x="800" y="400">1</text><text x="570" y="400">2</text><text x="570" y="260">3</text><text x="570" y="125">4</text><text x="800" y="125">5</text><text x="800" y="260">6</text></g>'
 }
 function sport2dBallPos(s,view,ph,pa){
-  var side=sport2dPossession(s);
-  if(s.sportId==='volleyball'){var server=side==='home',phase=(s.unit||0)%3;if(phase===0)return{x:server?72:928,y:390};if(phase===1)return{x:server?470:530,y:180+((s.unit||0)%2)*140};return{x:server?720:280,y:120+((s.unit||0)%3)*120}}
-  var arr=side==='home'?ph:pa,cand=arr.filter(function(x,i){return i>0}),p=cand[(s.unit||0)%Math.max(1,cand.length)]||arr[0]||{x:500,y:250};return{x:p.x+(side==='home'?24:-24),y:p.y-18}
+  var visual=view.visual||{},side=visual.side||sport2dPossession(s),line=side==='home'?ph:pa,players=side==='home'?view.lineups.home:view.lineups.away,idx=players.findIndex(function(p){return p.id===visual.actorId}),p=idx>=0?line[idx]:null;
+  if(!p){
+    if(s.sportId==='volleyball'){var server=side==='home',phase=(s.unit||0)%3;if(phase===0)return{x:server?72:928,y:390};if(phase===1)return{x:server?470:530,y:180+((s.unit||0)%2)*140};return{x:server?720:280,y:120+((s.unit||0)%3)*120}}
+    var arr=side==='home'?ph:pa,cand=arr.filter(function(x,i){return i>0});p=cand[(s.unit||0)%Math.max(1,cand.length)]||arr[0]||{x:500,y:250}
+  }
+  if(visual.action==='shot'||visual.action==='shot2'||visual.action==='shot3')return{x:side==='home'?Math.min(915,p.x+78):Math.max(85,p.x-78),y:p.y-20};
+  if(s.sportId==='volleyball'&&['serve','ace','serviceError'].includes(visual.action))return{x:side==='home'?Math.min(485,p.x+70):Math.max(515,p.x-70),y:p.y-18};
+  if(s.sportId==='volleyball'&&['kill','block','defense','rally'].includes(visual.action))return{x:side==='home'?535:465,y:160+((s.unit||0)%3)*90};
+  return{x:p.x+(side==='home'?24:-24),y:p.y-18}
+}
+function sport2dTrail(s,view,ph,pa,ball){
+  var v=view.visual||{},side=v.side||sport2dPossession(s),line=side==='home'?ph:pa,players=side==='home'?view.lineups.home:view.lineups.away,idx=players.findIndex(function(p){return p.id===v.actorId}),from=idx>=0?line[idx]:null;
+  if(!from)return '';
+  var target=null;
+  if(v.action==='shot')target={x:side==='home'?960:40,y:250};
+  else if(v.action==='shot2'||v.action==='shot3')target={x:side==='home'?904:96,y:250};
+  else if(s.sportId==='volleyball'&&['serve','ace','kill','block','defense'].includes(v.action))target={x:side==='home'?600:400,y:ball.y};
+  else if(v.targetId){
+    var opp=side==='home'?view.lineups.away:view.lineups.home,oppPos=side==='home'?pa:ph,ti=opp.findIndex(function(p){return p.id===v.targetId});if(ti>=0)target=oppPos[ti];
+  }
+  if(!target)return '';
+  return '<line class="sport2d-trail" x1="'+from.x+'" y1="'+from.y+'" x2="'+target.x+'" y2="'+target.y+'"/>'
 }
 function sport2dView(s,view){
-  var possession=sport2dPossession(s),ha=s.sportId==='volleyball'?false:possession==='home',aa=s.sportId==='volleyball'?false:possession==='away',rh=view.volleyballRotation?.home||0,ra=view.volleyballRotation?.away||0,lh=s.sportId==='volleyball'?view.lineups.home.slice(rh).concat(view.lineups.home.slice(0,rh)):view.lineups.home,la=s.sportId==='volleyball'?view.lineups.away.slice(ra).concat(view.lineups.away.slice(0,ra)):view.lineups.away,ph=sport2dPosFor(s.sportId,'home',lh,ha,view.tactics.home),pa=sport2dPosFor(s.sportId,'away',la,aa,view.tactics.away),ball=sport2dBallPos(s,view,ph,pa),last=view.events&&view.events.length?view.events[view.events.length-1]:null,pl=s.sportId==='volleyball'?'Service':'Possession',sl=s.sportId==='handball'?'Handball 40×20':s.sportId==='basketball'?'Basket 28×15':'Volley 18×9',bf=s.sportId==='basketball'?'#ef6c31':s.sportId==='volleyball'?'#fff4a3':'#f2c565',br=s.sportId==='volleyball'?16:11,shape=s.sportId==='handball'?(view.tactics.home==='aggressive'?'Défense 5–1':'Défense 6–0'):s.sportId==='basketball'?(view.tactics.home==='defense'?'Zone 2–3':'Homme à homme'):'Rotation '+(rh+1);
-  return '<div class="sport2d-wrap"><div class="sport2d-head"><strong>Vue tactique 2D · '+sl+'</strong><span>'+pl+' : '+sport2dEsc(possession==='home'?view.home:view.away)+' · '+sport2dEsc(tacticLabelForUI(s.sportId,view.tactics.home))+' · '+shape+'</span></div><div class="sport2d-canvas"><svg viewBox="0 0 1000 500" role="img" aria-label="Terrain 2D '+sport2dEsc(sportById(s.sportId).name)+'"><rect width="1000" height="500" fill="#08152f"/>'+sport2dCourtLines(s.sportId)+ph.map(function(p,i){return sport2dPlayerSvg(lh[i],p,'home',i)}).join('')+pa.map(function(p,i){return sport2dPlayerSvg(la[i],p,'away',i)}).join('')+'<g class="sport2d-ball" transform="translate('+ball.x+' '+ball.y+')"><circle r="'+(br+9)+'" fill="none" stroke="#ffffff" stroke-opacity=".42" stroke-width="3"/><circle r="'+br+'" fill="'+bf+'" stroke="'+(s.sportId==='volleyball'?'#1f5da8':s.sportId==='basketball'?'#3a1807':'#ffffff')+'" stroke-width="'+(s.sportId==='volleyball'?5:4)+'"/>'+(s.sportId==='basketball'?'<path d="M-12 0H12M0-12V12M-9-9Q0 0 9 9M9-9Q0 0-9 9" stroke="#3a1807" stroke-width="2" fill="none"/>':s.sportId==='volleyball'?'<path d="M-11-8Q0-16 11-8M-14 2Q0-5 14 2M-9 11Q0 5 9 11" stroke="#1f5da8" stroke-width="3" fill="none"/>':'<path d="M-10-7Q0-13 10-7M-12 3Q0-3 12 3M-8 10Q0 5 8 10" stroke="#d94f4f" stroke-width="2.5" fill="none"/>')+'</g></svg></div><div class="sport2d-last">⚡ '+sport2dEsc(last?last.time+' · '+last.text:'Engagement — les blocs se mettent en place')+'</div><div class="sport2d-legend"><span><i class="sport2d-dot" style="background:#f2c565"></i>'+sport2dEsc(view.home)+'</span><span><i class="sport2d-dot" style="background:#e8eefb"></i>'+sport2dEsc(view.away)+'</span><span>Placement lié à la possession, la tactique et aux remplacements.</span></div></div>'
+  var possession=sport2dPossession(s),ha=s.sportId==='volleyball'?false:possession==='home',aa=s.sportId==='volleyball'?false:possession==='away';
+  var rh=view.volleyballRotation?.home||0,ra=view.volleyballRotation?.away||0;
+  var lh=s.sportId==='handball'?view.lineups.home.filter(function(p){return !(p.suspendedUnits>0)}):view.lineups.home;
+  var la=s.sportId==='handball'?view.lineups.away.filter(function(p){return !(p.suspendedUnits>0)}):view.lineups.away;
+  var ph=sport2dPosFor(s.sportId,'home',lh,ha,view.tactics.home,view.schemes?.home,rh),pa=sport2dPosFor(s.sportId,'away',la,aa,view.tactics.away,view.schemes?.away,ra);
+  var compactView={...view,lineups:{home:lh,away:la}};
+  var ball=sport2dBallPos(s,compactView,ph,pa),last=view.events&&view.events.length?view.events[view.events.length-1]:null;
+  var pl=s.sportId==='volleyball'?'Service':'Possession',sl=s.sportId==='handball'?'Handball 40×20':s.sportId==='basketball'?'Basket 28×15':'Volley 18×9';
+  var bf=s.sportId==='basketball'?'#ef6c31':s.sportId==='volleyball'?'#fff4a3':'#f2c565',br=s.sportId==='volleyball'?16:11;
+  var shape=s.sportId==='handball'?'Défense '+schemeLabelForUI(s.sportId,view.schemes?.home):s.sportId==='basketball'?schemeLabelForUI(s.sportId,view.schemes?.home):'Rotation '+(rh+1);
+  var reduced=s.sportId==='handball'&&(lh.length<7||la.length<7)?' · '+lh.length+'v'+la.length:'';
+  return '<div class="sport2d-wrap"><div class="sport2d-head"><strong>Vue tactique 2D · '+sl+'</strong><span>'+pl+' : '+sport2dEsc(possession==='home'?view.home:view.away)+' · '+sport2dEsc(tacticLabelForUI(s.sportId,view.tactics.home))+' · '+shape+reduced+'</span></div><div class="sport2d-canvas"><svg viewBox="0 0 1000 500" role="img" aria-label="Terrain 2D '+sport2dEsc(sportById(s.sportId).name)+'"><rect width="1000" height="500" fill="#08152f"/>'+sport2dCourtLines(s.sportId)+sport2dTrail(s,compactView,ph,pa,ball)+ph.map(function(p,i){return sport2dPlayerSvg(lh[i],p,'home',i,view.visual?.actorId)}).join('')+pa.map(function(p,i){return sport2dPlayerSvg(la[i],p,'away',i,view.visual?.actorId)}).join('')+'<g class="sport2d-ball" transform="translate('+ball.x+' '+ball.y+')"><circle r="'+(br+9)+'" fill="none" stroke="#ffffff" stroke-opacity=".42" stroke-width="3"/><circle r="'+br+'" fill="'+bf+'" stroke="'+(s.sportId==='volleyball'?'#1f5da8':s.sportId==='basketball'?'#3a1807':'#ffffff')+'" stroke-width="'+(s.sportId==='volleyball'?5:4)+'"/>'+(s.sportId==='basketball'?'<path d="M-12 0H12M0-12V12M-9-9Q0 0 9 9M9-9Q0 0-9 9" stroke="#3a1807" stroke-width="2" fill="none"/>':s.sportId==='volleyball'?'<path d="M-11-8Q0-16 11-8M-14 2Q0-5 14 2M-9 11Q0 5 9 11" stroke="#1f5da8" stroke-width="3" fill="none"/>':'<path d="M-10-7Q0-13 10-7M-12 3Q0-3 12 3M-8 10Q0 5 8 10" stroke="#d94f4f" stroke-width="2.5" fill="none"/>')+'</g></svg></div><div class="sport2d-last">⚡ '+sport2dEsc(view.visual?.label||(last?last.time+' · '+last.text:'Engagement — les blocs se mettent en place'))+'</div><div class="sport2d-legend"><span><i class="sport2d-dot" style="background:#f2c565"></i>'+sport2dEsc(view.home)+'</span><span><i class="sport2d-dot" style="background:#e8eefb"></i>'+sport2dEsc(view.away)+'</span><span><i class="sport2d-dot" style="background:#59d68d"></i>Gardien</span><span><i class="sport2d-dot" style="background:#5ea0ff"></i>Libéro</span></div></div>'
 }
 
 function liveMatchModal(){
@@ -3040,19 +3155,21 @@ function liveMatchModal(){
   const view=LiveMatch.publicState(s),result=state.liveMatchResult|| (s.finished?LiveMatch.finalize(s):null);if(s.finished&&!state.liveMatchResult)state.liveMatchResult=result;
   const rules=LiveMatch.RULES[s.sportId],timeoutInfo=view.timeoutStatus?.home||{used:view.timeouts.home||0,limit:rules.timeouts,allowed:true,label:'match'},remaining=Math.max(0,timeoutInfo.limit-timeoutInfo.used);
   const tactics=Object.entries(Tactics.TACTICS[s.sportId]||{});
+  const schemeOptions=s.sportId==='handball'?[['6-0','6–0'],['5-1','5–1'],['3-2-1','3–2–1']]:s.sportId==='basketball'?[['man','Homme à homme'],['2-3','Zone 2–3'],['3-2','Zone 3–2']]:[];
   const scoreExtra=s.sportId==='volleyball'&&!s.finished?` · set ${view.setPoints.home}-${view.setPoints.away} · service ${view.servingSide==='home'?view.home:view.away}`:s.sportId==='basketball'?` · fautes équipe ${view.teamFouls.home}-${view.teamFouls.away}`:'';
   const homeStats=Object.values((result?.playerStats||s.playerStats).home||{}).sort((a,b)=>{const ka=s.sportId==='handball'?(a.goals+a.assists+a.saves):(s.sportId==='basketball'?(a.points+a.rebounds*.7+a.assists):(a.points+a.kills+a.blocks));const kb=s.sportId==='handball'?(b.goals+b.assists+b.saves):(s.sportId==='basketball'?(b.points+b.rebounds*.7+b.assists):(b.points+b.kills+b.blocks));return kb-ka}).slice(0,7);
   const meta=state.liveMatchMeta||{};
   return `<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-label="Fenêtre de jeu"><div class="modal wide-modal live-match-modal"><div class="modal-top"><div><h2>🎧 ${meta.official?'Match officiel':'Centre de match'} · ${sportById(s.sportId).name}</h2><div class="row-sub">${meta.official?`${meta.competitionName} · ${meta.stage} · `:''}${view.finished?'Match terminé':`${view.time} · période ${view.period}`}${scoreExtra}</div></div>${view.finished?`<button class="btn primary" id="liveClose">${meta.official?'Enregistrer et continuer':'Enregistrer et fermer'}</button>`:'<button class="btn ghost" id="closeModal">Quitter le centre</button>'}</div>
     <div class="live-scoreboard"><div><span>${view.home}</span><b>${view.homeScore}</b></div><div class="live-clock">${view.finished?'TERMINÉ':view.time}<small>${tacticLabelForUI(s.sportId,view.tactics.home)} vs ${tacticLabelForUI(s.sportId,view.tactics.away)}</small></div><div><span>${view.away}</span><b>${view.awayScore}</b></div></div>
     ${sport2dView(s,view)}
-    ${!view.finished?`<div class="section-title"><div><h2>Coaching</h2><p>Chaque choix est appliqué avant la prochaine séquence de jeu. L’IA adverse s’adapte automatiquement.</p></div><span class="badge ${timeoutInfo.allowed?'gold':'warn'}">${remaining} temps mort(s) · ${timeoutInfo.label}</span></div><div class="pillbar"><button class="btn" data-live-command="timeout" ${timeoutInfo.allowed?'':'disabled'}>⏱ Temps mort</button><button class="btn" data-live-command="rotate">🔄 Rotation</button>${tactics.map(([id,t])=>`<button class="btn ${view.tactics.home===id?'primary':''}" data-live-command="tactic" data-tactic="${id}">${t.label}</button>`).join('')}</div><div class="pillbar live-advance"><button class="btn primary" data-live-advance="1">▶ 1 action</button><button class="btn" data-live-advance="5">▶ 5 actions</button><button class="btn" data-live-advance="15">▶ 15 actions</button><button class="btn danger" id="liveFinish">⏩ Simuler la fin</button></div>`:''}
+    ${!view.finished?`<div class="section-title"><div><h2>Coaching</h2><p>Chaque choix est appliqué avant la prochaine séquence de jeu. L’IA adverse s’adapte automatiquement.</p></div><span class="badge ${timeoutInfo.allowed?'gold':'warn'}">${remaining} temps mort(s) · ${timeoutInfo.label}</span></div><div class="pillbar"><button class="btn" data-live-command="timeout" ${timeoutInfo.allowed?'':'disabled'}>⏱ Temps mort</button><button class="btn" data-live-command="rotate">🔄 Rotation</button>${tactics.map(([id,t])=>`<button class="btn ${view.tactics.home===id?'primary':''}" data-live-command="tactic" data-tactic="${id}">${t.label}</button>`).join('')}</div>${schemeOptions.length?`<div class="pillbar"><span class="badge">Organisation défensive</span>${schemeOptions.map(([id,label])=>`<button class="btn ${view.schemes?.home===id?'primary':''}" data-live-scheme="${id}">${label}</button>`).join('')}</div>`:''}<div class="pillbar live-advance"><button class="btn" data-live-advance="1">⏯ 1 action</button><button class="btn ${state.livePlaybackSpeed===1?'primary':''}" data-live-speed="1">▶ x1</button><button class="btn ${state.livePlaybackSpeed===2?'primary':''}" data-live-speed="2">▶ x2</button><button class="btn ${state.livePlaybackSpeed===4?'primary':''}" data-live-speed="4">▶ x4</button><button class="btn" id="livePause" ${state.livePlaybackSpeed?'':'disabled'}>⏸ Pause</button><button class="btn danger" id="liveFinish">⏩ Résultat direct</button></div>`:''}
     <div class="grid two-col" style="margin-top:18px"><div><div class="section-title"><div><h2>Sur le terrain</h2><p>Clique sur « Sortir », puis choisis le remplaçant. ${s.sportId==='volleyball'?`Changements ce set : ${view.substitutions.home}/6.`:'Changements libres.'}</p></div></div><div class="card list">${view.lineups.home.map(livePlayerLine).join('')}</div><div class="section-title"><div><h2>Banc</h2><p>${state.liveSubOutId?'Choisis maintenant le joueur à faire entrer.':'Sélectionne d’abord un joueur sur le terrain.'}</p></div></div><div class="card list">${view.benches.home.map(liveBenchLine).join('')}</div></div><div><div class="section-title"><div><h2>Temps forts</h2><p>Derniers événements et adaptations tactiques.</p></div></div><div class="card list">${view.events.length?view.events.slice().reverse().map(e=>`<div class="list-row"><span class="badge">${e.time}</span><div class="grow"><div class="row-title">${e.text}</div></div></div>`).join(''):'<div class="empty">Le match commence.</div>'}</div></div></div>
     <div class="grid two-col" style="margin-top:18px"><div><div class="section-title"><div><h2>Statistiques individuelles</h2><p>Les données sont produites possession par possession.</p></div></div><div class="card list">${homeStats.map(p=>livePlayerStatLine(s.sportId,p)).join('')}</div></div><div><div class="section-title"><div><h2>Journal du coach</h2><p>Tes décisions et les adaptations IA sont mémorisées.</p></div></div><div class="card list">${[...(view.coaching.home||[]),...(view.coaching.away||[])].slice(-10).reverse().map(x=>`<div class="list-row"><span class="badge">${x.time}</span><div class="grow"><div class="row-title">${x.text}</div></div></div>`).join('')||'<div class="empty">Aucune décision pour l’instant.</div>'}</div></div></div>
     ${result?`<div class="section-title"><div><h2>Rapport final</h2><p>Rotations, blessures et statistiques détaillées sont enregistrées dans la carrière.</p></div></div>${matchStatsHtml(result)}`:''}
   </div></div>`;
 }
 function tacticLabelForUI(sportId,id){return Tactics.tacticFor(sportId,id)?.label||id}
+function schemeLabelForUI(sportId,id){const m={handball:{'6-0':'6–0','5-1':'5–1','3-2-1':'3–2–1'},basketball:{man:'Homme à homme','2-3':'Zone 2–3','3-2':'Zone 3–2'}};return m[sportId]?.[id]||id||'Standard'}
 
 function decisionModal(id){
   const n=state.save.notifications.find(x=>x.id===id); if(!n?.decision)return '';
