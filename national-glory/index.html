@@ -2723,7 +2723,7 @@ function bindModal(){
   $('#livePause')?.addEventListener('click',()=>{stopLivePlayback();openModal();});
   $$('[data-live-command]').forEach(el=>el.addEventListener('click',()=>liveCoachCommand(el.dataset.liveCommand,el.dataset.tactic||null)));
   $$('[data-live-scheme]').forEach(el=>el.addEventListener('click',()=>liveCoachScheme(el.dataset.liveScheme)));
-  $('[data-live-sub-out]').forEach(el=>el.addEventListener('click',()=>{stopLivePlayback();state.liveSubOutId=el.dataset.liveSubOut;openModal();}));
+  $$('[data-live-sub-out]').forEach(el=>el.addEventListener('click',()=>{stopLivePlayback();state.liveSubOutId=el.dataset.liveSubOut;openModal();}));
   $$('[data-live-sub-in]').forEach(el=>el.addEventListener('click',()=>completeLiveSubstitution(el.dataset.liveSubIn)));
   $('#liveFinish')?.addEventListener('click',finishLiveMatch);
   $('#liveClose')?.addEventListener('click',closeFinishedLiveMatch);
