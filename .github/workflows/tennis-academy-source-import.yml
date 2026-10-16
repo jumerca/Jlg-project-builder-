@@ -1,0 +1,30 @@
+name: Tennis Academy - capture source for QA correction
+on:
+  push:
+    branches: [qa/tennis-academy-manager]
+    paths: ['.github/workflows/tennis-academy-source-import.yml']
+permissions:
+  contents: write
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy public V5 script to isolated QA branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa/tennis-academy-manager/source
+          curl --fail --location --silent --show-error --retry 3 --max-time 45 \
+            'https://tennis-academy-jlg-qa.vercel.app/tennis/academy-director-v5.js?source=qa' \
+            -o qa/tennis-academy-manager/source/academy-director-v5.js
+          test "$(wc -c < qa/tennis-academy-manager/source/academy-director-v5.js)" -gt 15000
+          grep -q 'tennis_dynasty_director_v5' qa/tennis-academy-manager/source/academy-director-v5.js
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add qa/tennis-academy-manager/source/academy-director-v5.js
+          if ! git diff --cached --quiet; then
+            git commit -m 'test(tennis): snapshot public V5 module for isolated QA patch'
+            git push origin HEAD:qa/tennis-academy-manager
+          fi
