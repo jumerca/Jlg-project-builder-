@@ -14,7 +14,11 @@ permissions:
 
 jobs:
   playwright:
-    name: Clics desktop + Android simulé
+    name: Tests ${{ matrix.project }}
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chromium, android-chromium]
     runs-on: ubuntu-latest
     timeout-minutes: 22
     defaults:
@@ -30,14 +34,14 @@ jobs:
       - name: Installer Chromium
         run: npx playwright install --with-deps chromium
       - name: Exécuter les clics sur le site Vercel (sauvegarde jetable)
-        run: npm test
+        run: npx playwright test --project=${{ matrix.project }}
         env:
           TAM_URL: https://tennis-academy-jlg-qa.vercel.app
       - name: Sauvegarder les captures, vidéos, traces et résultats
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tennis-academy-playwright-results
+          name: tennis-academy-playwright-${{ matrix.project }}
           retention-days: 7
           if-no-files-found: ignore
           path: |
