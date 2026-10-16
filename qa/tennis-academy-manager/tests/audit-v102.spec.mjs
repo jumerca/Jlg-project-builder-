@@ -101,6 +101,14 @@ test('V10.2 recruter, recharger, retourner au recrutement et éviter les doublon
   });
   expect(charge,'Le salaire du coach doit être débité chaque semaine').toBeGreaterThan(1500);
   await page.locator('#tam101Recruit').click();
+  console.log('V103_STAFF_RETURN_DIAG '+JSON.stringify(await page.evaluate(()=>({
+    recruitmentHidden:document.querySelector('#tamRecruit10')?.hidden,
+    academyVisible:getComputedStyle(document.querySelector('#td5Director')).display,
+    market:document.querySelector('#tamRecruit10')?.innerText?.slice(0,450),
+    activeScreens:[...document.querySelectorAll('#tamRecruit10 [data-screen].active')].map(x=>x.dataset.screen),
+    hasStaffSelect:!!document.querySelector('#recJob'),
+    bridge:window.TAM103Navigation?.status?.(),
+  }))));
   await page.locator('#recJob').selectOption('coach');
   await expect(page.locator('#tamRecruit10')).toContainText(/poste déjà pourvu/i);
 });
