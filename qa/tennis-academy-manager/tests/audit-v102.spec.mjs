@@ -85,15 +85,21 @@ test('V10.2 recruter, recharger, retourner au recrutement et éviter les doublon
   const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('tennis_academy_recruit_v10')||'{}').staff?.filter(x=>x.role==='coach')||[]);
   expect(before).toHaveLength(1);
   await page.reload({waitUntil:'domcontentloaded'});
-  await page.waitForFunction(()=>!!window.__TennisDynastyCore?.getCareer?.());
-  const after=await page.evaluate(()=>({
-    staff:JSON.parse(localStorage.getItem('tennis_academy_recruit_v10')||'{}').staff?.filter(x=>x.role==='coach')||[],
-    legacy:JSON.parse(localStorage.getItem('tennis_dynasty_director_v5')||'{}').staff?.filter(x=>x.role==='coach')||[]
-  }));
-  expect(after.staff).toHaveLength(1);
-  expect(after.legacy).toHaveLength(1);
+  await expect.poll(async ()=>page.evaluate(()=>{
+    const a=JSON.parse(localStorage.getItem('tennis_dynasty_director_v5')||'{}');
+    return a.staff?.filter(x=>x.role==='coach'&&x.expiresWeek>0).length||0;
+  }),{timeout:15000,message:'Contrat de coach absent du registre V5 après restauration'}).toBe(1);
   await page.evaluate(()=>document.querySelector('[data-td-nav="academy"],[data-td21-go="academy"]')?.click());
   await expect(page.locator('#tam101Recruit')).toBeVisible();
+  await page.locator('#td5Director .td5-tabs [data-tab="staff"]').click();
+  await page.locator('#td5Director [data-group="Sport"]').click();
+  await expect(page.locator('#td5Director .td5-page')).toContainText(before[0].name);
+  const charge=await page.evaluate(()=>{
+    const a=window.__TennisDynastyCore.getCareer(),before=a.funds;
+    a.advance(1);
+    return before-a.funds;
+  });
+  expect(charge,'Le salaire du coach doit être débité chaque semaine').toBeGreaterThan(1500);
   await page.locator('#tam101Recruit').click();
   await page.locator('#recJob').selectOption('coach');
   await expect(page.locator('#tamRecruit10')).toContainText(/poste déjà pourvu/i);
