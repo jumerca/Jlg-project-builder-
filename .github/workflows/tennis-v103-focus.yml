@@ -25,7 +25,7 @@ jobs:
       - name: Installer Chromium
         run: npx playwright install --with-deps chromium
       - name: Scénarios V10.3 ciblés
-        run: npx playwright test tests/international-v103.spec.mjs --project=desktop-chromium --retries=0 --timeout=20000 --global-timeout=210000
+        run: npx playwright test tests/diagnostic-international-v103.spec.mjs --project=desktop-chromium --retries=0 --timeout=20000 --global-timeout=100000
         env:
           TAM_URL: https://tennis-academy-jlg-qa.vercel.app
       - name: Captures de diagnostic
