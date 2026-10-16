@@ -32,7 +32,7 @@ jobs:
       - name: Exécuter les clics sur le site Vercel (sauvegarde jetable)
         run: npm test
         env:
-          TAM_URL: https://tennis-academy-jlg-qa.vercel.app
+          TAM_URL: https://tennis-academy-jlg-fii19kuhv-jlg-creative.vercel.app
       - name: Sauvegarder les captures, vidéos, traces et résultats
         if: always()
         uses: actions/upload-artifact@v4
