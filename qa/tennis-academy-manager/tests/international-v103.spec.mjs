@@ -14,7 +14,7 @@ async function get(page){return page.evaluate(()=>{const a=JSON.parse(localStora
 async function travelTo(page,at){await page.evaluate(target=>{const c=window.__TennisDynastyCore.getCareer();let guard=0;while((c.year-1)*52+c.week<target&&guard++<20){const remain=target-((c.year-1)*52+c.week);c.advance(Math.min(4,remain));}},at);}
 
 test('V10.3 accès au financement sans retirer les onglets existants',async({page})=>{
-  const before=await page.locator('#td5Director .td5-tabs button').count();
+  const nativeTabs=await page.locator('#td5Director .td5-tabs [data-tab]').evaluateAll(x=>x.map(el=>el.dataset.tab));
   await go(page);
   await expect(page.locator('#tour103Player')).toBeVisible();
   await expect(page.locator('#tour103Event option').first()).toBeAttached();
@@ -26,7 +26,10 @@ test('V10.3 accès au financement sans retirer les onglets existants',async({pag
   expect(q[0]).toBeLessThan(q[1]);expect(q[1]).toBeLessThan(q[2]);
   await page.locator('#tour103Panel [data-exit]').click();
   await expect(page.locator('#td5Director')).toBeVisible();
-  expect(await page.locator('#td5Director .td5-tabs button').count()).toBeGreaterThanOrEqual(before);
+  const afterTabs=await page.locator('#td5Director .td5-tabs [data-tab]').evaluateAll(x=>x.map(el=>el.dataset.tab));
+  for(const tab of nativeTabs)expect(afterTabs,'Onglet natif supprimé : '+tab).toContain(tab);
+  await expect(page.locator('#tam101Recruit')).toBeVisible();
+  await expect(page.locator('#tour103Tab')).toBeVisible();
 });
 
 test('V10.3 déplacement confirmé : prélèvement immédiat unique et persistance',async({page})=>{
