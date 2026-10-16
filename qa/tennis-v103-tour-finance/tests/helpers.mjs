@@ -30,7 +30,10 @@ export async function recruit(page,type='junior'){
 }
 export async function opened(page,kind='junior'){
  await page.locator('#tm103Tab').click();await expect(page.locator('#tm103Tours')).toBeVisible();
- const target=await page.evaluate(type=>window.TAM103.players().find(p=>p.kind===type),kind);
+ const info=await page.evaluate(type=>({available:window.TAM103.players().filter(p=>p.kind===type),recruits:(JSON.parse(localStorage.getItem('tennis_academy_recruit_v10')||'{}').players||[]).filter(p=>type==='junior'?p.age<18:p.age>=18),prospects:window.__TennisDynastyCore.getCareer().academyV2?.prospects||[]}),kind);
+ console.log('TOUR_PLAYER_SELECTION '+JSON.stringify(info).slice(0,9000));
+ const recruit=info.recruits.at(-1);
+ const target=info.available.find(p=>String(p.id)===String(recruit?.id))||info.available[0];
  expect(target,'Aucun joueur recruté dans le module international').toBeTruthy();
  await page.locator('#tm103Player').selectOption(target.id);
  await page.locator('#tm103Event').selectOption(kind==='junior'?'j-barcelona':'p-lyon');
