@@ -1,0 +1,25 @@
+name: QA source inspection (temporary)
+on:
+  push:
+    branches:
+      - qa/tennis-academy-manager
+    paths:
+      - '.github/workflows/tennis-qa-source-export.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Retrieve live QA modules for precise patching
+        run: |
+          set -eu
+          for module in tam-recruit-v10 tam-stability-v101 tam-tour-international-v103 tam-tour-navigation-v103; do
+            curl --retry 2 -fsSL --max-time 25 "https://tennis-academy-jlg-qa.vercel.app/tennis/${module}.js?source=inspection" -o "/tmp/${module}.js"
+            echo "===SOURCE_BEGIN:${module}==="
+            base64 -w0 "/tmp/${module}.js"
+            echo
+            echo "===SOURCE_END:${module}==="
+          done
