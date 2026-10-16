@@ -1,0 +1,30 @@
+import { test, expect } from '@playwright/test';
+import { academy, recruitment, negotiate, favorableOffer } from './helpers.mjs';
+
+test('Diagnostic : disparition du personnel entre V10 et le registre historique',async({page})=>{
+ await academy(page);
+ const js=await page.request.get('/tennis/academy-director-v5.js');
+ expect(js.status()).toBe(200);
+ const source=await js.text();
+ const signatures=[...source.matchAll(/(?:localStorage|\.staff|staff\:|staff\s*=|staff\s*\?)/g)].map(x=>x.index);
+ const snippets=signatures.filter(i=>source.slice(Math.max(0,i-180),i+140).includes('localStorage')||source.slice(Math.max(0,i-180),i+140).includes('staff')).slice(0,25).map(i=>source.slice(Math.max(0,i-140),i+260));
+ console.log('V102_SOURCE_STAFF '+JSON.stringify(snippets).slice(0,12500));
+ await recruitment(page);
+ await page.locator('#recJob').selectOption('coach');
+ await negotiate(page);await favorableOffer(page);await page.locator('#recSign').click();
+ const get = () => ({recruit:JSON.parse(localStorage.getItem('tennis_academy_recruit_v10')||'{}').staff?.map(x=>({id:x.id,role:x.role,name:x.name,salary:x.salary,monthly:x.monthly})),native:JSON.parse(localStorage.getItem('tennis_dynasty_director_v5')||'{}').staff?.map(x=>({id:x.id,role:x.role,name:x.name,salary:x.salary,monthly:x.monthly})),keys:Object.keys(JSON.parse(localStorage.getItem('tennis_dynasty_director_v5')||'{}')),funds:window.__TennisDynastyCore.getCareer().funds});
+ const before=await page.evaluate(get);
+ console.log('V102_BEFORE_RELOAD '+JSON.stringify(before));
+ await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForFunction(()=>!!window.__TennisDynastyCore?.getCareer?.());
+ const after=await page.evaluate(get);
+ console.log('V102_AFTER_RELOAD '+JSON.stringify(after));
+ await page.evaluate(()=>document.querySelector('[data-td-nav="academy"],[data-td21-go="academy"]')?.click());
+ await page.locator('#td5Director .td5-tabs [data-tab="staff"]').click();
+ const panel=await page.locator('#td5Director .td5-page').innerText();
+ console.log('V102_STAFF_UI_AFTER_RELOAD '+panel.slice(0,1700));
+ const wk=await page.evaluate(()=>{const a=window.__TennisDynastyCore.getCareer(),f=a.funds;const week=a.week;a.advance(1);return {spent:f-a.funds,weekChange:a.week-week}});
+ console.log('V102_AFTER_WEEK '+JSON.stringify(wk));
+ expect(before.recruit?.length).toBe(1);
+ expect(after.recruit?.length).toBe(1);
+});
