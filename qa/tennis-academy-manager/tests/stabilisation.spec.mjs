@@ -36,7 +36,11 @@ test('V10.1 : inventaire de tous les onglets conservés et navigation sans dispa
     await expect(page.locator('#td5Director')).toBeAttached();
     await expect(page.locator('#td5Director .td5-page')).toBeAttached();
   }
+  // Un onglet Compétitions peut quitter l’écran Académie : revenir avant d’auditer son menu.
+  await page.evaluate(() => document.querySelector('[data-td-nav="academy"],[data-td21-go="academy"]')?.click());
+  await expect(page.locator('#td5Director')).toBeVisible();
   await expect(page.locator('#tam101Recruit')).toBeVisible();
+  await expect(page.locator('#td5Director .td5-tabs button[data-tab="scout"]')).toBeHidden();
 });
 
 test('V10.1 : une négociation annulée ne modifie ni contrat ni budget', async ({ page }) => {
