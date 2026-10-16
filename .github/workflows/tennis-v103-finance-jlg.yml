@@ -21,6 +21,8 @@ jobs:
         run: npm install --no-audit --no-fund && npx playwright install --with-deps chromium
       - name: Clics financiers et sportifs
         run: npx playwright test --retries=0
+      - name: Non-régression intégrale V10.2 (menus, recrutements, contrats, constructions, calendriers)
+        run: npx playwright test --config=playwright.regression.config.mjs
       - name: Résultats et traces
         if: always()
         uses: actions/upload-artifact@v4
