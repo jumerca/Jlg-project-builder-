@@ -1,0 +1,33 @@
+name: Tennis V10.3 - financement international isolé
+on:
+  push:
+    branches: [qa/tennis-v103-tour-finance-jlg]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    defaults:
+      run:
+        working-directory: qa/tennis-v103-tour-finance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Installer Playwright
+        run: npm install --no-audit --no-fund && npx playwright install --with-deps chromium
+      - name: Clics financiers et sportifs
+        run: npx playwright test --retries=0
+      - name: Résultats et traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v103-finance-isolated
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            qa/tennis-v103-tour-finance/playwright-report/
+            qa/tennis-v103-tour-finance/test-results/

@@ -1,0 +1,11 @@
+{
+  "name": "tennis-v103-international-qa",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}

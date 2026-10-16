@@ -1,0 +1,2 @@
+import {defineConfig,devices} from '@playwright/test';
+export default defineConfig({testDir:'./tests',timeout:26000,retries:0,workers:1,globalTimeout:420000,reporter:[['list'],['html',{open:'never'}]],use:{baseURL:'https://tennis-academy-jlg-fii19kuhv-jlg-creative.vercel.app',actionTimeout:8000,trace:'retain-on-failure',screenshot:'only-on-failure'},projects:[{name:'desktop',use:{...devices['Desktop Chrome']}},{name:'android',use:{...devices['Pixel 7'],browserName:'chromium'}}]});
