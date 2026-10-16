@@ -1,0 +1,45 @@
+name: Tennis Academy Manager - QA clics Playwright
+
+on:
+  push:
+    branches:
+      - qa/tennis-academy-manager
+    paths:
+      - 'qa/tennis-academy-manager/**'
+      - '.github/workflows/tennis-academy-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  playwright:
+    name: Clics desktop + Android simulé
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    defaults:
+      run:
+        working-directory: qa/tennis-academy-manager
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Installer les dépendances des tests
+        run: npm install --no-audit --no-fund
+      - name: Installer Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Exécuter les clics sur le site Vercel (sauvegarde jetable)
+        run: npm test
+        env:
+          TAM_URL: https://tennis-dynasty-jlg.vercel.app
+      - name: Sauvegarder les captures, vidéos, traces et résultats
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tennis-academy-playwright-results
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            qa/tennis-academy-manager/playwright-report/
+            qa/tennis-academy-manager/test-results/

@@ -1,0 +1,13 @@
+{
+  "name": "tennis-academy-manager-qa",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "desktop": "playwright test --project=desktop-chromium",
+    "mobile": "playwright test --project=android-chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}
