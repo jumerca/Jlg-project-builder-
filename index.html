@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#090f20"/><meta name="description" content="Quiz Panic Live : un plateau télé complètement fou. Joue seul ou avec tes amis !"/>
 
-<title>Quiz Panic Live — Direct & Foules · V1.0</title>
+<title>Quiz Panic Live — Grand Spectacle · V1.2</title>
 
 
 <style>
@@ -768,6 +768,48 @@ body{background:radial-gradient(ellipse 70% 40% at 50% -10%,#264376 0%,transpare
 
 .hero-customize{background:linear-gradient(110deg,#3a75ec,#956be8);border:1px solid #9fcbff85;color:#fff;border-radius:12px;box-shadow:0 5px 18px #11113799;cursor:pointer;padding:12px 16px;margin:15px 0 2px;font-weight:950;letter-spacing:.4px;min-height:43px;transition:transform .2s}.hero-customize:hover{transform:translateY(-2px)}
 
+
+/* V1.2 — GRAND SPECTACLE. Responsive animation, proper articulation and a moving audience. */
+.monster .m-arm{position:absolute;z-index:1;top:24px;width:11px;height:25px;background:linear-gradient(130deg,var(--skin),var(--shade));border:2px solid #33223d;border-radius:11px;transform-origin:50% 9%;filter:drop-shadow(0 1px 1px #0002)}
+.monster .m-arm.a1{left:0;rotate:23deg}.monster .m-arm.a2{right:0;rotate:-23deg}
+.monster .m-arm .m-hand{position:absolute;left:-3px;bottom:-7px;width:13px;height:13px;border:2px solid #33223d;border-radius:50%;background:var(--skin)}
+.monster .m-foot{transform-origin:50% 15%;transition:rotate .15s ease}
+.monster .m-mouth{transition:height .16s,border-radius .16s}
+.arena-actor .m-arm.a1,.cast-badge .m-arm.a1{animation:armBreathA 2s ease-in-out infinite alternate}
+.arena-actor .m-arm.a2,.cast-badge .m-arm.a2{animation:armBreathB 2.25s ease-in-out infinite alternate}
+@keyframes armBreathA{to{transform:rotate(16deg)}}@keyframes armBreathB{to{transform:rotate(-17deg)}}
+.arena-actor.is-running .m-arm.a1{animation:limbSprintA .2s ease-in-out infinite alternate}
+.arena-actor.is-running .m-arm.a2{animation:limbSprintB .2s ease-in-out infinite alternate}
+@keyframes limbSprintA{from{transform:rotate(50deg)}to{transform:rotate(-50deg)}}
+@keyframes limbSprintB{from{transform:rotate(-50deg)}to{transform:rotate(50deg)}}
+.arena-actor.is-running .m-body{animation:bodyStep .21s cubic-bezier(.36,.1,.66,1) infinite alternate}
+@keyframes bodyStep{from{scale:1 .97;translate:0 1px}to{scale:1.03 1.05;translate:0 -3px}}
+.arena-actor:not(.is-running)[data-persona="showoff"] .m-arm{animation:armShowtime .85s ease-in-out infinite alternate}
+@keyframes armShowtime{to{transform:rotate(85deg);translate:0 -7px}}
+.arena-actor:not(.is-running)[data-persona="nervous"] .m-arm{animation:nervousArms .14s ease-in-out infinite alternate}
+@keyframes nervousArms{from{translate:0 -2px}to{translate:2px 1px}}
+.arena-actor.acting-highfive .m-arm.a1,.arena-actor.acting-dance .m-arm.a1{animation:armShowtime .3s ease-in-out 3 alternate}
+.arena-actor.acting-highfive .m-arm.a2,.arena-actor.acting-dance .m-arm.a2{animation:armShowtime .3s ease-in-out 3 alternate}
+.arena-actor.is-glued .m-arm{animation:nervousArms .12s ease-in-out infinite alternate}
+/* Mobile keeps actors readable while retaining four answer zones. */
+.arena-v08 .arena-actor .monster{transform:scale(.49)}
+.arena-v08 .arena-actor.my-actor{filter:drop-shadow(0 0 4px #ffe3a1)!important}
+/* Spectators move physically between two platforms. DOM nodes persist through scoring events. */
+.guess-shell .guess-arena-scene .bleachers{position:relative!important;display:block!important;height:183px!important;min-height:0!important;padding:0!important;background:linear-gradient(90deg,#3778d2bb 0%,#3778d2bb 49.5%,#ffffff50 49.5%,#ffffff50 50.5%,#e58b43bd 50.5%,#e58b43bd 100%),repeating-linear-gradient(180deg,transparent 0,transparent 24px,#0d407e44 25px,#0d407e44 27px)!important;overflow:hidden!important;border:4px solid #ddf6ff!important;border-bottom:0!important;max-width:700px;border-radius:12px 12px 0 0!important}
+.guess-shell .guess-arena-scene .bleachers:before{content:'🔵';position:absolute;z-index:1;top:5px;left:2%;font-size:17px;opacity:.9}
+.guess-shell .guess-arena-scene .bleachers:after{content:'🟠';position:absolute;z-index:1;top:5px;right:2%;font-size:17px;opacity:.9}
+.guess-shell .guess-arena-scene .spectator{position:absolute!important;left:50%;top:50%;width:clamp(17px,2.4vw,24px)!important;height:clamp(20px,2.7vw,28px)!important;min-width:0;display:grid;place-items:center;translate:-50% -50%!important;transition:left .85s cubic-bezier(.2,.82,.2,1),top .78s cubic-bezier(.23,.82,.2,1),background .3s!important;transition-delay:var(--fan-delay,0ms)!important;font-size:clamp(12px,2.2vw,20px)!important;animation:seatBounce 1.7s ease-in-out infinite!important}
+.guess-shell .guess-arena-scene .spectator.fan-blue{background:linear-gradient(#8bc1ffbb,#1456c8e0);box-shadow:0 2px 0 #104495}
+.guess-shell .guess-arena-scene .spectator.fan-orange{background:linear-gradient(#ffda9cbb,#dc702bec);box-shadow:0 2px 0 #a84c16}
+.guess-shell .guess-arena-scene .bleachers.audience-surge .spectator:nth-child(3n){animation:fanCheer .37s ease-out 3!important}
+.audience-momentum{margin:0 auto;padding:5px 8px;max-width:700px;border:2px solid #ffffffc4;border-bottom:0;background:#d9f5ff;color:#195885;font-weight:1000;letter-spacing:.8px;text-align:center;font-size:clamp(10px,1.7vw,12px)}
+.guess-combo-strip{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px;margin:0 0 13px;padding:11px 13px;background:linear-gradient(135deg,#143e75,#3764bb);color:white;border-radius:13px;box-shadow:0 4px 0 #123569}
+.guess-combo-strip span{font-size:12px;font-weight:950}.guess-combo-strip span b{color:#ffec83;font-size:19px}
+.guess-combo-strip strong{font-size:10px;letter-spacing:.3px;color:#ffec99}
+.guess-combo-pips{display:flex;gap:4px}.guess-combo-pips i{width:15px;height:10px;background:#ffffff39;transform:skewX(-20deg);border-radius:2px}.guess-combo-pips i.on{background:#ffdd6d;box-shadow:0 0 9px #ffca59}
+@media(max-width:590px){.guess-shell .guess-arena-scene .bleachers{height:152px!important}.guess-shell .guess-arena-scene .spectator{width:17px!important;height:22px!important;font-size:15px!important}.guess-combo-strip{padding:9px}.guess-combo-strip strong{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.m-arm,.m-body,.guess-shell .guess-arena-scene .spectator{animation:none!important;transition:none!important}.arena-actor .m-arm{animation:none!important}}
+
 </style>
 </head><body>
 <div class="noise"></div><div id="confetti" class="confetti" aria-hidden="true"></div><div id="toastHost" role="status" aria-live="polite"></div>
@@ -901,7 +943,7 @@ const packAvatar=({palette,shape,accessory,face})=>Number(palette)+8*Number(shap
 const PANIKO_GEAR=['','🧢','👑','🕶️','🪐','🎀'];
 function monster(i){
  const c=unpackAvatar(i);
- return `<span class="monster m${c.palette} shape-${c.shape} gear-${c.accessory} face-${c.face}" role="img" aria-label="Paniko personnalisé"><i class="m-horn h1"></i><i class="m-horn h2"></i><span class="m-body"><i class="m-eye e1"></i><i class="m-eye e2"></i><i class="m-mouth"></i><i class="m-cheek"></i></span>${c.accessory?`<span class="m-gear" aria-hidden="true">${PANIKO_GEAR[c.accessory]}</span>`:''}<i class="m-foot f1"></i><i class="m-foot f2"></i></span>`;
+ return `<span class="monster m${c.palette} shape-${c.shape} gear-${c.accessory} face-${c.face}" role="img" aria-label="Paniko personnalisé"><i class="m-horn h1"></i><i class="m-horn h2"></i><span class="m-body"><i class="m-eye e1"></i><i class="m-eye e2"></i><i class="m-mouth"></i><i class="m-cheek"></i></span>${c.accessory?`<span class="m-gear" aria-hidden="true">${PANIKO_GEAR[c.accessory]}</span>`:''}<i class="m-arm a1"><i class="m-hand"></i></i><i class="m-arm a2"><i class="m-hand"></i></i><i class="m-foot f1"></i><i class="m-foot f2"></i></span>`;
 }
 function avatarWorkshop(){
  const chosen=unpackAvatar(S.avatar);
@@ -1112,11 +1154,27 @@ function audienceLiveState(){
  const mineId=S.mode==='solo'?'self':S.myId;
  const mine=Math.max(0,(S.players.find(p=>p.id===mineId)?.score||0)-(S.guessRoundBase?.[mineId]||0));
  const rival=Math.max(0,...S.players.filter(p=>p.id!==mineId).map(p=>Math.max(0,p.score-(S.guessRoundBase?.[p.id]||0))));
- const people=document.querySelectorAll?.('.guess-shell .spectator')||[];
- // Simulated crowd allegiances: start balanced, follow the relative score, animate individually.
- const blue=Math.max(0,Math.min(people.length,Math.round(people.length*(.5+(mine-rival)/(Math.abs(mine)+Math.abs(rival)+70)*.43))));
- const paint=()=>people.forEach((person,i)=>{const isBlue=((i*19)%people.length)<blue;person.classList.remove('fan-neutral');person.classList.toggle('fan-blue',isBlue);person.classList.toggle('fan-orange',!isBlue);person.style.setProperty('--crowd-shift',(isBlue?-1:1)*(6+(i%4)*3)+'px');});
- if(typeof window.requestAnimationFrame==='function')window.requestAnimationFrame(paint);else paint();
+ const audience=document.querySelector?.('.guess-shell .guess-arena-scene .bleachers');if(!audience)return;
+ const people=Array.from(audience.querySelectorAll('.spectator'));
+ const blue=Math.max(4,Math.min(people.length-4,Math.round(people.length*(.5+(mine-rival)/(mine+rival+70)*.43))));
+ const team={blue:[],orange:[]};
+ people.forEach((person,i)=>{const isBlue=((i*19)%people.length)<blue;const side=isBlue?'blue':'orange';team[side].push(person);person.classList.toggle('fan-blue',isBlue);person.classList.toggle('fan-orange',!isBlue);person.classList.remove('fan-neutral');});
+ // Reflow in stable rows rather than putting 64 characters on the same spot.
+ for(const [side,group] of Object.entries(team)){
+  const columns=Math.max(1,Math.ceil(group.length/5));
+  group.forEach((person,j)=>{
+   const col=j%columns,row=Math.floor(j/columns);
+   const width=47, origin=side==='blue'?1:52;
+   const x=origin+(col+.5)*width/columns;
+   const y=12+(row+.45)*70/Math.max(5,Math.ceil(group.length/columns));
+   person.style.left=x.toFixed(2)+'%';person.style.top=y.toFixed(2)+'%';
+   person.style.setProperty('--fan-travel',side==='blue'?'-.5':' .5');
+   person.style.setProperty('--fan-delay',(j%7)*23+'ms');
+  });
+ }
+ const meter=document.getElementById('audienceMomentum');if(meter)meter.textContent='🔵 '+team.blue.length+' SUPPORTERS  ·  '+team.orange.length+' 🟠';
+ const last=Number(audience.dataset.blue??blue);audience.dataset.blue=String(blue);
+ if(Math.abs(blue-last)>=2){audience.classList.remove('audience-surge');void audience.offsetWidth;audience.classList.add('audience-surge');}
 }
 
 function panicSurvivors(){return S.players.filter(p=>p.alive!==false);}
@@ -1236,16 +1294,16 @@ function requestOnline(action){
 function connect(){
  const url=(location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws';
  try{S.ws=new WebSocket(url)}catch(e){toast('Impossible de joindre le serveur.');return;}
- S.ws.onopen=()=>{S.reconnectAttempt=0;S.ws.send(JSON.stringify({type:'hello',token:S.token}));};
+ S.ws.onopen=()=>{S.ws.send(JSON.stringify({type:'hello',token:S.token}));};
  S.ws.onmessage=ev=>{let msg;try{msg=JSON.parse(ev.data);}catch{return;}onMessage(msg);};
- S.ws.onclose=()=>{if(S.mode==='online'&&(S.screen==='lobby'||S.screen==='game')){toast('Connexion perdue : reconnexion en cours…');const delay=Math.min(8000,1000*2**Math.min(3,S.reconnectAttempt++));setTimeout(()=>{if(S.mode==='online')connect();},delay);}};
+ S.ws.onclose=()=>{if(S.mode==='online'&&(S.screen==='lobby'||S.screen==='game'||S.screen==='result')){toast('Connexion perdue : reconnexion en cours…');const delay=Math.min(8000,1000*2**Math.min(3,S.reconnectAttempt++));setTimeout(()=>{if(S.mode==='online')connect();},delay);}};
  S.ws.onerror=()=>{};
 }
 function send(obj){if(S.ws&&S.ws.readyState===1){S.ws.send(JSON.stringify(obj));return true;}toast('Serveur hors ligne : réessaie.');return false;}
 function onMessage(m){
  if(m.type==='error'){toast(m.message);S.queued=null;return;}
- if(m.type==='ready'){if(S.queued){const fn=S.queued;S.queued=null;fn();}return;}
- if(m.type==='welcome'){S.myId=m.id;S.code=m.code;S.mode='online';S.screen='lobby';redraw();if(m.reconnected)toast('Reconnexion réussie !');return;}
+ if(m.type==='ready'){S.reconnectAttempt=0;if(S.recovering&&!S.queued){S.recovering=false;setSession('qpl-online-active','0');S.mode=null;S.screen='online';redraw();toast('Ton ancien salon est terminé. Tu peux créer une nouvelle partie.');}if(S.queued){const fn=S.queued;S.queued=null;fn();}return;}
+ if(m.type==='welcome'){S.reconnectAttempt=0;S.recovering=false;S.queued=null;setSession('qpl-online-active','1');S.myId=m.id;S.code=m.code;S.mode='online';S.screen='lobby';redraw();if(m.reconnected)toast('Reconnexion réussie !');return;}
  if(m.type==='room'){
   if(m.style)S.gameStyle=m.style;if(m.format)S.panicFormat=m.format;S.room=m;S.players=m.players;S.code=m.code;
   if(m.phase==='lobby'||m.phase==='starting'){if(S.screen!=='game'&&S.screen!=='result'){S.screen='lobby';redraw();}}
@@ -1280,7 +1338,7 @@ function onMessage(m){
  }
  if(m.type==='finished'){S.ranking=m.ranking;S.screen='result';clearInterval(tickTimer);S.resultMode='online';redraw();fireworks(150);voice('end');return;}
  if(m.type==='reaction'){showReaction(m.emoji);return;}
- if(m.type==='left'){S.code=null;S.room=null;S.myId=null;S.players=[];S.mode=null;S.screen='home';redraw();return;}
+ if(m.type==='left'){setSession('qpl-online-active','0');S.code=null;S.room=null;S.myId=null;S.players=[];S.mode=null;S.screen='home';redraw();return;}
 }
 function showReaction(emoji){const div=document.createElement('div');div.className='reaction-float';div.style.left=(20+Math.random()*60)+'%';div.style.top=(55+Math.random()*20)+'%';div.textContent=emoji;document.body.append(div);setTimeout(()=>div.remove(),1600);}
 function renderLobby(){const r=S.room||{code:S.code,players:S.players,category:'Toutes',total:10};const me=(r.players||[]).find(p=>p.id===S.myId);const isHost=!!me?.host;const isGuess=(r.style||S.gameStyle)==='guess';
@@ -1398,8 +1456,10 @@ function submitGuess(){
 function finishGuessSoloRound(){if(S.reveal)return;clearAI();clearInterval(tickTimer);const game=S.solo,gs=S.guessEntries;if(gs.some(g=>g.points>0))game.correct++;S.reveal={style:'guess',answers:S.q.answers.map(a=>({label:a.label,score:a.score})),results:[{id:'self',ok:gs.some(g=>g.points>0),points:gs.reduce((t,g)=>t+g.points,0),found:gs.filter(g=>g.index>=0).map(g=>g.index)}],players:S.players};redraw();soloAdvanceTimer=setTimeout(()=>{game.round++;startSoloRound();},4700);}
 function crowdPeople(score,theme){const amount=Math.max(3,Math.min(34,Math.floor(score/12)+3));const symbols=['👩🏻','👨🏽','🧑🏼','👩🏾','🧑🏻','👨🏿','👩🏼','👨🏻','👩🏽','🧑🏾'];return Array.from({length:amount},(_,i)=>`<span style="animation-delay:${(i%8)*.07}s" class="crowd-person ${theme}">${symbols[i%symbols.length]}</span>`).join('');}
 function renderCrowdScores(){const el=$('fouleBar');if(!el)return;const mine=S.players.find(x=>x.id===(S.mode==='solo'?'self':S.myId))?.score||0;const rival=Math.max(0,...S.players.filter(x=>x.id!==(S.mode==='solo'?'self':S.myId)).map(p=>p.score));const crowdMine=Math.max(0,mine);el.innerHTML=`<div class="team"><b>🔵 ${escape(S.name)}</b><strong>${mine}</strong></div><div class="audience-track"><span style="width:${Math.round(50+(mine-rival)/(Math.abs(mine)+Math.abs(rival)+70)*43)}%"></span></div><div class="team rival"><b>🟠 ${S.mode==='solo'?'MISTER TEMPO':'RIVAUX'}</b><strong>${rival}</strong></div>`;audienceLiveState();}
-function renderGuessGame(){const q=S.q;if(!q)return;const reveal=S.reveal,entries=S.guessEntries||[];const me=S.players.find(x=>x.id===(S.mode==='solo'?'self':S.myId))||{score:0};const potential=reveal?reveal.answers:[];
- $('main').innerHTML=`<div class="game-shell guess-shell"><div class="game-top"><span class="round-pill">🎯 QUESTION <span>${S.round}</span> / ${S.total}</span><span class="game-code">${S.mode==='online'?'SALON '+escape(S.code):'DÉFI SOLO · MISTER TEMPO'}</span><button class="back-btn" data-action="exitGame">✕ Quitter</button></div><div class="tv-frame guess-studio"><div class="tv-head"><div class="host-avatar">${presenter()}</div><div class="host-quote" id="hostQuote">« ${reveal?'Et voici les réponses !':S.guessNotice||'Que répondrait notre public déjanté ?'} »</div><div class="small-logo">🎯 PUBLIC!</div></div><div class="foule-stage"><div class="foule-title">LE PUBLIC DÉCIDE <small>LE DUEL DES RÉPONSES · PUBLIC SIMULÉ</small></div><div class="foule-question"><span>${escape(q.category)}</span><h2>${escape(q.question)}</h2>${S.effect?`<small>${escape(S.effect.icon)} ${escape(S.effect.title)}</small>`:''}</div><div id="fouleBar" class="foule-bar"></div><div class="guess-arena-scene"><div class="guess-stand-crest">🎪 LA TRIBUNE DES RÉPONSES</div><div class="bleachers">${createSpectators()}</div><div class="guess-arena-floor"><span>TRIBUNE BLEUE</span><span>TRIBUNE ORANGE</span></div></div><div class="bot-ticker" id="botTicker" aria-live="polite">🎙️ Le duel est lancé : fais réagir les gradins !</div><div class="player-podiums"><div class="podium-person blue-contestant"><span>${monster(S.avatar)}</span><b>${escape(S.name)}</b></div><div class="live-announcer">${reveal?'📣 TOP RÉPONSES':'🎤 À TOI DE JOUER !'}</div><div class="podium-person orange-contestant"><span>${monster(314)}</span><b>${S.mode==='solo'?'MISTER TEMPO':'LES RIVAUX'}</b></div></div></div><div class="guess-controls">${guessAnswerBoard()}${reveal?`<div class="answer-reveal-grid">${potential.map((a,i)=>`<div class="top-answer ${entries.some(g=>g.index===i)?'found':''}"><strong>${i+1}. ${escape(a.label)}</strong><span>${a.score} pts ${entries.some(g=>g.index===i)?'✓':''}</span></div>`).join('')}</div><div class="guess-status">Tu as trouvé ${entries.filter(g=>g.index>=0).length} réponse(s) sur 6 !</div><p class="next-show">Prochaine question dans un instant…</p>`:`<form id="guessForm" class="guess-form"><label for="guessInput">TA PROPOSITION · ${Math.max(0,6-S.guessUsed)} ESSAIS RESTANTS</label><div class="guess-input-row"><input id="guessInput" type="text" maxlength="65" autocomplete="off" autocapitalize="sentences" placeholder="Écris une réponse…" ${S.guessUsed>=6?'disabled':''}/><button class="btn btn-pink" type="submit" ${S.guessUsed>=6?'disabled':''}>VALIDER ➜</button></div></form><div class="guess-hint-row"><button type="button" class="btn btn-hint" data-action="guessHint" ${S.guessHintUsed?'disabled':''}>💡 ${S.guessHintUsed?'INDICE UTILISÉ':'UN INDICE (−15 points)'}</button>${S.guessHint?`<span class="hint-copy">${escape(S.guessHint)}</span>`:'<span class="hint-copy">Une lettre pour t’aider, sans révéler la réponse.</span>'}</div><div class="guess-history">${entries.map(g=>`<span class="guess-chip ${g.points?'yes':'no'}">${escape(g.text)} ${g.points?'+'+g.points+' 👏':'✕'}</span>`).join('')||'<span class="help-note">Six propositions possibles. Chaque réponse unique fait venir du public de ton côté !</span>'}</div>${S.guessUsed>=6?'<div class="guess-status">Tu as donné tes six idées. Place au suspense !</div>':''}`}</div>${reveal?'<div class="waiting-state">🎤 Le présentateur prépare la suite…</div>':timerMarkup()}</div><div class="scoreboard"><h3>🏆 SCORE DU PLATEAU</h3><div class="scores" id="scoreTiles">${scoreTiles()}</div></div></div>`;
+function guessComboMeter(){const streak=Math.min(4,Math.max(0,S.guessCombo||0));return '<div class="guess-combo-strip" aria-label="Combo de bonnes réponses"><span>⚡ SÉRIE : <b>'+streak+'</b></span><div class="guess-combo-pips">'+Array.from({length:4},(_,i)=>'<i class="'+(i<streak?'on':'')+'"></i>').join('')+'</div><strong>'+(streak?'BONUS ACTIF +'+Math.min(9,streak*3):'enchaîne les réponses pour un bonus')+'</strong></div>';}
+function renderGuessGame(){const q=S.q;if(!q)return;const previousAudience=document.querySelector?.('.guess-shell .guess-arena-scene .bleachers');const existingTicker=document.querySelector?.('.guess-shell #botTicker');const reveal=S.reveal,entries=S.guessEntries||[];const me=S.players.find(x=>x.id===(S.mode==='solo'?'self':S.myId))||{score:0};const potential=reveal?reveal.answers:[];
+ $('main').innerHTML=`<div class="game-shell guess-shell"><div class="game-top"><span class="round-pill">🎯 QUESTION <span>${S.round}</span> / ${S.total}</span><span class="game-code">${S.mode==='online'?'SALON '+escape(S.code):'DÉFI SOLO · MISTER TEMPO'}</span><button class="back-btn" data-action="exitGame">✕ Quitter</button></div><div class="tv-frame guess-studio"><div class="tv-head"><div class="host-avatar">${presenter()}</div><div class="host-quote" id="hostQuote">« ${reveal?'Et voici les réponses !':S.guessNotice||'Que répondrait notre public déjanté ?'} »</div><div class="small-logo">🎯 PUBLIC!</div></div><div class="foule-stage"><div class="foule-title">LE PUBLIC DÉCIDE <small>LE DUEL DES RÉPONSES · PUBLIC SIMULÉ</small></div><div class="foule-question"><span>${escape(q.category)}</span><h2>${escape(q.question)}</h2>${S.effect?`<small>${escape(S.effect.icon)} ${escape(S.effect.title)}</small>`:''}</div><div id="fouleBar" class="foule-bar"></div><div class="guess-arena-scene"><div class="guess-stand-crest">🎪 LA TRIBUNE DES RÉPONSES</div><div class="bleachers" data-round="${S.round}">${createSpectators()}</div><div class="audience-momentum" id="audienceMomentum" aria-live="polite">🔵 32 SUPPORTERS · 32 🟠</div><div class="guess-arena-floor"><span>TRIBUNE BLEUE</span><span>TRIBUNE ORANGE</span></div></div><div class="bot-ticker" id="botTicker" aria-live="polite">🎙️ Le duel est lancé : fais réagir les gradins !</div><div class="player-podiums"><div class="podium-person blue-contestant"><span>${monster(S.avatar)}</span><b>${escape(S.name)}</b></div><div class="live-announcer">${reveal?'📣 TOP RÉPONSES':'🎤 À TOI DE JOUER !'}</div><div class="podium-person orange-contestant"><span>${monster(314)}</span><b>${S.mode==='solo'?'MISTER TEMPO':'LES RIVAUX'}</b></div></div></div><div class="guess-controls">${guessComboMeter()}${guessAnswerBoard()}${reveal?`<div class="answer-reveal-grid">${potential.map((a,i)=>`<div class="top-answer ${entries.some(g=>g.index===i)?'found':''}"><strong>${i+1}. ${escape(a.label)}</strong><span>${a.score} pts ${entries.some(g=>g.index===i)?'✓':''}</span></div>`).join('')}</div><div class="guess-status">Tu as trouvé ${entries.filter(g=>g.index>=0).length} réponse(s) sur 6 !</div><p class="next-show">Prochaine question dans un instant…</p>`:`<form id="guessForm" class="guess-form"><label for="guessInput">TA PROPOSITION · ${Math.max(0,6-S.guessUsed)} ESSAIS RESTANTS</label><div class="guess-input-row"><input id="guessInput" type="text" maxlength="65" autocomplete="off" autocapitalize="sentences" placeholder="Écris une réponse…" ${S.guessUsed>=6?'disabled':''}/><button class="btn btn-pink" type="submit" ${S.guessUsed>=6?'disabled':''}>VALIDER ➜</button></div></form><div class="guess-hint-row"><button type="button" class="btn btn-hint" data-action="guessHint" ${S.guessHintUsed?'disabled':''}>💡 ${S.guessHintUsed?'INDICE UTILISÉ':'UN INDICE (−15 points)'}</button>${S.guessHint?`<span class="hint-copy">${escape(S.guessHint)}</span>`:'<span class="hint-copy">Une lettre pour t’aider, sans révéler la réponse.</span>'}</div><div class="guess-history">${entries.map(g=>`<span class="guess-chip ${g.points?'yes':'no'}">${escape(g.text)} ${g.points?'+'+g.points+' 👏':'✕'}</span>`).join('')||'<span class="help-note">Six propositions possibles. Chaque réponse unique fait venir du public de ton côté !</span>'}</div>${S.guessUsed>=6?'<div class="guess-status">Tu as donné tes six idées. Place au suspense !</div>':''}`}</div>${reveal?'<div class="waiting-state">🎤 Le présentateur prépare la suite…</div>':timerMarkup()}</div><div class="scoreboard"><h3>🏆 SCORE DU PLATEAU</h3><div class="scores" id="scoreTiles">${scoreTiles()}</div></div></div>`;
+ if(previousAudience&&previousAudience.dataset.round===String(S.round)){document.querySelector('.guess-shell .guess-arena-scene .bleachers')?.replaceWith(previousAudience);if(existingTicker)document.querySelector('.guess-shell #botTicker')?.replaceWith(existingTicker);}
  renderCrowdScores();hostMood(reveal?'win':'speak');if(!reveal&&S.guessUsed<6&&S.mode==='solo')$('guessInput')?.focus();
 }
 function finishSolo(){clearInterval(tickTimer);S.screen='result';S.resultMode='solo';S.ranking=S.players;const best=Number(getStore('qpl-best')||0);if(S.solo.score>best)setStore('qpl-best',String(S.solo.score));redraw();fireworks(130);voice('end');}
@@ -1436,7 +1496,7 @@ function podium(rank,idx){if(!rank)return `<div class="podium-place ${['second',
 function renderResult(){const ranked=S.gameStyle==='panic'?[...(S.ranking||[])].sort((a,b)=>(b.alive!==false?1:0)-(a.alive!==false?1:0)||b.score-a.score):S.resultMode==='solo'?[...S.ranking]:[...(S.ranking||[])].sort((a,b)=>b.score-a.score||b.correct-a.correct);const second=ranked[1],first=ranked[0],third=ranked[2];const isSolo=S.resultMode==='solo';
  $('main').innerHTML=`<div class="result-title"><div class="tagline">🎤 LE GRAND FINAL</div><h1>${S.gameStyle==='panic'?(ranked[0]?.id===(S.mode==='solo'?'self':S.myId)&&ranked[0]?.alive!==false?'🏆 CHAMPION DE L’ARÈNE !':'💥 FIN DE L’ARÈNE !'):isSolo?'FIN DU SHOW !':'AND THE WINNER IS...'}</h1><p>${isSolo?`Tu as répondu correctement à <b>${S.solo.correct}</b> question${S.solo.correct>1?'s':''} sur ${S.gameStyle==='panic'?Math.min(S.round,S.total):S.total}. Ton record : <b>${Number(getStore('qpl-best')||0).toLocaleString('fr-FR')} points</b>.`:'Quelle émission ! Les neurones ont chauffé, le plateau a tenu… de justesse !'}</p></div><div class="podium">${podium(second,0)}${podium(first,1)}${podium(third,2)}</div>${ranked.length>3?`<div class="rest-list">${ranked.slice(3).map((p,i)=>`<div class="player-tile"><span>${i+4}e</span><div class="av">${monster(p.avatar)}</div>${escape(p.name)}<small>${p.score} pts</small></div>`).join('')}</div>`:''}<div class="result-actions"><button class="btn btn-primary" data-action="${isSolo?'againSolo':'againOnline'}">🔁 REJOUER</button><button class="btn btn-ghost" data-action="home">← ACCUEIL</button></div>`;
 }
-function leave(){clearAI();clearInterval(tickTimer);clearTimeout(soloAdvanceTimer);if(S.mode==='online'&&S.room)send({type:'leave'});S.mode=null;S.room=null;S.code=null;S.myId=null;S.spectating=false;S.q=null;S.answer=null;S.screen='home';redraw();}
+function leave(){setSession('qpl-online-active','0');clearAI();clearInterval(tickTimer);clearTimeout(soloAdvanceTimer);if(S.mode==='online'&&S.room)send({type:'leave'});S.mode=null;S.room=null;S.code=null;S.myId=null;S.spectating=false;S.q=null;S.answer=null;S.screen='home';redraw();}
 function startOnlineAction(kind){S.mode='online';const name=(S.name||'Invité').trim().slice(0,18)||'Invité';if(kind==='create')requestOnline(()=>send({type:'create',name,avatar:S.avatar,style:S.gameStyle}));else{const code=($('joinCode')?.value||'').trim().toUpperCase();if(code.length!==6)return toast('Saisis un code de salon à 6 caractères.');requestOnline(()=>send({type:'join',name,avatar:S.avatar,code}));}}
 $('main').addEventListener('input',ev=>{if(ev.target.id==='nickname'){S.name=ev.target.value.slice(0,18);persist();}});
 $('main').addEventListener('change',ev=>{if(ev.target.dataset.avatarPart){const parts=unpackAvatar(S.avatar);parts[ev.target.dataset.avatarPart]=Number(ev.target.value);S.avatar=packAvatar(parts);persist();const preview=$('avatarPreview');if(preview)preview.innerHTML=monster(S.avatar)+'<span>TON PANIKO</span>';const count=$('avatar-count');if(count)count.textContent='LOOK N°'+(S.avatar+1)+' / 576';return;}if(ev.target.id==='soloRounds'){S.total=Number(ev.target.value);}if(ev.target.id==='panicFormat'){S.panicFormat=ev.target.value;}if(['roomRounds','roomCategory','roomFormat'].includes(ev.target.id)){const rounds=Number($('roomRounds').value),cat=$('roomCategory').value;send({type:'config',total:rounds,category:cat,format:$('roomFormat')?.value||S.panicFormat});}});
@@ -1472,7 +1532,10 @@ $('helpModal').addEventListener('click',ev=>{if(ev.target===$('helpModal'))$('he
 window.addEventListener('keydown',ev=>{if(ev.key==='Escape'){$('helpModal').classList.add('hidden');return;}if(S.screen!=='game'||S.gameStyle==='guess'||S.reveal||/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName||''))return;const v=Number(ev.key);if(v>=1&&v<=4){const indexes=S.effect?.id==='reverse'?[3,2,1,0]:[0,1,2,3];const index=indexes[v-1];if(S.mode==='solo')answerSolo(index);else send({type:'answer',option:index});}});
 if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
 const params=new URLSearchParams(location.search);const roomInURL=params.get('salon');if(roomInURL&&/^[a-f0-9]{6}$/i.test(roomInURL)){S.screen='online';}
+const resumeLiveRoom=location.protocol!=='file:'&&getSession('qpl-online-active')==='1'&&!!getSession('qpl-token');
+if(resumeLiveRoom){S.mode='online';S.screen='online';S.token=getSession('qpl-token');S.recovering=true;}
 redraw();
+if(resumeLiveRoom)connect();
 })();
 
 </script>
