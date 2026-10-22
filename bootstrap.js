@@ -1,7 +1,9 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
-const source=fs.readFileSync(path.join(__dirname,'index.html'),'utf8'),dir=path.join(__dirname,'public');
+let source=fs.readFileSync(path.join(__dirname,'index.html'),'utf8');
+const dir=path.join(__dirname,'public');
 fs.mkdirSync(dir,{recursive:true});
+source=require('./patch_bootstrap').applyLiveRecoveryPatch(source);
 const start=source.indexOf('<script>'),a=source.indexOf('/* Quiz Panic Live original',start),b=source.indexOf('window.QUIZ_BANK=',a),c=source.indexOf('/* Quiz Panic Live: 12',b),d=source.indexOf("\n(() => {\n'use strict';",c);
 if([start,a,b,c,d].some(n=>n<0))throw Error('Édition V1.0 incomplète');
 fs.writeFileSync(path.join(dir,'panic-rules.js'),source.slice(a,b));
