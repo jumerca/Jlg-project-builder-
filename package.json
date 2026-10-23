@@ -1,8 +1,8 @@
 {
   "name": "quiz-panic-live",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
-  "description": "Quiz Panic Arena, unique mode solo et WebSocket multijoueur",
+  "description": "Quiz Panic Live Paniko Motion, 32 personnages articulés, solo et multiplayer PWA",
   "scripts": {
     "start": "node bootstrap.js && node server.js"
   },
