@@ -7,6 +7,7 @@ source=require('./patch_bootstrap').applyLiveRecoveryPatch(source);
 source=require('./pwa_install').applyPWA(source);
 source=require('./panic_only_v14').applyPanicOnly(source);
 source=require('./paniko_v15').applyMotionV15(source);
+source=require('./paniko_ai_v16').applyAI(source);
 const start=source.indexOf('<script>'),a=source.indexOf('/* Quiz Panic Live original',start),b=source.indexOf('window.QUIZ_BANK=',a),c=source.indexOf('/* Quiz Panic Live: 12',b),d=source.indexOf("\n(() => {\n'use strict';",c);
 if([start,a,b,c,d].some(n=>n<0))throw Error('Édition V1.0 incomplète');
 fs.writeFileSync(path.join(dir,'panic-rules.js'),source.slice(a,b));
