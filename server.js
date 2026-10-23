@@ -61,7 +61,7 @@ function pickQuestions(r){
  for(let i=topics.length-1;i>0;i--){const j=crypto.randomInt(i+1);[topics[i],topics[j]]=[topics[j],topics[i]];}
  for(let i=0;i<r.total;i++){
   const ratio=i/Math.max(1,r.total-1),tier=ratio<.27?1:ratio<.63?2:3;
-  const topic=r.category==='Toutes'?(tier===3?topics[i%topics.length]:(i%11===10?'Calcul & logique':topics[i%topics.length])):r.category;
+  const topic=r.category==='Toutes'?((i===Math.floor(r.total*.36)||(r.total>=12&&i===Math.floor(r.total*.58)))?'Calcul & logique':topics[i%topics.length]):r.category;
   const fresh=available.filter(q=>!used.has(q.id));
   const exact=fresh.filter(q=>q.difficulty===tier&&q.category===topic);
   const level=fresh.filter(q=>q.difficulty===tier&&q.category!=='Calcul & logique');
