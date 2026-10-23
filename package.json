@@ -1,8 +1,8 @@
 {
   "name": "quiz-panic-live",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
-  "description": "Quiz Panic Live Paniko Motion, 32 personnages articulés, solo et multiplayer PWA",
+  "description": "Quiz Panic Live — Panic Arena with 12 adaptive AI competitor behaviors",
   "scripts": {
     "start": "node bootstrap.js && node server.js"
   },
