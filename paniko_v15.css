@@ -1,0 +1,101 @@
+/* Quiz Panic Live V1.5 · PANIKO MOTION · stylised 2.5D (not a 3D engine) */
+:root{--qpl-motion-brand:#7bf6ff}
+.monster{isolation:isolate;perspective:150px;filter:drop-shadow(0 5px 3px #030b245c)}
+.monster .m-shadow{position:absolute;z-index:-1;left:12%;right:12%;bottom:0;height:9px;border-radius:50%;background:#05082399;filter:blur(3px);pointer-events:none}
+.monster .m-body{overflow:visible;border-color:#2d2758;border-width:1.8px;background:radial-gradient(ellipse at 26% 12%,#ffffffc9 0%,#ffffff42 15%,transparent 43%),radial-gradient(ellipse at 74% 75%,#00000033,transparent 57%),linear-gradient(125deg,var(--skin) 0%,var(--skin) 28%,var(--shade) 95%);box-shadow:inset 2px 3px 4px #ffffff6b,inset -5px -7px 10px #00000035,2px 4px 1px #060a2d34;transform-style:preserve-3d;backface-visibility:hidden}
+.monster .m-body:before{content:'';position:absolute;z-index:1;left:9%;top:4%;width:40%;height:18%;transform:rotate(-20deg);border-radius:50%;background:linear-gradient(#ffffffa6,#ffffff00);pointer-events:none}
+.monster .m-belly{position:absolute;left:22%;right:22%;bottom:5px;height:34%;background:radial-gradient(ellipse,#ffffff4d,#ffffff00 72%);border-radius:50%;pointer-events:none}
+.monster .m-eye{overflow:hidden;top:13px;z-index:6;width:16px;height:19px;border:1.8px solid #293259;box-shadow:inset -2px -2px 3px #9cbdd2,0 2px 2px #0004;background:linear-gradient(125deg,#fff,#edf9ff)}
+.monster .m-eye:after{left:6px;top:8px;width:6px;height:7px;background:radial-gradient(circle at 38% 31%,#91eaff 0 17%,#222455 25% 58%,#0b1237 78%);box-shadow:0 0 1px #05082e}
+.monster .m-eye:before{content:'';position:absolute;z-index:6;width:3px;height:3px;border-radius:50%;background:white;left:8px;top:8px}
+.monster .m-brow{position:absolute;top:9px;width:14px;height:4px;border-radius:80% 80% 40% 40%;background:#443153;border:0;z-index:7;box-shadow:0 1px 1px #fffc}
+.monster .m-brow.b1{left:7px;transform:rotate(-8deg)}.monster .m-brow.b2{right:7px;transform:rotate(8deg)}
+.monster .m-mouth{z-index:8;top:34px;left:17px;width:15px;height:7px;border:1px solid #541d53;border-bottom:2px solid #fff6;background:radial-gradient(ellipse at 50% 115%,#ed647b 0 33%,#442142 45% 100%);border-radius:10% 10% 95% 95%;box-shadow:0 -1px 2px #0003}
+.monster .m-cheek{z-index:7;bottom:11px;background:#ff819f85;box-shadow:27px 0 #ff819f66;width:6px;height:4px}
+.monster .m-horn{background:linear-gradient(140deg,var(--skin),var(--shade));box-shadow:inset -3px -3px 3px #0002}
+.monster .m-arm{top:23px;width:12px;height:24px;border:1.7px solid #38264c;box-shadow:inset 2px 3px 3px #fff7,inset -2px -2px 3px #0004;transform-origin:50% 18%;border-radius:12px;will-change:transform}
+.monster .m-arm.a1{left:-1px}.monster .m-arm.a2{right:-1px}
+.monster .m-arm .m-forearm{position:absolute;display:block;bottom:-2px;left:-1px;width:10px;height:12px;border-radius:11px;background:linear-gradient(115deg,var(--skin),var(--shade));transform-origin:50% 20%}
+.monster .m-arm .m-hand{left:-3px;bottom:-9px;width:13px;height:13px;border:1.5px solid #3b234b;background:radial-gradient(circle at 25% 20%,#ffffff92,transparent 50%),var(--skin);box-shadow:inset -2px -2px 2px #0004}
+.monster .m-leg{position:absolute;bottom:4px;z-index:0;width:10px;height:17px;background:linear-gradient(95deg,var(--skin),var(--shade));border:1.5px solid #322448;border-radius:11px;transform-origin:50% 7%;will-change:transform}
+.monster .m-leg.l1{left:14px}.monster .m-leg.l2{right:14px}
+.monster .m-foot{bottom:-3px;width:17px;height:10px;border-width:1.7px;border-color:#322448;background:radial-gradient(ellipse at 22% 17%,#ffffff86,transparent 40%),linear-gradient(160deg,var(--skin),var(--shade));border-radius:75% 60% 35% 28%;box-shadow:0 2px 1px #03091c5e}
+.monster .m-leg .m-foot.f1,.monster .m-leg .m-foot.f2{position:absolute;left:-4px;right:auto;bottom:-3px}
+.monster.shape-0 .m-body{border-radius:50% 49% 42% 42% / 53% 53% 43% 45%}
+.monster.shape-1 .m-body{border-radius:44% 45% 28% 30%/50% 51% 29% 31%;box-shadow:inset -3px -7px 6px #0003}
+.monster.shape-2 .m-body{border-radius:20% 25% 22% 21%;transform:rotate(-3deg)}
+.monster.shape-3 .m-body{border-radius:56% 56% 42% 42% / 74% 74% 26% 28%}
+.monster.shape-1 .m-leg{bottom:3px;height:19px}
+.monster.shape-2 .m-leg{height:12px}
+.monster.gear-3 .m-gear{z-index:9;top:19px}
+.monster.face-1 .m-brow.b1{transform:rotate(-23deg)}.monster.face-1 .m-brow.b2{transform:rotate(13deg)}
+.monster.face-1 .m-eye:after{left:8px}.monster.face-1 .m-eye:before{left:10px}
+.monster.face-2 .m-brow.b1{transform:rotate(17deg)}.monster.face-2 .m-brow.b2{transform:rotate(-17deg)}
+.monster.face-2 .m-mouth{height:15px;border:2px solid #5c1d56;border-radius:50%}
+.monster.m2 .m-brow.b2,.monster.m5 .m-brow.b2{opacity:0}
+.monster .m-gear{filter:drop-shadow(0 2px 2px #001a32aa)}
+/* The large portrait makes the new anatomy legible even on narrow screens. */
+.paniko-workshop{border-color:#6be5f47a;background:radial-gradient(circle at 10% 0%,#7b53c94d,transparent 50%),linear-gradient(136deg,#162b49,#191d42);box-shadow:0 12px 33px #0004,inset 0 1px #ffffff19}
+.workshop-preview{position:relative;overflow:hidden;box-shadow:inset 0 -20px 46px #061b46aa,0 12px 32px #040a2066;border-color:#a6f7ff75}
+.workshop-preview:before{content:'';position:absolute;top:-48%;left:9%;width:80%;height:120%;pointer-events:none;background:linear-gradient(110deg,#8af1ff30,transparent 66%);transform:rotate(-14deg)}
+.workshop-preview:after{content:'PANIKO FACTORY · 2.5D';position:absolute;bottom:6px;color:#a6e5ff94;font-size:9px;letter-spacing:.2em;font-weight:900}
+.workshop-preview .monster{filter:drop-shadow(0 12px 6px #01071655);animation:v15Float 2.8s ease-in-out infinite}
+.workshop-preview .m-eye:after{animation:v15LookAround 5.2s ease-in-out infinite}
+.workshop-preview .m-brow{animation:v15Curious 4s ease-in-out infinite}
+@keyframes v15Float{0%,100%{translate:0 0;rotate:-2deg}50%{translate:0 -5px;rotate:2deg}}
+@keyframes v15LookAround{0%,25%,80%,100%{translate:0 0}40%,60%{translate:2px 0}70%{translate:-2px 0}}
+@keyframes v15Curious{0%,80%,100%{translate:0 0}90%{translate:0 -2px}}
+/* Rig parts have separate motion and respect accessory combinations. */
+.arena-actor .actor-body{--v15-cycle:370ms;animation:actorBreathing 2.6s ease-in-out infinite;filter:drop-shadow(0 3px 3px #06102386)}
+.arena-actor .m-leg.l1,.arena-actor .m-leg.l2{animation:v15IdleLeg 2.4s ease-in-out infinite alternate}
+.arena-actor .m-leg.l2{animation-delay:-1.2s}
+@keyframes v15IdleLeg{0%,65%{transform:rotate(0)}100%{transform:rotate(7deg)}}
+.arena-actor.is-running .actor-body{animation:v15BodyBounce var(--v15-cycle) ease-in-out infinite alternate}
+.arena-actor.is-running .m-leg.l1{animation:v15StepA var(--v15-cycle) ease-in-out infinite alternate}
+.arena-actor.is-running .m-leg.l2{animation:v15StepB var(--v15-cycle) ease-in-out infinite alternate}
+.arena-actor.is-running .m-arm.a1{animation:v15ArmA var(--v15-cycle) ease-in-out infinite alternate}
+.arena-actor.is-running .m-arm.a2{animation:v15ArmB var(--v15-cycle) ease-in-out infinite alternate}
+.arena-actor.is-running .m-foot.f1,.arena-actor.is-running .m-foot.f2{animation:none}
+@keyframes v15BodyBounce{from{transform:translateY(1px) rotate(-5deg)}to{transform:translateY(-4px) rotate(5deg)}}
+@keyframes v15StepA{from{transform:rotate(35deg)}to{transform:rotate(-35deg)}}
+@keyframes v15StepB{from{transform:rotate(-35deg)}to{transform:rotate(35deg)}}
+@keyframes v15ArmA{from{transform:rotate(-50deg)}to{transform:rotate(42deg)}}
+@keyframes v15ArmB{from{transform:rotate(42deg)}to{transform:rotate(-50deg)}}
+.arena-actor[data-pose="think"] .m-brow.b1{rotate:-19deg}.arena-actor[data-pose="think"] .m-arm.a1{animation:v15Think 1.3s ease-in-out infinite alternate}
+.arena-actor[data-pose="waver"] .actor-body{animation:v15Waver 1.4s ease-in-out infinite alternate}
+.arena-actor[data-pose="panic"] .m-eye{scale:1.04 1.17}.arena-actor[data-pose="panic"] .m-brow{translate:0 -2px}
+.arena-actor[data-pose="panic"] .m-arm{animation:v15HandsUp .16s linear infinite alternate}
+.arena-actor[data-pose="champion"] .m-arm{animation:v15HandsUp .55s ease-in-out infinite alternate}.arena-actor[data-pose="champion"] .actor-body{animation:v15Jump .62s cubic-bezier(.1,.85,.6,1) infinite alternate}
+.arena-actor[data-pose="oops"] .m-arm{transform:rotate(75deg)}.arena-actor[data-pose="oops"] .m-mouth{height:15px;border-radius:50%}.arena-actor[data-pose="oops"] .actor-body{animation:v15Oops 1.3s ease-in-out infinite alternate}
+.arena-actor[data-pose="brake"] .actor-body{animation:v15Brake .4s ease-out 1}
+.arena-actor[data-pose="glued"] .m-leg{animation:v15GlueLeg .19s ease-in-out infinite alternate}
+.arena-actor[data-pose="turn"] .actor-body{animation:v15Turn .65s ease-out 1}
+@keyframes v15Think{from{transform:rotate(25deg)}to{transform:rotate(75deg) translateY(-3px)}}
+@keyframes v15Waver{to{transform:rotate(8deg) translateX(2px)}}
+@keyframes v15HandsUp{to{transform:rotate(125deg) translateY(-4px)}}
+@keyframes v15Jump{to{transform:translateY(-8px) scale(1.06)}}
+@keyframes v15Oops{to{transform:rotate(9deg) translateY(3px)}}
+@keyframes v15Brake{0%{transform:skewX(0deg)}50%{transform:skewX(-16deg)}100%{transform:none}}
+@keyframes v15GlueLeg{to{transform:rotate(15deg) translateY(-2px)}}
+@keyframes v15Turn{50%{transform:rotateY(65deg)}to{transform:rotateY(0)}}
+.arena-actor.my-actor:after{content:'★';font-size:13px;top:-15px;filter:drop-shadow(0 0 6px #ffe68a)}
+.arena-v08 .arena-actor .monster{transform:scale(.53);transform-origin:50% 48%;}
+.arena-v08 .arena-actor{filter:drop-shadow(0 2px 3px #040a28)!important}
+.arena-v08 .arena-actor.my-actor{z-index:19;outline:2px solid #fce18e;border-radius:13px;background:#ffe79a1c!important;box-shadow:0 0 0 4px #ffeaa326,0 0 18px #fff29c4f}
+/* The live PanikoCam is intentionally concise and preserves the four answer zones. */
+.paniko-cam{display:grid;grid-template-columns:90px minmax(0,1fr);align-items:center;gap:10px;border:1px solid #69e1ff60;border-radius:17px;background:linear-gradient(120deg,#1a3351,#171c43 85%);padding:8px 12px;margin:10px 0;box-shadow:inset 0 1px #ffffff27,0 9px 24px #0003;min-height:104px;overflow:hidden;position:relative}
+.paniko-cam:before{content:'';position:absolute;inset:-40% 50% -30% -25%;background:radial-gradient(ellipse,#5be9f933,transparent 73%);pointer-events:none}
+.paniko-cam .cam-hero{position:relative;display:flex;justify-content:center;align-items:center;height:82px;border:1px solid #ffffff27;border-radius:12px;background:radial-gradient(ellipse,#74ccfa49,transparent 78%)}
+.paniko-cam .cam-hero .monster{transform:scale(1.12);transform-origin:center}
+.paniko-cam .cam-hero .monster .m-arm{animation:armBreathA 1.7s ease-in-out infinite alternate}
+.paniko-cam[data-state="running"] .cam-hero .monster{animation:v15Float .3s ease-in-out infinite alternate}
+.paniko-cam[data-state="win"] .cam-hero .monster{animation:v15Float .45s ease-in-out infinite alternate}
+.paniko-cam .cam-header{display:flex;flex-wrap:wrap;gap:6px;align-items:center;color:#8eeeff;font:900 9px system-ui;letter-spacing:.14em}
+.paniko-cam .cam-header b{color:#ffe4a3;font-size:10px;letter-spacing:0}
+.paniko-cam .cam-status{color:#fff;font-weight:900;font-size:clamp(13px,3.5vw,17px);line-height:1.15;margin-top:4px}
+.paniko-cam .cam-caption{font-size:10px;color:#9cbfe3;margin-top:5px}
+.paniko-cam .cam-rivals{display:flex;gap:5px;align-items:center;margin-top:6px}
+.paniko-cam .cam-rival{display:flex;align-items:center;gap:2px;color:#b4e5ff;font-size:9px;background:#ffffff0c;border:1px solid #ffffff18;border-radius:9px;padding:1px 5px}
+.paniko-cam .cam-rival .monster{transform:scale(.27);margin:-23px -19px}
+@media(max-width:420px){.paniko-cam{grid-template-columns:76px minmax(0,1fr);gap:7px;padding:7px}.paniko-cam .cam-hero{height:73px}.paniko-cam .cam-hero .monster{transform:scale(.99)}.paniko-cam .cam-rival:nth-child(n+3){display:none}.paniko-cam .cam-status{font-size:13px}.arena-v08 .arena-actor .monster{transform:scale(.51)}}
+@media(prefers-reduced-motion:reduce){.paniko-cam .monster,.arena-actor .m-leg,.arena-actor .m-arm,.arena-actor .actor-body,.workshop-preview .monster,.workshop-preview .m-eye:after,.workshop-preview .m-brow{animation:none!important;transition:none!important}}
