@@ -1,8 +1,8 @@
 {
   "name": "quiz-panic-live",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
-  "description": "Quiz Panic Live JLG Creative, multiplayer WebSocket and standalone two-mode quiz",
+  "description": "Quiz Panic Arena, unique mode solo et WebSocket multijoueur",
   "scripts": {
     "start": "node bootstrap.js && node server.js"
   },
