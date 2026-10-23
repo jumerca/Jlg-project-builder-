@@ -7,7 +7,7 @@ const crypto = require('node:crypto');
 const PANIC_RULES = require('./public/panic-rules.js');
 const SHOW = require('./public/show-director.js');
 const questions = [...JSON.parse(fs.readFileSync(path.join(__dirname,'public/questions.json'),'utf8')),...JSON.parse(fs.readFileSync(path.join(__dirname,'public/knockout-questions.json'),'utf8'))];
-const guessQuestions = JSON.parse(fs.readFileSync(path.join(__dirname,'public/guess-questions.json'),'utf8'));
+const guessQuestions = []; // V1.4: Le Public Décide is no longer offered.
 const normalizeGuess = str => String(str||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/^(?:(?:le|la|les|un|une|des|du|de|d|l) )+/,'').split(' ').map(w=>w.length>4&&w.endsWith('s')&&!w.endsWith('ss')?w.slice(0,-1):w).join(' ');
 function guessIndex(question, value){ const key=normalizeGuess(value);if(key.length<2)return -1;return question.answers.findIndex(ans=>ans.aliases.some(x=>normalizeGuess(x)===key)); }
 function pickGuessQuestions(r){
@@ -31,7 +31,7 @@ const BOT_NAMES=['Biscotte','Turbo','Mimo','Paillette','Gizmo','Choupette','Pixe
 const publicTypes={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webmanifest':'application/manifest+json'};
 
 const server=http.createServer((req,res)=>{
-  if(req.url==='/api/health'){res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});return res.end(JSON.stringify({ok:true,rooms:rooms.size,questions:questions.length}));}
+  if(req.url==='/api/health'){res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});return res.end(JSON.stringify({ok:true,version:'1.4',mode:'panic',rooms:rooms.size,questions:questions.length}));}
   let target;
   try { const route=decodeURIComponent((req.url||'/').split('?')[0]);target=path.resolve(root,'.'+(route==='/'?'/index.html':route)); }
   catch {res.writeHead(400);return res.end('Bad request');}
@@ -170,7 +170,7 @@ function receive(conn,data){let m;try{m=JSON.parse(data.toString('utf8'));}catch
    let r=rooms.get(code);
    if(m.type==='join'&&(!r||r.phase!=='lobby'))return fail(conn,'Salon introuvable ou partie déjà lancée.');
    if(r&&r.players.length>=MAX_PLAYERS)return fail(conn,'Salon complet (12 joueurs maximum).');
-   if(!r){r={code,phase:'lobby',round:0,total:10,format:'chaos',category:'Toutes',style:m.style==='guess'?'guess':'panic',players:[],deck:[],timer:null,answers:new Map(),guesses:new Map(),created:Date.now()};rooms.set(code,r);}
+   if(!r){r={code,phase:'lobby',round:0,total:10,format:'chaos',category:'Toutes',style:'panic',players:[],deck:[],timer:null,answers:new Map(),guesses:new Map(),created:Date.now()};rooms.set(code,r);}
    const p={id:crypto.randomUUID(),token:conn.token,name,avatar,score:0,correct:0,streak:0,host:r.players.length===0,conn};r.players.push(p);conn.room=r.code;conn.player=p.id;
    jsonSend(conn,{type:'welcome',id:p.id,code:r.code,reconnected:false});lobby(r);return;
  }
