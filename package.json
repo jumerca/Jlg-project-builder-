@@ -1,8 +1,8 @@
 {
   "name": "quiz-panic-live",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Quiz Panic Live V1.9 · Grand Spectacle et banque auditée",
+  "description": "Quiz Panic Live V2.0 — Édition Championnat",
   "scripts": {
     "start": "node bootstrap_v19.js && node server.js"
   },
@@ -10,6 +10,6 @@
     "node": ">=20"
   },
   "dependencies": {
-    "sharp": "^0.34.4"
+    "sharp": "0.35.5"
   }
 }
