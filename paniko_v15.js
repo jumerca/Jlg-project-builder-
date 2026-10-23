@@ -54,7 +54,19 @@ const replacements=
  ]
 ];
 function applyMotionV15(source){
- for(const [before,after,label] of replacements){const i=source.indexOf(before);if(i<0||source.indexOf(before,i+1)!==-1)throw Error('V1.5 patch anchor mismatch: '+label);source=source.slice(0,i)+after+source.slice(i+before.length)}
+ for(const [before,after,label] of replacements){
+  let i=source.indexOf(before);
+  if(i<0&&label==='workshop text'){
+   const legacy='576 combinaisons possibles. Ton personnage te suit dans les deux émissions et dans les salons en ligne.';
+   i=source.indexOf(legacy);if(i>=0){source=source.slice(0,i)+after+source.slice(i+legacy.length);continue;}
+  }
+  if(i<0&&label==='game title'){
+   const oldTitle=source.match(/<title>Quiz Panic Live[^<]*<\/title>/);
+   if(oldTitle){source=source.replace(oldTitle[0],after);continue;}
+  }
+  if(i<0||source.indexOf(before,i+1)!==-1)throw Error('V1.5 patch anchor mismatch: '+label);
+  source=source.slice(0,i)+after+source.slice(i+before.length);
+ }
  const css=fs.readFileSync(path.join(__dirname,'paniko_v15.css'),'utf8');
  if(!source.includes('</head>'))throw Error('V1.5 missing head');
  source=source.replace('</head>','<style id=\"qpl-paniko-motion-v15\">'+css+'</style></head>');
