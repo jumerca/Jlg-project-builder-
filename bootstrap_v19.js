@@ -21,11 +21,11 @@ for(const [key,out] of [['QUIZ_BANK','questions.json'],['KNOCKOUT_BANK','knockou
 }
 (async()=>{
  await require('./pwa_install').buildAssets(dir);
- const sw=fs.readFileSync(path.join(dir,'sw.js'),'utf8').replace(/quiz-panic-v[0-9]+[a-z0-9-]*/g,'quiz-panic-v19-grand-show');
+ const sw=fs.readFileSync(path.join(dir,'sw.js'),'utf8').replace(/quiz-panic-v[0-9]+[a-z0-9-]*/g,'quiz-panic-v20-championnat');
  fs.writeFileSync(path.join(dir,'sw.js'),sw);
- fs.writeFileSync(path.join(dir,'manifest.webmanifest'),JSON.stringify({id:'/',name:'Quiz Panic Live — Grand Spectacle',short_name:'Quiz Panic',description:'Panic Arena : gong, éliminations, podium animé, 32 Panikos.',start_url:'/?source=pwa&v=19',scope:'/',display:'standalone',background_color:'#090f20',theme_color:'#090f20',lang:'fr',categories:['games','entertainment'],icons:[{src:'/icon-192.png',type:'image/png',sizes:'192x192',purpose:'any'},{src:'/icon-512.png',type:'image/png',sizes:'512x512',purpose:'any'},{src:'/icon-maskable-512.png',type:'image/png',sizes:'512x512',purpose:'maskable'}]}));
+ fs.writeFileSync(path.join(dir,'manifest.webmanifest'),JSON.stringify({id:'/',name:'Quiz Panic Live — Édition Championnat',short_name:'Quiz Panic',description:'Panic Arena : gong, éliminations, podium animé, 32 Panikos.',start_url:'/?source=pwa&v=20',scope:'/',display:'standalone',background_color:'#090f20',theme_color:'#090f20',lang:'fr',categories:['games','entertainment'],icons:[{src:'/icon-192.png',type:'image/png',sizes:'192x192',purpose:'any'},{src:'/icon-512.png',type:'image/png',sizes:'512x512',purpose:'any'},{src:'/icon-maskable-512.png',type:'image/png',sizes:'512x512',purpose:'maskable'}]}));
  const q=JSON.parse(fs.readFileSync(path.join(dir,'questions.json'),'utf8'));
  const k=JSON.parse(fs.readFileSync(path.join(dir,'knockout-questions.json'),'utf8'));
  if(q.length+k.length!==3710)throw Error('Incomplete V1.9 banks '+(q.length+k.length));
- console.log('Quiz Panic Live V1.9: '+(q.length+k.length)+' unique questions, Gong, PWA ready');
+ console.log('Quiz Panic Live V1.9: '+(q.length+k.length)+' unique questions, Gong, carrière locale, PWA ready');
 })().catch(error=>{console.error(error);process.exitCode=1});
