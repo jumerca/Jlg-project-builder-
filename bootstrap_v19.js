@@ -21,7 +21,7 @@ for(const [key,out] of [['QUIZ_BANK','questions.json'],['KNOCKOUT_BANK','knockou
 }
 (async()=>{
  await require('./pwa_install').buildAssets(dir);
- const sw=fs.readFileSync(path.join(dir,'sw.js'),'utf8').replace(/quiz-panic-v14-panic-only/g,'quiz-panic-v19-grand-show').replace(/quiz-panic-v13-installable/g,'quiz-panic-v19-grand-show');
+ const sw=fs.readFileSync(path.join(dir,'sw.js'),'utf8').replace(/quiz-panic-v[0-9]+[a-z0-9-]*/g,'quiz-panic-v19-grand-show');
  fs.writeFileSync(path.join(dir,'sw.js'),sw);
  fs.writeFileSync(path.join(dir,'manifest.webmanifest'),JSON.stringify({id:'/',name:'Quiz Panic Live — Grand Spectacle',short_name:'Quiz Panic',description:'Panic Arena : gong, éliminations, podium animé, 32 Panikos.',start_url:'/?source=pwa&v=19',scope:'/',display:'standalone',background_color:'#090f20',theme_color:'#090f20',lang:'fr',categories:['games','entertainment'],icons:[{src:'/icon-192.png',type:'image/png',sizes:'192x192',purpose:'any'},{src:'/icon-512.png',type:'image/png',sizes:'512x512',purpose:'any'},{src:'/icon-maskable-512.png',type:'image/png',sizes:'512x512',purpose:'maskable'}]}));
  const q=JSON.parse(fs.readFileSync(path.join(dir,'questions.json'),'utf8'));
