@@ -31,7 +31,7 @@ const BOT_NAMES=['Biscotte','Turbo','Mimo','Paillette','Gizmo','Choupette','Pixe
 const publicTypes={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webmanifest':'application/manifest+json'};
 
 const server=http.createServer((req,res)=>{
-  if(req.url==='/api/health'){res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});return res.end(JSON.stringify({ok:true,version:'1.4',mode:'panic',rooms:rooms.size,questions:questions.length}));}
+  if(req.url==='/api/health'){res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});return res.end(JSON.stringify({ok:true,version:'1.6',mode:'panic',rooms:rooms.size,questions:questions.length}));}
   let target;
   try { const route=decodeURIComponent((req.url||'/').split('?')[0]);target=path.resolve(root,'.'+(route==='/'?'/index.html':route)); }
   catch {res.writeHead(400);return res.end('Bad request');}
@@ -75,7 +75,7 @@ function pickQuestions(r){
 function clearBotTimers(r){for(const t of r.botTimers||[])clearTimeout(t);r.botTimers=[];}
 function fillPanicCast(r){
  const remaining=Math.max(0,CAST_SIZE-r.players.length);
- for(let i=0;i<remaining;i++)r.players.push({id:'bot-'+(i+1),token:null,name:BOT_NAMES[i],avatar:(i*37+8)%576,score:0,correct:0,streak:0,host:false,conn:null,bot:true,alive:true,skill:.55+(i%6)*.036});
+ for(let i=0;i<remaining;i++)r.players.push({id:'bot-'+(i+1),token:null,name:BOT_NAMES[i],avatar:(i*37+8)%576,score:0,correct:0,streak:0,host:false,conn:null,bot:true,alive:true,skill:.55+(i%6)*.036,mind:SHOW.createMind(SHOW.profileFor('bot-'+(i+1)),'bot-'+(i+1))});
 }
 function positionsOf(r,viewer){const hiding=r.effect?.id==='secret'&&r.phase==='question';return r.players.filter(p=>p.alive!==false||r.phase==='reveal').map(p=>({id:p.id,option:hiding&&p.id!==viewer?.id?null:(r.answers.get(p.id)?.option??null),locked:!!r.answers.get(p.id)?.locked}));}
 function broadcastPositions(r){for(const p of r.players)if(p.conn)jsonSend(p.conn,{type:'positions',positions:positionsOf(r,p)});}
@@ -84,34 +84,26 @@ function schedulePanicBots(r){
  const rivals=r.players.filter(p=>p.bot&&p.alive!==false);
  const round=r.round,deadline=r.deadline;
  const valid=()=>r.phase==='question'&&r.round===round&&Date.now()<deadline;
- const chooseFor=(bot,profile)=>SHOW.choose({
-  profile,correct:r.question.answer,difficulty:r.question.difficulty,round:round+1,total:r.total,skill:bot.skill,
-  peers:[...r.answers.entries()].filter(([id,a])=>id!==bot.id&&a.option!==null).map(([,a])=>a),random:Math.random
- });
- const commit=(bot,option)=>{
-  if(!valid())return false;
-  const outcome=PANIC_RULES.applyChoice(r.answers.get(bot.id),option,r.effect?.id,r.question.answer,Date.now());
-  if(!outcome.accepted)return false;
-  r.answers.set(bot.id,outcome.choice);broadcastPositions(r);return true;
- };
  rivals.forEach(bot=>{
   const profile=SHOW.profileFor(bot.id);
-  const delay=Math.max(100,Math.min(r.duration*1000-850,500+r.duration*880*SHOW.durationFraction(profile,Math.random())));
-  r.botTimers.push(setTimeout(()=>{
-   if(!valid())return;
-   let option=chooseFor(bot,profile);if(!commit(bot,option))return;
-   if(r.effect?.id==='glue'||r.effect?.id==='commit'||!SHOW.shouldFlip(profile))return;
-   const remaining=deadline-Date.now()-700;if(remaining<500)return;
-   const flipDelay=Math.min(remaining,850+Math.random()*Math.min(3200,remaining));
+  const mind=bot.mind||(bot.mind=SHOW.createMind(profile,bot.id));
+  SHOW.prepareMind(mind,{profile,correct:r.question.answer,difficulty:r.question.difficulty,round:round+1,total:r.total,skill:bot.skill});
+  for(const event of SHOW.plan({profile,duration:r.duration,effect:r.effect?.id})){
    r.botTimers.push(setTimeout(()=>{
     if(!valid())return;
-    const next=chooseFor(bot,profile);
-    if(next!==option&&commit(bot,next))option=next;
-   },flipDelay));
-  },delay));
+    const peers=[...r.answers.entries()].filter(([id,a])=>id!==bot.id&&Number.isInteger(a.option)).map(([,a])=>a);
+    const decision=SHOW.decide({profile,mind,peers,step:event.step});
+    const current=r.answers.get(bot.id);
+    if(current?.option===decision.option)return;
+    const outcome=PANIC_RULES.applyChoice(current,decision.option,r.effect?.id,r.question.answer,Date.now());
+    if(!outcome.accepted)return;
+    r.answers.set(bot.id,outcome.choice);
+    broadcastPositions(r);
+    broadcast(r,{type:'aiMood',id:bot.id,mood:decision.mood,thought:decision.thought});
+   },event.time));
+  }
  });
 }
-
 const effects=[{id:'double',title:'POINTS DOUBLÉS',detail:'Chaque bonne réponse rapporte le double !',icon:'⚡'}, {id:'reverse',title:'LE PLATEAU DÉRAILLE',detail:'Les réponses changent d’ordre à l’écran !',icon:'🔄'}, {id:'rush',title:'CHRONO FOU',detail:'10 secondes seulement !',icon:'⏱️'}, {id:'confetti',title:'TEMPÊTE DE CONFETTIS',detail:'Le public est incontrôlable !',icon:'🎊'}, {id:'blackout',title:'PANNE DE PROJECTEURS',detail:'Le studio vacille… mais on continue !',icon:'💡'}, {id:'jackpot',title:'SUPER JACKPOT',detail:'Trois fois plus de points pour les justes !',icon:'💎'},{id:'secret',title:'PANNE DES RADARS',detail:'Les choix de tes rivaux sont cachés jusqu’au gong !',icon:'🕵️'}, {id:'glue',title:'GLUE GÉANTE',detail:'Attention : pose un pied sur une mauvaise case et tu restes collé jusqu’au gong !',icon:'🧪'}, {id:'commit',title:'UN SEUL TIR',detail:'Première case choisie = case verrouillée jusqu’au gong !',icon:'🔒'}];
 function nextQuestion(r){
  clearTimeout(r.timer);clearBotTimers(r);if(!rooms.has(r.code))return;
@@ -137,6 +129,7 @@ function settle(r){
   for(const p of r.players){
    if(p.alive===false)continue;
    const a=r.answers.get(p.id),ok=!!a&&a.option===q.answer;
+   if(p.bot)SHOW.learn(p.mind,ok);
    if(ok){
     p.correct++;p.streak++;
     const award=awards.get(p.id);let pts=award?.points??0;
