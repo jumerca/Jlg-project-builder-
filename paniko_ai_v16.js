@@ -1,6 +1,6 @@
 'use strict';
 // V1.6 Intelligence Arena — differential patch on top of V1.5, no change to other games.
-const BRAIN=String.raw\`
+const BRAIN=String.raw`
 const V16_THOUGHTS={
 sprinter:['⚡ Je fonce !','🏁 Je confirme !'],strategist:['🧠 Je calcule…','🎯 Je confirme !'],
 follower:['👀 J’observe !','👥 Je suis le groupe !'],waver:['🤔 A… ou C ?','↩️ Je change !'],
@@ -45,8 +45,8 @@ function plan({profile,duration=18,effect=null,random=Math.random}){
  return events;
 }
 function learn(mind,ok){if(!mind)return;if(ok){mind.correct++;mind.confidence=Math.min(.81,mind.confidence+.018)}else{mind.wrong++;mind.confidence=Math.max(.30,mind.confidence-.022)}}
-\`;
-const SOLO=String.raw\`
+`;
+const SOLO=String.raw`
 function aiMood(bot,mood,thought,ttl=1000){
  const node=document.querySelector?.('[data-actor="'+bot.id+'"]');if(!node||S.reveal)return;
  node.dataset.intent=mood;node.querySelector('.ai-speech')?.remove();
@@ -79,8 +79,8 @@ function scheduleSoloPanicBots(){
  },step.time));}
  });
 }
-\`;
-const CSS=String.raw\`.arena-actor{isolation:isolate}.arena-actor .ai-speech{position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);padding:3px 7px;max-width:104px;min-width:48px;white-space:normal;text-align:center;border-radius:10px 10px 10px 2px;background:#f7fcff;color:#13375c;box-shadow:0 4px 18px #00122d88;border:1px solid #7bceea;font:800 9px/1.2 system-ui;pointer-events:none;z-index:8;animation:aiSpeechPop .22s ease-out both}.arena-actor[data-intent="think"] .monster{filter:drop-shadow(0 0 8px #b0deff);animation:aiThinkV16 .66s ease-in-out infinite alternate}.arena-actor[data-intent="copy"] .monster{filter:drop-shadow(0 0 7px #a6f4c4)}.arena-actor[data-intent="waver"] .monster{animation:aiWaverV16 .52s ease-in-out infinite alternate}.arena-actor[data-intent="panic"] .monster{animation:aiPanicV16 .19s ease-in-out infinite alternate}@keyframes aiSpeechPop{from{opacity:0;transform:translate(-50%,8px) scale(.6)}to{opacity:1;transform:translate(-50%,0) scale(1)}}@keyframes aiThinkV16{to{transform:rotate(-5deg) translateY(-2px)}}@keyframes aiWaverV16{to{transform:rotate(9deg) translateX(3px)}}@keyframes aiPanicV16{to{transform:translateX(2px) rotate(4deg)}}@media(max-width:480px){.arena-actor .ai-speech{font-size:8px;padding:2px 4px;max-width:75px}}@media(prefers-reduced-motion:reduce){.arena-actor .ai-speech,.arena-actor[data-intent] .monster{animation:none!important}}\`;
+`;
+const CSS=String.raw`.arena-actor{isolation:isolate}.arena-actor .ai-speech{position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);padding:3px 7px;max-width:104px;min-width:48px;white-space:normal;text-align:center;border-radius:10px 10px 10px 2px;background:#f7fcff;color:#13375c;box-shadow:0 4px 18px #00122d88;border:1px solid #7bceea;font:800 9px/1.2 system-ui;pointer-events:none;z-index:8;animation:aiSpeechPop .22s ease-out both}.arena-actor[data-intent="think"] .monster{filter:drop-shadow(0 0 8px #b0deff);animation:aiThinkV16 .66s ease-in-out infinite alternate}.arena-actor[data-intent="copy"] .monster{filter:drop-shadow(0 0 7px #a6f4c4)}.arena-actor[data-intent="waver"] .monster{animation:aiWaverV16 .52s ease-in-out infinite alternate}.arena-actor[data-intent="panic"] .monster{animation:aiPanicV16 .19s ease-in-out infinite alternate}@keyframes aiSpeechPop{from{opacity:0;transform:translate(-50%,8px) scale(.6)}to{opacity:1;transform:translate(-50%,0) scale(1)}}@keyframes aiThinkV16{to{transform:rotate(-5deg) translateY(-2px)}}@keyframes aiWaverV16{to{transform:rotate(9deg) translateX(3px)}}@keyframes aiPanicV16{to{transform:translateX(2px) rotate(4deg)}}@media(max-width:480px){.arena-actor .ai-speech{font-size:8px;padding:2px 4px;max-width:75px}}@media(prefers-reduced-motion:reduce){.arena-actor .ai-speech,.arena-actor[data-intent] .monster{animation:none!important}}`;
 function applyAI(html){
  const replace=(a,b,n)=>{const c=html.split(a).length-1;if(c!==1)throw Error('V1.6 missing anchor '+n+' '+c);html=html.replace(a,b);};
  const api='const api={profiles,gags,profileFor,botNumber,durationFraction,accuracy,choose,shouldFlip};';
