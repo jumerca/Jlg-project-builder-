@@ -31,7 +31,7 @@ const BOT_NAMES=['Biscotte','Turbo','Mimo','Paillette','Gizmo','Choupette','Pixe
 const publicTypes={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webmanifest':'application/manifest+json'};
 
 const server=http.createServer((req,res)=>{
-  if(req.url==='/api/health'){res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});return res.end(JSON.stringify({ok:true,version:'1.6',mode:'panic',rooms:rooms.size,questions:questions.length}));}
+  if(req.url==='/api/health'){res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});return res.end(JSON.stringify({ok:true,version:'1.7',mode:'panic',rooms:rooms.size,questions:questions.length}));}
   let target;
   try { const route=decodeURIComponent((req.url||'/').split('?')[0]);target=path.resolve(root,'.'+(route==='/'?'/index.html':route)); }
   catch {res.writeHead(400);return res.end('Bad request');}
@@ -75,7 +75,7 @@ function pickQuestions(r){
 function clearBotTimers(r){for(const t of r.botTimers||[])clearTimeout(t);r.botTimers=[];}
 function fillPanicCast(r){
  const remaining=Math.max(0,CAST_SIZE-r.players.length);
- for(let i=0;i<remaining;i++)r.players.push({id:'bot-'+(i+1),token:null,name:BOT_NAMES[i],avatar:(i*37+8)%576,score:0,correct:0,streak:0,host:false,conn:null,bot:true,alive:true,skill:.55+(i%6)*.036,mind:SHOW.createMind(SHOW.profileFor('bot-'+(i+1)),'bot-'+(i+1))});
+ for(let i=0;i<remaining;i++)r.players.push({id:'bot-'+(i+1),token:null,name:BOT_NAMES[i],avatar:576+((i*79+11)%8640),score:0,correct:0,streak:0,host:false,conn:null,bot:true,alive:true,skill:.55+(i%6)*.036,mind:SHOW.createMind(SHOW.profileFor('bot-'+(i+1)),'bot-'+(i+1))});
 }
 function positionsOf(r,viewer){const hiding=r.effect?.id==='secret'&&r.phase==='question';return r.players.filter(p=>p.alive!==false||r.phase==='reveal').map(p=>({id:p.id,option:hiding&&p.id!==viewer?.id?null:(r.answers.get(p.id)?.option??null),locked:!!r.answers.get(p.id)?.locked}));}
 function broadcastPositions(r){for(const p of r.players)if(p.conn)jsonSend(p.conn,{type:'positions',positions:positionsOf(r,p)});}
@@ -159,7 +159,7 @@ function receive(conn,data){let m;try{m=JSON.parse(data.toString('utf8'));}catch
  if(m.type==='create'||m.type==='join'){
    if(!conn.token || conn.token.length<12)return fail(conn,'Identifiant de session manquant, actualise la page.');
    if(conn.room)return fail(conn,'Tu es déjà dans une partie.');
-   const name=clip(m.name,18)||'Joueur';const avatar=Math.max(0,Math.min(575,Math.floor(Number(m.avatar)||0)));const code=m.type==='create'?randomCode():clip(m.code,8).toUpperCase().replace(/[^A-Z0-9]/g,'');
+   const name=clip(m.name,18)||'Joueur';const avatar=Math.max(0,Math.min(9215,Math.floor(Number(m.avatar)||0)));const code=m.type==='create'?randomCode():clip(m.code,8).toUpperCase().replace(/[^A-Z0-9]/g,'');
    let r=rooms.get(code);
    if(m.type==='join'&&(!r||r.phase!=='lobby'))return fail(conn,'Salon introuvable ou partie déjà lancée.');
    if(r&&r.players.length>=MAX_PLAYERS)return fail(conn,'Salon complet (12 joueurs maximum).');
