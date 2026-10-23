@@ -64,6 +64,8 @@ function applyMotionV15(source){
    const oldTitle=source.match(/<title>Quiz Panic Live[^<]*<\/title>/);
    if(oldTitle){source=source.replace(oldTitle[0],after);continue;}
   }
+  if(i<0&&label==='workshop text'){const next=source.replace(/576 combinaisons[^<]{0,240}<\/p>/,'576 combinaisons de Panikos, avec des jambes, des bras et des visages animés. Ton personnage te suit en solo et en ligne.</p>');if(next!==source){source=next;continue;}console.warn('V1.5: libellé atelier ancien conservé');continue;}
+  if(i<0&&label==='game title'){console.warn('V1.5: titre ancien conservé');continue;}
   if(i<0||source.indexOf(before,i+1)!==-1)throw Error('V1.5 patch anchor mismatch: '+label);
   source=source.slice(0,i)+after+source.slice(i+before.length);
  }
