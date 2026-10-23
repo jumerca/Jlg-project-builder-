@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#090f20"/><meta name="description" content="Quiz Panic Live : un plateau télé complètement fou. Joue seul ou avec tes amis !"/>
 
-<title>Quiz Panic Live — Character Motion · V1.9</title>
+<title>Quiz Panic Live — Édition Championnat · V2.0</title>
 
 
 <style>
@@ -1037,6 +1037,10 @@ body{background:radial-gradient(ellipse 80% 52% at 47% -15%,#1c3f70 0,transparen
 .result-title h1{background:linear-gradient(95deg,#fff7dc,#90f9ed,#f6bdff);background-clip:text;-webkit-background-clip:text;color:transparent}
 @media(max-width:460px){.arena-v08 .grand-reveal.v19-verdict{padding:12px 14px;min-width:210px}.podium{min-height:178px}.podium-place{min-width:0}}
 @media(prefers-reduced-motion:reduce){.arena-livefloor.v19-judgement,.arena-v08 .grand-reveal.v19-verdict,.v19-verdict.v19-answer-open,.elimination-cinema .knockout-screen,.podium-place,.podium-place.first .p-avatar,.game-shell .presenter.mood-hurry{animation:none!important;transform:none!important;filter:none!important}}
+
+.v20-record{border:1px solid #69e1d877;background:linear-gradient(115deg,#0e3a47,#172b4b);color:#defff9;border-radius:15px;min-height:40px;padding:8px 14px;font:800 12px system-ui;cursor:pointer}
+.v20-career{width:min(900px,100%);margin:15px auto 36px;color:#edf7ff}.v20-career-top{display:flex;justify-content:space-between;gap:10px;align-items:center}.v20-career-hero{display:flex;gap:20px;align-items:center;padding:24px;margin-top:14px;border-radius:24px;background:linear-gradient(120deg,#153553,#221b42);border:1px solid #ffffff28}.v20-career-avatar{width:130px;min-width:130px;display:grid;place-items:center;transform:scale(1.4)}.v20-career-hero span{color:#6aeada;font-size:12px;font-weight:900}.v20-career-hero h1{margin:4px 0;font:900 39px system-ui}.v20-career-hero p{color:#bad0db;font-size:13px;line-height:1.5}.v20-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.v20-stats>div{display:grid;gap:4px;padding:17px;background:#15213b;border:1px solid #ffffff20;border-radius:16px;text-align:center}.v20-stats b{font:900 27px system-ui}.v20-stats span{font-size:12px;color:#b9cde0}.v20-career h2{font:850 21px system-ui;margin:20px 0 10px}.v20-medals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.v20-medal{display:flex;align-items:center;gap:10px;padding:12px;border-radius:15px;background:#15233d;border:1px solid #ffffff21}.v20-medal>span{font-size:26px}.v20-medal>div{display:grid;gap:3px;flex:1}.v20-medal b{font-size:13px}.v20-medal small{font-size:11px;color:#b6cada}.v20-medal.locked{opacity:.5}.v20-medal strong{color:#79eecf}.v20-history{display:grid;gap:8px}.v20-history>div{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px;border-radius:12px;background:#17233b;border:1px solid #ffffff20;font-size:12px}.v20-history span{color:#b9cde0}.v20-history small{color:#6ee8d5}.v20-career-actions{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}.v20-postgame{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;margin:18px auto;padding:15px;background:#0e3343aa;border-radius:17px;border:1px solid #71e6da66}.v20-postgame span{font-size:13px}.v20-record:focus-visible,.v20-career button:focus-visible{outline:3px solid #ffcc69;outline-offset:3px}
+@media(max-width:650px){.v20-career-hero{padding:15px;gap:6px}.v20-career-avatar{width:82px;min-width:82px;transform:scale(.9)}.v20-career-hero h1{font-size:27px}.v20-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.v20-medals{grid-template-columns:1fr}.v20-history>div{flex-direction:column;align-items:flex-start;gap:4px}.v20-record{width:100%}.v20-postgame{flex-direction:column;text-align:center}}
 </style></head><body>
 <div class="noise"></div><div id="confetti" class="confetti" aria-hidden="true"></div><div id="toastHost" role="status" aria-live="polite"></div>
 <div class="app-shell">
@@ -1255,7 +1259,7 @@ function renderBuilder(){
  const c=unpackAvatar(S.avatar);
  const fields={shape:['Silhouette',PANIKO_SHAPES],palette:['Couleur',PANIKO_PALETTES],accessory:['Accessoires',PANIKO_ACCESSORIES],face:['Expression',PANIKO_FACES]};
  const [title,values]=fields[editorTab]||fields.shape;
- $('main').innerHTML=`<section class="builder-app" aria-label="Studio de création de Paniko"><div class="builder-nav"><button type="button" class="quiet-back" data-action="builderBack">← Retour</button><span class="studio-status"><i></i> STUDIO PANIKO</span></div><div class="builder-heading"><span>CRÉATEUR DE PERSONNAGES · V1.9</span><h1>Crée ton Paniko<span>.</span></h1><p>Choisis une espèce, puis personnalise ses couleurs, accessoires et expressions.</p></div><div class="builder-layout"><div class="builder-spotlight"><div class="builder-glow"></div><div class="builder-avatar" id="designerPreview">${monster(S.avatar)}</div><div class="builder-identity"><span>APERÇU EN DIRECT</span><h2 id="designerTitle">${escape(panikoTag(S.avatar))}</h2><small>Chaque espèce possède sa propre morphologie et ses réactions.</small></div><button class="surprise" type="button" data-action="randomAvatar">✦ Création surprise</button></div><div class="builder-controls"><div class="designer-tabs" role="group" aria-label="Personnaliser le personnage">${Object.entries(fields).map(([key,val])=>`<button type="button" class="designer-tab ${editorTab===key?'active':''}" data-editor-tab="${key}" aria-pressed="${editorTab===key}">${{shape:'◈',palette:'◉',accessory:'✧',face:'☺'}[key]} <span>${val[0]}</span></button>`).join('')}</div><div class="builder-editor"><div class="editor-heading"><h2>${title}</h2><span>${values.length} choix</span></div><div class="designer-options ${editorTab==='palette'?'palette-grid':''}" id="designerOptions">${values.map((name,i)=>panikoOptionCard(editorTab,i,name,c[editorTab])).join('')}</div></div><div class="builder-footer"><label for="nickname">Ton pseudo</label><input id="nickname" class="profile-input" type="text" maxlength="18" value="${escape(S.name)}" placeholder="Ton pseudo"/><button type="button" class="builder-confirm" data-action="builderBack">✓ Valider mon Paniko</button></div></div></div></section>`;
+ $('main').innerHTML=`<section class="builder-app" aria-label="Studio de création de Paniko"><div class="builder-nav"><button type="button" class="quiet-back" data-action="builderBack">← Retour</button><span class="studio-status"><i></i> STUDIO PANIKO</span></div><div class="builder-heading"><span>CRÉATEUR DE PERSONNAGES · V2.0</span><h1>Crée ton Paniko<span>.</span></h1><p>Choisis une espèce, puis personnalise ses couleurs, accessoires et expressions.</p></div><div class="builder-layout"><div class="builder-spotlight"><div class="builder-glow"></div><div class="builder-avatar" id="designerPreview">${monster(S.avatar)}</div><div class="builder-identity"><span>APERÇU EN DIRECT</span><h2 id="designerTitle">${escape(panikoTag(S.avatar))}</h2><small>Chaque espèce possède sa propre morphologie et ses réactions.</small></div><button class="surprise" type="button" data-action="randomAvatar">✦ Création surprise</button></div><div class="builder-controls"><div class="designer-tabs" role="group" aria-label="Personnaliser le personnage">${Object.entries(fields).map(([key,val])=>`<button type="button" class="designer-tab ${editorTab===key?'active':''}" data-editor-tab="${key}" aria-pressed="${editorTab===key}">${{shape:'◈',palette:'◉',accessory:'✧',face:'☺'}[key]} <span>${val[0]}</span></button>`).join('')}</div><div class="builder-editor"><div class="editor-heading"><h2>${title}</h2><span>${values.length} choix</span></div><div class="designer-options ${editorTab==='palette'?'palette-grid':''}" id="designerOptions">${values.map((name,i)=>panikoOptionCard(editorTab,i,name,c[editorTab])).join('')}</div></div><div class="builder-footer"><label for="nickname">Ton pseudo</label><input id="nickname" class="profile-input" type="text" maxlength="18" value="${escape(S.name)}" placeholder="Ton pseudo"/><button type="button" class="builder-confirm" data-action="builderBack">✓ Valider mon Paniko</button></div></div></div></section>`;
 }
 
 const ABC='ABCD';
@@ -1913,7 +1917,7 @@ $('main').addEventListener('click',ev=>{const b=ev.target.closest('button');if(!
  if(act==='builderBack'){S.screen='home';redraw();window.scrollTo?.(0,0);return;}
  if(act==='arenaFocus'){arenaFocusMode=!arenaFocusMode;const shell=document.querySelector('.arena-v08');shell?.classList.toggle('view-focus',arenaFocusMode);b.setAttribute('aria-pressed',String(arenaFocusMode));b.textContent=arenaFocusMode?'◉ VUE GLOBALE':'◎ REPÉRER MON PANIKO';return;}
  if(act==='home'||act==='leave'||act==='exitGame'){leave();return;}
- if(['soloPanic','onlinePanic'].includes(act)){S.gameStyle='panic';S.category='Toutes';S.screen=act.startsWith('solo')?'soloSetup':'online';redraw();return;}
+ if(['soloPanic','onlinePanic'].includes(act)){S.gameStyle='panic';S.screen=act.startsWith('solo')?'soloSetup':'online';redraw();return;}
  if(act==='solo'){S.gameStyle='panic';S.screen='soloSetup';redraw();return;}
  if(act==='online'){S.gameStyle='panic';S.screen='online';redraw();return;}
  if(act==='create'||act==='join'){startOnlineAction(act);return;}
@@ -1936,6 +1940,77 @@ if('serviceWorker' in navigator && location.protocol==='https:'){navigator.servi
 const params=new URLSearchParams(location.search);const roomInURL=params.get('salon');if(roomInURL&&/^[a-f0-9]{6}$/i.test(roomInURL)){S.screen='online';}
 const resumeLiveRoom=location.protocol!=='file:'&&getSession('qpl-online-active')==='1'&&!!getSession('qpl-token');
 if(resumeLiveRoom){S.mode='online';S.screen='online';S.token=getSession('qpl-token');S.recovering=true;}
+(function installV20(){
+  const KEY='qpl-career-v2',PREF='qpl-solo-options-v2',MAX=12;
+  const get=k=>{try{return localStorage.getItem(k)}catch{return null}};
+  const set=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
+  const count=v=>Number.isFinite(+v)?Math.max(0,Math.round(+v)):0;
+  const base=()=>({version:2,games:0,wins:0,podiums:0,best:0,totalPoints:0,correct:0,asked:0,history:[]});
+  const load=()=>{let d;try{d=JSON.parse(get(KEY)||'null')}catch{}const n=base();if(d&&typeof d==='object'){for(const k of ['games','wins','podiums','best','totalPoints','correct','asked'])n[k]=count(d[k]);n.history=(Array.isArray(d.history)?d.history:[]).slice(0,MAX).filter(x=>x&&typeof x.id==='string');}return n;};
+  const career=load();let sessionId=null;
+  const fmt=n=>Number(n||0).toLocaleString('fr-FR'),accuracy=()=>career.asked?Math.round(career.correct/career.asked*100):0;
+  let settings={};try{settings=JSON.parse(get(PREF)||'null')||{}}catch{}
+  if(categories.includes(settings.category))S.category=settings.category;
+  if([8,10,12,16].includes(Number(settings.total)))S.total=Number(settings.total);
+  if(['chaos','survival'].includes(settings.format))S.panicFormat=settings.format;
+  const medals=()=>[
+    ['🎬','Première partie',career.games>=1,'Terminer une émission'],
+    ['🎤','Fidèle du plateau',career.games>=10,'Disputer 10 parties'],
+    ['🥉','Sur le podium',career.podiums>=1,'Finir parmi les 3 premiers'],
+    ['🏆','Champion',career.wins>=1,'Gagner une émission'],
+    ['🌟','Légende Paniko',career.wins>=10,'Remporter 10 victoires']
+  ];
+  function careerPage(){
+    const hist=career.history.slice(0,8).map(h=>`<div><strong>#${h.rank} · ${fmt(h.score)} pts</strong><span>${escape(h.category)} · ${h.format==='survival'?'Survie':'Chaos'}</span><small>${h.correct}/${h.asked} bonnes réponses</small></div>`).join('');
+    $('main').innerHTML=`<section class="v20-career"><div class="v20-career-top"><button class="quiet-back" data-action="careerBack">← Accueil</button><span class="studio-status">✦ TON PARCOURS</span></div><div class="v20-career-hero"><div class="v20-career-avatar">${monster(S.avatar)}</div><div><span>MON PANIKO</span><h1>${escape(S.name)}</h1><p>Palmarès conservé sur cet appareil, sans compte.</p></div></div><div class="v20-stats">${[['Parties',career.games],['Victoires',career.wins],['Record',career.best],['Précision',accuracy()+' %']].map(([a,b])=>`<div><b>${typeof b==='number'?fmt(b):b}</b><span>${a}</span></div>`).join('')}</div><h2>Récompenses</h2><div class="v20-medals">${medals().map(([i,t,u,d])=>`<div class="v20-medal ${u?'unlocked':'locked'}"><span>${i}</span><div><b>${escape(t)}</b><small>${escape(d)}</small></div><strong>${u?'✓':'🔒'}</strong></div>`).join('')}</div><h2>Dernières parties</h2><div class="v20-history">${hist||'<p>Ta première partie apparaîtra ici après le podium.</p>'}</div><div class="v20-career-actions"><button class="btn btn-primary" data-action="soloPanic">▶ Nouvelle partie</button><button class="btn btn-ghost" data-action="careerBack">← Accueil</button></div></section>`;
+  }
+  const priorRedraw=redraw;
+  redraw=function(){if(S.screen==='career')return careerPage();return priorRedraw();};
+  const priorHome=renderHome;
+  renderHome=function(){
+    priorHome();
+    const strip=document.querySelector('.v18-quickline');
+    if(strip){
+      const labels=strip.querySelectorAll('span');
+      if(labels.length)labels[0].textContent='⚡ '+fmt(BANK.length)+' questions';
+      const button=document.createElement('button');
+      button.className='v20-record';button.type='button';button.dataset.action='career';
+      button.textContent='🏆 Palmarès · '+career.games+' partie'+(career.games>1?'s':'')+' · '+career.wins+' victoire'+(career.wins>1?'s':'');
+      if(labels.length>2)labels[2].replaceWith(button);else strip.append(button);
+    }
+  };
+  const priorStart=startSolo;
+  startSolo=function(){
+    sessionId='solo-'+Date.now()+'-'+Math.random().toString(36).slice(2,10);
+    set(PREF,JSON.stringify({category:S.category,total:S.total,format:S.panicFormat}));
+    return priorStart();
+  };
+  const priorFinish=finishSolo;
+  finishSolo=function(){
+    const ranks=[...S.players].sort((a,b)=>(b.alive!==false?1:0)-(a.alive!==false?1:0)||b.score-a.score||b.correct-a.correct);
+    const rank=Math.max(1,ranks.findIndex(x=>x.id==='self')+1);
+    if(sessionId&&!career.history.some(x=>x.id===sessionId)){
+      const score=count(S.solo?.score),correct=count(S.solo?.correct),asked=Math.max(correct,Math.min(S.round,S.total));
+      const entry={id:sessionId,at:new Date().toISOString(),score,rank,correct,asked,category:S.category,format:S.panicFormat};
+      career.games++;career.wins+=rank===1?1:0;career.podiums+=rank<=3?1:0;career.best=Math.max(career.best,score);
+      career.totalPoints+=score;career.correct+=correct;career.asked+=asked;career.history.unshift(entry);career.history=career.history.slice(0,MAX);
+      set(KEY,JSON.stringify(career));
+    }
+    return priorFinish();
+  };
+  const priorResult=renderResult;
+  renderResult=function(){
+    priorResult();
+    if(S.resultMode!=='solo')return;
+    const box=document.querySelector('.podium');
+    if(box)box.insertAdjacentHTML('afterend',`<div class="v20-postgame"><b>📈 Ta carrière progresse</b><span>${career.games} partie${career.games>1?'s':''} · ${career.wins} victoire${career.wins>1?'s':''} · ${accuracy()} % de précision</span><button class="btn btn-ghost" data-action="career">🏅 Voir mon palmarès</button></div>`);
+  };
+  $('main').addEventListener('click',e=>{
+    const b=e.target.closest?.('[data-action]');if(!b)return;
+    if(b.dataset.action==='career'){S.screen='career';redraw();window.scrollTo?.(0,0);}
+    if(b.dataset.action==='careerBack'){S.screen='home';redraw();window.scrollTo?.(0,0);}
+  },true);
+})();
 redraw();
 if(resumeLiveRoom)connect();
 })();
