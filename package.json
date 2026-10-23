@@ -1,10 +1,10 @@
 {
   "name": "quiz-panic-live",
-  "version": "1.7.0",
+  "version": "1.9.0",
   "private": true,
-  "description": "Quiz Panic Live · Studio Paniko · 12 silhouettes and solo/online game",
+  "description": "Quiz Panic Live V1.9 · Grand Spectacle et banque auditée",
   "scripts": {
-    "start": "node bootstrap.js && node server.js"
+    "start": "node bootstrap_v19.js && node server.js"
   },
   "engines": {
     "node": ">=20"
