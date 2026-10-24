@@ -31,7 +31,7 @@ const BOT_NAMES=['Biscotte','Turbo','Mimo','Paillette','Gizmo','Choupette','Pixe
 const publicTypes={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webmanifest':'application/manifest+json'};
 
 const server=http.createServer((req,res)=>{
-  if(req.url==='/api/health'){res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});return res.end(JSON.stringify({ok:true,version:'1.7',mode:'panic',rooms:rooms.size,questions:questions.length}));}
+  if(req.url==='/api/health'){res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});return res.end(JSON.stringify({ok:true,version:'2.0',mode:'panic',rooms:rooms.size,questions:questions.length}));}
   let target;
   try { const route=decodeURIComponent((req.url||'/').split('?')[0]);target=path.resolve(root,'.'+(route==='/'?'/index.html':route)); }
   catch {res.writeHead(400);return res.end('Bad request');}
