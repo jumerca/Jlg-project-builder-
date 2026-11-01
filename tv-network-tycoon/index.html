@@ -3141,7 +3141,7 @@ function v10Page(){
  const data=E.getV10Board(game),c=data.cycle;
  const progress=100*(game.day-c.startDay)/Math.max(1,c.endDay-c.startDay+1);
  const summary=data.days?`${v10Num(data.share)} % · ${v10Money(data.profit)} net`:'Aucune journée encore diffusée pour ce mandat';
- return `${heading('Direction générale','Mandats, finances, publics et décisions : une carrière qui se construit sur plusieurs saisons.','<span class="chip chip-teal">VERSION 1.4</span>')}
+ return `${heading('Direction générale','Mandats, finances, publics et décisions : une carrière qui se construit sur plusieurs saisons.','<span class="chip chip-teal">VERSION 1.5</span>')}
  <section class="v10-hero"><div><span class="kicker">MANDAT ${c.index+1} · JOURS ${c.startDay+1}–${c.endDay+1}</span><h2>Ta stratégie. Tes résultats.</h2><p>Choisis une politique, puis diffuse. Elle engage les finances et l’antenne pour toute la période de 28 jours. Le bilan est automatique.</p><div class="v10-progress"><i style="width:${v10Clamp(progress,0,100)}%"></i></div><small>${c.locked?'Mandat engagé':'Choix libre avant la première journée'} · ${data.days} journée(s) évaluée(s)</small></div><span class="v10-hero-icon">▦</span></section>
  <div class="v10-stats"><div><small>PART D’AUDIENCE · PÉRIODE</small><strong>${data.share===null?'—':v10Num(data.share)+' %'}</strong><span>Objectif de référence ${v10Num(c.targetShare)} %</span></div><div><small>RÉSULTAT CUMULÉ</small><strong class="${data.profit>=0?'positive':'negative'}">${v10Money(data.profit)}</strong><span>${data.days} journées comptabilisées</span></div><div><small>CONFIANCE DE MARQUE</small><strong>${Math.round(data.brand)} / 100</strong><span>Évolue avec tes performances</span></div><div><small>MANDATS TERMINÉS</small><strong>${game.v10.records.length}</strong><span>Bilans et primes traçables</span></div></div>
  <section class="panel"><div class="panel-title"><h3>Choisir une ligne de direction</h3><span class="panel-muted">Tous les genres, mêmes règles</span></div><div class="panel-pad"><p class="muted t-sm" style="margin-bottom:12px">Mandat actuel : <b class="positive">${V10_POLICIES[c.policy].name}</b>. ${c.locked?'Un nouveau choix sera possible au début de la prochaine période.':'Choisis ta priorité puis diffuse la première journée.'}</p><div class="v10-policies">${Object.entries(V10_POLICIES).map(([id,d])=>v10PolicyCard(id,d,c)).join('')}</div></div></section>
@@ -3657,7 +3657,7 @@ dashboard=function(){return '<section class="v14-dashboard"><div><small>★ DIRE
 const v14MoreBefore=morePage;
 morePage=function(){return '<button class="v09-menu-large" data-action="v14-open-mercato">🎙️ Mercato des animateurs · Rentrée TV annuelle</button>'+v14MoreBefore();};
 const v14ShellBefore=shell;
-shell=function(){return v14ShellBefore().replace('<div class="nav-label smallcaps" style="margin-top:25px">',navbtn('v14','Mercato & rentrée','🎙')+'<div class="nav-label smallcaps" style="margin-top:25px">').replace('Prototype jouable v0.4','Studio Edition · V1.4');};
+shell=function(){return v14ShellBefore().replace('<div class="nav-label smallcaps" style="margin-top:25px">',navbtn('v14','Mercato & rentrée','🎙')+'<div class="nav-label smallcaps" style="margin-top:25px">').replace('Prototype jouable v0.4','Studio Edition · V1.5');};
 const v14ModalBefore=modal;
 modal=function(){
  if(ui.modal!=='v14-offer')return v14ModalBefore();
