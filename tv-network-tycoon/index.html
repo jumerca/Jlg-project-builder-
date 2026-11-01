@@ -4312,13 +4312,13 @@ function v16Backdrop(p,seed){
 }
 function v16Svg(program,options={}){
  const p=program||{id:'tv',title:'Plateau',genre:'info'};
- const n=v16Hash(p.id||p.title||p.genre),genre=p.genre||'info',palette=v16Color(genre);
+ const n=v16Hash(p.id||p.title||p.genre),genre=p.genre||'info',palette=options.stage?({azure:['#103c6d','#236c9d','#60e5ef'],coral:['#703263','#a95482','#ffd4b0'],mint:['#07596f','#0c8f95','#69f5d2'],gold:['#765335','#b28753','#ffe2a2']}[options.style]||v16Color(genre)):v16Color(genre);
  const unique='v16-'+n+'-'+(options.small?'s':options.event?'e':options.stage?'t':'r');
  const stage=!!options.stage;
  const presenter=options.person||E.HOSTS.find(t=>t.genre===genre)||E.HOSTS[0];
  const transparent='<path d="M0 200Q240 172 480 200V270H0Z" fill="#070f2c" opacity=".45"/>';
  const camera='<g class="v16-camera-arm" opacity=".92"><path d="M405 242v-60" stroke="#14243a" stroke-width="10"/><path d="M387 235l-22 35m40-35 24 35" stroke="#213e54" stroke-width="8"/><rect x="373" y="150" width="70" height="38" rx="6" fill="#17273f" stroke="#84c6df" stroke-width="4"/><path d="M443 158h25v21h-25" fill="#0d1b35"/><circle cx="386" cy="157" r="4" fill="#ff6d60"/></g>';
- const foot='<path d="M0 268H480" stroke="#ffffff4c" stroke-width="4"/><path d="M15 18H60m360 0h45" stroke="#f9fbff" stroke-width="4" stroke-linecap="round" opacity=".6"/>';
+ const foot='<path d="M0 268H480" stroke="#ffffff4c" stroke-width="4"/><path d="M15 18H60m360 0h45" stroke="#f9fbff" stroke-width="4" stroke-linecap="round" opacity=".6"/>'+(stage&&options.level>=2?'<rect x="22" y="26" width="435" height="202" rx="8" stroke="'+palette[2]+'" stroke-width="4" fill="none" opacity=".5"/>':'')+(stage&&options.level>=3?'<path d="M50 37h380M57 225h370" stroke="#ffffff" stroke-width="5" stroke-dasharray="22 10" opacity=".75"/><circle cx="72" cy="38" r="9" fill="'+palette[2]+'"/><circle cx="409" cy="38" r="9" fill="'+palette[2]+'"/>':'');
  const beams='<g class="v16-light-beam"><path d="M65 -9L5 216L166 216Z" fill="#b4d8ff" opacity=".18"/><path d="M416 -9L327 212L483 212Z" fill="#ffc8da" opacity=".15"/></g>';
  const desk=['info','sport','mag','culture'].includes(genre)?'<g><path d="M167 227L174 198H303L313 227L303 245H177Z" fill="#264e75" stroke="#78d5e9" stroke-width="4"/><path d="M186 217H289" stroke="'+palette[2]+'" stroke-width="6" opacity=".85"/></g>':'';
  const graphic='<svg class="v16-scene-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Décor télévisuel illustré : '+v16Escape(E.GENRES[genre]?.name||genre)+'"><defs><linearGradient id="'+unique+'" x1="0" y1="0" x2="1" y2="1"><stop stop-color="'+palette[0]+'"/><stop offset=".53" stop-color="'+palette[1]+'"/><stop offset="1" stop-color="#0b183a"/></linearGradient><radialGradient id="'+unique+'-r"><stop stop-color="'+palette[2]+'" stop-opacity=".34"/><stop offset="1" stop-color="#0c1936" stop-opacity="0"/></radialGradient></defs><path d="M0 0h480v270H0Z" fill="url(#'+unique+')"/><ellipse cx="235" cy="91" rx="235" ry="147" fill="url(#'+unique+'-r)"/>'+beams+v16Backdrop(p,n)+transparent+v16Presenter(presenter,false,n,genre)+camera+desk+foot+'<g class="v16-screen-line" opacity=".72"><path d="M22 249h91" stroke="'+palette[2]+'" stroke-width="4"/><path d="M125 249h26" stroke="#fff" stroke-width="4"/></g></svg>';
@@ -4338,7 +4338,7 @@ const v16PreviousStudioStage=v15StudioStage;
 v15StudioStage=function(st){
  const pseudo={id:'studio-'+st.genre+'-'+st.style,title:'Plateau '+(E.GENRES[st.genre]?.name||'TV'),genre:st.genre};
  const upper=V15_STYLES[st.style]?.name||'Décor TV';
- return '<div class="v16-stage-preview" aria-label="Décor animé du studio '+ESC(st.genre)+'">'+v16Svg(pseudo,{stage:true})+'<span class="v16-studio-badge">'+ESC(upper)+' · NIV '+st.level+'</span></div>';
+ return '<div class="v16-stage-preview" aria-label="Décor animé du studio '+ESC(st.genre)+'">'+v16Svg(pseudo,{stage:true,style:st.style,level:st.level})+'<span class="v16-studio-badge">'+ESC(upper)+' · NIV '+st.level+'</span></div>';
 };
 function v16NowProgram(){
  if(!game)return E.ALL.p001||E.PROGRAMS[0];
