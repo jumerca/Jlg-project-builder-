@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 256 256" role="img" aria-label="TV Network Tycoon"><defs>
+<linearGradient id="back" x2="1" y2="1"><stop stop-color="#102b49"/><stop offset="1" stop-color="#08192f"/></linearGradient>
+<linearGradient id="rim" x2="1" y2="1"><stop stop-color="#10e8d1"/><stop offset="1" stop-color="#18a9d5"/></linearGradient>
+<linearGradient id="gold" x2="1" y2="1"><stop stop-color="#ffda73"/><stop offset="1" stop-color="#f0ad39"/></linearGradient>
+</defs>
+<rect width="256" height="256" rx="55" fill="url(#back)"/>
+<rect x="4" y="4" width="248" height="248" rx="51" fill="none" stroke="#1aa9b7" stroke-opacity=".35" stroke-width="3"/>
+<g fill="none" stroke="#1bc6d6" opacity=".3" stroke-width="2.3"><circle cx="123" cy="123" r="98"/><ellipse cx="123" cy="123" rx="58" ry="98"/><path d="M26 123h194M40 84h165M40 161h165"/></g>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M108 61 91 42M148 61l17-19" stroke="#f0f9ff" stroke-width="8"/><path d="M196 64q18 10 23 30M206 49q28 14 35 47" stroke="url(#gold)" stroke-width="7"/></g>
+<circle cx="91" cy="42" r="5" fill="#f0f9ff"/><circle cx="165" cy="42" r="5" fill="#f0f9ff"/>
+<rect x="36" y="69" width="185" height="132" rx="25" fill="#07192c" stroke="url(#rim)" stroke-width="10"/>
+<rect x="53" y="84" width="152" height="99" rx="14" fill="#0a2a42"/>
+<g fill="none"><path d="M65 109h128M65 133h128M65 157h128" stroke="#5bd8dc" stroke-opacity=".18" stroke-width="1.6"/></g>
+<rect x="64" y="101" width="70" height="16" rx="4" fill="#1bdbd1"/>
+<rect x="140" y="101" width="51" height="16" rx="4" fill="#2c8cbd"/>
+<rect x="64" y="125" width="47" height="16" rx="4" fill="#217bb3"/>
+<rect x="117" y="125" width="74" height="16" rx="4" fill="url(#gold)"/>
+<rect x="64" y="149" width="62" height="16" rx="4" fill="#1b9aba"/>
+<path d="m148 166 16-15 11 5 17-20" fill="none" stroke="#ffd267" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="m183 134 10 0 0 10" fill="none" stroke="#ffd267" stroke-width="5" stroke-linejoin="round"/>
+<path d="M87 214h82" stroke="#20d9d1" stroke-width="8" stroke-linecap="round"/>
+<path d="M102 201v13m52-13v13" stroke="#83dce8" stroke-width="4"/></svg>
