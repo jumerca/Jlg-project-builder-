@@ -1,6 +1,6 @@
-/* TV Network Tycoon Studio Edition V1.3 — cache de l'application, sans stockage des sauvegardes */
-const CACHE='tvnetwork-studio-v170-seven-channel-types';
-const CORE=['/','/index.html','/manifest.webmanifest','/icons/icon-192.svg','/icons/icon-512.svg','/icons/icon-maskable.svg'];
+/* TV Network Tycoon V1.7 — cache d'interface, sauvegardes laissées au navigateur */
+const CACHE='tvnetwork-studio-v171-brand-identity';
+const CORE=['/','/index.html','/manifest.webmanifest','/icons/icon-192.svg','/icons/icon-512.svg','/icons/icon-maskable.svg','/icons/logo-wordmark.svg'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('tvnetwork-')&&key!==CACHE).map(key=>caches.delete(key)))),self.clients.claim()])));
 self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET')return;const url=new URL(req.url);if(url.origin!==self.location.origin)return;

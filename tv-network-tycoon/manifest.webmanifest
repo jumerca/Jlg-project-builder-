@@ -1,14 +1,14 @@
 {
-  "name": "TV Network Tycoon — Studio Edition",
+  "name": "TV Network Tycoon — JLG Creative",
   "short_name": "TV Tycoon",
   "id": "/",
-  "description": "Jeu JLG Creative de gestion de chaîne TV : droits, talents, programmes, audiences et concurrence.",
+  "description": "Jeu de gestion de chaînes TV : programmes, studios, audiences, droits sportifs et concurrence.",
   "lang": "fr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f2f5fb",
-  "theme_color": "#12284b",
+  "background_color": "#08192f",
+  "theme_color": "#0b2339",
   "orientation": "any",
   "icons": [
     {
