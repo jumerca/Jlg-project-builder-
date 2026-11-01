@@ -1,5 +1,5 @@
 /* TV Network Tycoon Studio Edition V1.3 — cache de l'application, sans stockage des sauvegardes */
-const CACHE='tvnetwork-studio-v130-render';
+const CACHE='tvnetwork-studio-v131-delete-saves';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/icon-192.svg','/icons/icon-512.svg','/icons/icon-maskable.svg'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('tvnetwork-')&&key!==CACHE).map(key=>caches.delete(key)))),self.clients.claim()])));
