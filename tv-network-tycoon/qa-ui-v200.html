@@ -32,6 +32,7 @@ iframe.addEventListener('load',async()=>{
   ok('Mécanique enchères conservée',!!w.TVT&&typeof w.TVT.v19StartAuction==='function');
   await click('[data-action="v20-go-talent"]');
   ok('Accès au mercato et recherche par métier',!!q('#v18-market-role'));
+  if(!q('#v18-market-role'))window.__qaMarketDebug='roleFilter='+String(!!q('.v18-role-filter'))+';active='+String(!!q('.v14-tabs .active'))+';mercatoText='+String(d.body.textContent.includes('Mercato des animateurs'))+';htmlSelects='+Array.from(d.querySelectorAll('select')).map(x=>x.id).filter(Boolean).slice(0,15).join(',')+';bodyTitle='+String(d.querySelector('.page-title')?.textContent);
   await click('[data-action="v20-go-rentree"]');
   ok('Plan de rentrée accessible',!!q('.v14-plan-form')||!!q('.v14-validated'));
   await click('[data-nav="studio"]');
@@ -41,7 +42,7 @@ iframe.addEventListener('load',async()=>{
   d.documentElement.classList.add('studio-dark');
   ok('Thème sombre conserve la navigation',!!q('.page')&&!!q('.v20-workbar'));
  }catch(e){tests.push({name:'Erreur : '+(e?.message||String(e)),pass:false});}
- const n=tests.filter(x=>x.pass).length;output.textContent=n+' / '+tests.length+' réussis · '+(tests.length-n)+' échec(s)\n'+tests.map(x=>(x.pass?'✓ ':'✗ ')+x.name).join('\n');
+ const n=tests.filter(x=>x.pass).length;output.textContent=n+' / '+tests.length+' réussis · '+(tests.length-n)+' échec(s)\n'+tests.map(x=>(x.pass?'✓ ':'✗ ')+x.name).join('\n')+(window.__qaMarketDebug?'\nDiagnostic : '+window.__qaMarketDebug:'');
  document.body.dataset.status=n===tests.length?'pass':'fail';
 });
 </script></body></html>
