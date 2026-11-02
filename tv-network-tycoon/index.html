@@ -5255,9 +5255,45 @@ function v20Install(){
   return formerClick(ev);
  };
 }
-v20Install();
 
-init();
+function v20InternalQA(){
+ const tests=[],check=(name,yes)=>tests.push({name,ok:!!yes});
+ const q=x=>document.querySelector(x),n=x=>document.querySelectorAll(x).length;
+ try{
+  game=E.createGame('QA VISUEL V2','divert',202020,'generaliste');
+  game.cash=Math.max(game.cash,5000000);
+  ui.startMenuOpen=false;ui.tab='dashboard';ui.modal=null;render();
+  check('Écran de carrière',!!q('.app-shell')&&!!q('.topbar'));
+  check('Raccourcis de navigation',n('.v20-workbar button')===8);
+  check('Icônes uniformes',n('.v20-workbar .v20-icon')===8);
+  check('Cinq onglets mobiles',n('.mobile-tab')===5);
+  check('Indicateurs dashboard',n('.stat')>=4);
+  check('Diffusion disponible',!!q('[data-action="simulate"]'));
+  check('Protection barre de navigation',parseInt(getComputedStyle(q('.page')).paddingBottom)>=80);
+  const go=x=>{const node=q(x);if(!node)throw Error('Accès introuvable : '+x);handleClick({target:node});};
+  go('[data-action="v20-go-sports"]');
+  check('Droits TV accessibles',ui.tab==='market'&&ui.market==='sports'&&!!q('.v19-rights-banner'));
+  check('Enchères préservées',typeof E.v19PlaceBid==='function');
+  go('[data-action="v20-go-talent"]');
+  check('Recrutement accessible',ui.tab==='v14'&&!!q('#v18-market-role'));
+  go('[data-action="v20-go-rentree"]');
+  check('Rentrée accessible',ui.tab==='v14'&&(!!q('.v14-plan-form')||!!q('.v14-validated')));
+  go('[data-action="v20-go-group"]');
+  check('Groupe accessible',ui.tab==='v15'&&!!q('.v15-banner'));
+  const prod=E.createProduction(game,'Magazine Test UI','mag',2,85000);
+  check('Production toujours fonctionnelle',!prod.error&&prod.state.productions.length===game.productions.length+1);
+  check('Plateaux graphiques',v15StudioStage({genre:'info',style:'azure',level:2}).includes('v18-stage'));
+ }catch(e){tests.push({name:'ERREUR '+(e.message||e),ok:false});}
+ const score=tests.filter(x=>x.ok).length;
+ const div=document.createElement('main');
+ div.style.cssText='font-family:system-ui;max-width:740px;margin:35px auto;padding:25px;background:#102f45;color:#f2fbff;border-radius:15px;white-space:pre-wrap;line-height:1.75';
+ div.textContent='QA TV NETWORK V2.0\n'+score+' / '+tests.length+' réussis · '+(tests.length-score)+' échec(s)\n'+tests.map(x=>(x.ok?'✓ ':'✗ ')+x.name).join('\n');
+ document.body.replaceChildren(div);
+}
+v20Install();
+if(location.search.includes('qa-ui-v200-inline'))v20InternalQA();
+else init();
+
 })();
 </script>
 </body></html>
