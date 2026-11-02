@@ -5281,7 +5281,7 @@ function v20InternalQA(){
   check('Droits TV accessibles',ui.tab==='market'&&ui.market==='sports'&&!!q('.v19-rights-banner'));
   check('Enchères préservées',typeof E.v19PlaceBid==='function');
   go('[data-action="v20-go-talent"]');
-  check('Recrutement accessible',ui.tab==='v14'&&!!q('#v18-market-role'));
+  check('Recrutement accessible (route='+String(ui.tab)+'; section='+String(ui.v14?.tab)+'; select='+String(!!q('#v18-market-role'))+'; filtre='+String(!!q('.v18-role-filter'))+'; titre='+String(q('.page-title')?.textContent||'absent')+')',ui.tab==='v14'&&!!q('#v18-market-role'));
   go('[data-action="v20-go-rentree"]');
   check('Rentrée accessible',ui.tab==='v14'&&(!!q('.v14-plan-form')||!!q('.v14-validated')));
   go('[data-action="v20-go-group"]');
