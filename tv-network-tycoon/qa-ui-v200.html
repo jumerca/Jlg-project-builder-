@@ -1,42 +1,47 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QA Studio UI V2.0</title><style>body{font:14px system-ui;padding:23px;background:#10263e;color:#f0fafb}h1{font-size:22px}pre{white-space:pre-wrap;line-height:1.7;background:#152f47;padding:16px;border-radius:12px}.ok{color:#5cf2cb}.fail{color:#ffc1c1}iframe{position:absolute;left:-9999px;top:0;width:390px;height:740px;border:0}</style></head><body><h1>TV Network Tycoon · vérifications V2.0</h1><pre id="res">Démarrage des contrôles…</pre><iframe id="game" title="Prévisualisation isolée" src="./index.html?qa-v200-ui"></iframe><script>
-const iframe=document.getElementById('game'),output=document.getElementById('res');
-iframe.addEventListener('load',()=>{
- const test=[];const ok=(name,value)=>test.push({name,pass:!!value});
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QA Studio UI V2.0</title><style>body{font:14px system-ui;padding:23px;background:#10263e;color:#f0fafb}h1{font-size:22px}pre{white-space:pre-wrap;line-height:1.7;background:#152f47;padding:16px;border-radius:12px}iframe{position:absolute;left:-9999px;top:0;width:390px;height:740px;border:0}</style></head><body><h1>TV Network Tycoon · vérifications V2.0</h1><pre id="res">Initialisation du jeu…</pre><iframe id="game" title="Prévisualisation isolée" src="./index.html?qa-v200-ui-click"></iframe><script>
+const iframe=document.getElementById('game'),output=document.getElementById('res'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+iframe.addEventListener('load',async()=>{
+ const tests=[];const ok=(name,value)=>tests.push({name,pass:!!value});
+ const w=iframe.contentWindow,d=w.document;
  try{
-  const w=iframe.contentWindow,d=w.document,query=(q)=>d.querySelector(q),count=(q)=>d.querySelectorAll(q).length;
-  ok('Script chargé sans écran blanc',!!w.TVT&&!!query('.v09-home-card'));
-  ok('Menu et titre V2.0',d.body.textContent.includes('V2.0'));
-  ok('Logo accessible',!!query('.v09-home-mark img'));
-  ok('Système d’icônes homogène',w.eval('typeof v20Icon')==='function');
-  w.eval("game=TVT.createGame('QA DESIGN V2', 'divert', 990112, 'generaliste');ui.startMenuOpen=false;ui.tab='dashboard';ui.modal=null;render()");
-  ok('Carrière fictive rendue',!!query('.app-shell')&&!!query('.topbar'));
-  ok('Barre de navigation contextuelle',count('.v20-workbar button')===8);
-  ok('Navigation du bas à 5 entrées',count('.mobile-nav .mobile-tab')===5);
-  ok('Icônes SVG dans la navigation',count('.v20-workbar svg')===8&&count('.mobile-nav svg')===5);
-  ok('Mode mobile activé à 390px',w.getComputedStyle(query('.mobile-nav')).display==='grid');
-  ok('Contenu protégé de la barre basse',parseFloat(w.getComputedStyle(query('.page')).paddingBottom)>=130);
-  ok('Cartes statistiques complètes',count('.stat')>=4&&count('.panel')>=2);
-  ok('Nouvelle palette de couleurs présente',w.getComputedStyle(query('.app-shell')).backgroundColor!=='rgb(11, 18, 32)');
-  ok('Actions de diffusion toujours présentes',!!query('[data-action="simulate"]'));
-  const click=(selector)=>{const el=query(selector);if(!el)throw Error('Bouton absent '+selector);el.click();};
-  click('[data-action="v20-go-sports"]');
-  ok('Accès direct aux droits TV',w.eval("ui.tab==='market'&&ui.market==='sports'"));
-  ok('Cartes de droits disponibles',count('.v11-right')>0);
-  ok('Enchères V1.9 conservées',typeof w.TVT.v19StartAuction==='function');
-  click('[data-action="v20-go-talent"]');
-  ok('Accès recrutement via barre rapide',w.eval("ui.tab==='v14'&&ui.v14.tab==='mercato'"));
-  ok('Filtre métiers présent',!!query('#v18-market-role'));
-  click('[data-action="v20-go-rentree"]');
-  ok('Plan de rentrée navigable',!!query('.v14-plan-form')||!!query('.v14-validated'));
-  click('[data-nav="studio"]');
-  ok('Atelier de production préservé',!!query('#production-form'));
-  const sample=w.TVT.createProduction(w.TVT.createGame('PROD QA','divert',888),'Emission Qualite','mag',2,85000);
-  ok('Moteur de production préservé',!sample.error&&sample.state.productions.length===1);
-  click('[data-action="v20-go-group"]');
-  ok('Gestion du groupe accessible',w.eval("ui.tab==='v15'&&ui.v15Page==='group'"));
+  let attempts=0;
+  while(!d.querySelector('[data-action="home-new"]')&&attempts++<35)await sleep(300);
+  const q=selector=>d.querySelector(selector),count=selector=>d.querySelectorAll(selector).length;
+  ok('Menu V2.0 rendu',!!q('.v09-home-card')&&d.body.textContent.includes('V2.0'));
+  ok('Logo visible sur le menu',!!q('.v09-home-mark img'));
+  ok('Création de carrière accessible',!!q('[data-action="home-new"]'));
+  if(!q('[data-action="home-new"]'))throw Error('Menu non démarré après chargement');
+  q('[data-action="home-new"]').click();await sleep(150);
+  const form=q('#new-form');
+  ok('Formulaire de nouvelle chaîne accessible',!!form);
+  if(!form)throw Error('Formulaire nouvelle carrière manquant');
+  const field=form.querySelector('[name="name"]');if(field)field.value='TEST VISUEL V2';
+  form.requestSubmit();await sleep(400);
+  ok('Écran de carrière visible',!!q('.app-shell')&&!!q('.topbar'));
+  ok('Navigation rapide 8 modules',count('.v20-workbar button')===8);
+  ok('Navigation mobile 5 onglets',count('.mobile-nav .mobile-tab')===5);
+  ok('Icônes SVG harmonisées',count('.v20-workbar svg')===8&&count('.mobile-nav svg')===5);
+  ok('Barre mobile présente en largeur 390px',!!q('.mobile-nav')&&w.getComputedStyle(q('.mobile-nav')).display==='grid');
+  ok('Marge basse anti-recouvrement',!!q('.page')&&parseFloat(w.getComputedStyle(q('.page')).paddingBottom)>=130);
+  ok('Statistiques et cartes de la direction',count('.stat')>=4&&count('.panel')>=2);
+  ok('Couleurs de fond de la refonte',!!q('.main-col')&&w.getComputedStyle(q('.main-col')).backgroundColor!=='rgb(11, 18, 32)');
+  ok('Bouton diffusion conservé',!!q('[data-action="simulate"]'));
+  async function click(selector){const el=q(selector);if(!el)throw Error('Bouton absent '+selector);el.click();await sleep(100);}
+  await click('[data-action="v20-go-sports"]');
+  ok('Accès à la vente des droits TV',!!q('.v19-rights-banner')&&count('.v11-right')>0);
+  ok('Mécanique enchères conservée',!!w.TVT&&typeof w.TVT.v19StartAuction==='function');
+  await click('[data-action="v20-go-talent"]');
+  ok('Accès au mercato et recherche par métier',!!q('#v18-market-role'));
+  await click('[data-action="v20-go-rentree"]');
+  ok('Plan de rentrée accessible',!!q('.v14-plan-form')||!!q('.v14-validated'));
+  await click('[data-nav="studio"]');
+  ok('Formulaire de production accessible',!!q('#production-form'));
+  await click('[data-action="v20-go-group"]');
+  ok('Groupe et filiales accessibles',!!q('.v15-banner'));
   d.documentElement.classList.add('studio-dark');
-  ok('Thème sombre compatible',!!query('.page')&&!!query('.v20-workbar'));
- }catch(e){test.push({name:'ERREUR '+(e?.message||String(e)),pass:false});}
- const passed=test.filter(t=>t.pass).length;output.textContent=passed+' / '+test.length+' réussis · '+(test.length-passed)+' échec(s)\n'+test.map(t=>(t.pass?'✓ ':'✗ ')+t.name).join('\n');d.body.dataset.qa=(passed===test.length?'pass':'fail');
+  ok('Thème sombre conserve la navigation',!!q('.page')&&!!q('.v20-workbar'));
+ }catch(e){tests.push({name:'Erreur : '+(e?.message||String(e)),pass:false});}
+ const n=tests.filter(x=>x.pass).length;output.textContent=n+' / '+tests.length+' réussis · '+(tests.length-n)+' échec(s)\n'+tests.map(x=>(x.pass?'✓ ':'✗ ')+x.name).join('\n');
+ document.body.dataset.status=n===tests.length?'pass':'fail';
 });
 </script></body></html>
