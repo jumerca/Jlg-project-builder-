@@ -1,0 +1,22 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Diagnostic navigation v2</title></head><body><pre id="result">En cours…</pre><iframe id="game" src="./index.html?qa-debug-v201" style="position:absolute;left:-9999px;width:390px;height:740px"></iframe><script>
+const output=document.getElementById('result'),fr=document.getElementById('game');
+const sleep=t=>new Promise(r=>setTimeout(r,t));
+fr.addEventListener('load',async()=>{
+ const w=fr.contentWindow,d=w.document, q=s=>d.querySelector(s);
+ try{
+  for(let i=0;i<25&&!q('[data-action="home-new"]');i++)await sleep(200);
+  q('[data-action="home-new"]')?.click();await sleep(200);
+  const form=q('#new-form');if(!form)throw Error('new-form missing');
+  form.querySelector('[name="name"]').value="QA DIAG";
+  form.requestSubmit();await sleep(350);
+  q('[data-action="v20-go-talent"]')?.click();await sleep(250);
+  const state={hasNav:!!q('.v20-workbar'),hasRole:!!q('#v18-market-role'),hasRoleBar:!!q('.v18-role-filter'),
+    marketHeading:!!q('.v14-head'),pageTitle:q('.page-title')?.textContent,
+    selectedButton:q('.v20-workbar .active')?.textContent,
+    marketAllSelectIds:[...d.querySelectorAll('select')].map(e=>e.id).filter(Boolean),
+    marketText:(q('.page')?.innerText||'').slice(0,500),
+    roleText:d.body.innerHTML.includes('v18-market-role'),countRole:(d.body.innerHTML.match(/v18-market-role/g)||[]).length
+  };output.textContent=JSON.stringify(state,null,2);
+ }catch(error){output.textContent='ERROR '+String(error);}
+});
+</script></body></html>
