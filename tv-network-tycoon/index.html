@@ -4743,7 +4743,7 @@ E.v19StartAuction=function(source,id,years){
  const step=v19Step(lot.price);
  const candidates=s.rivals.filter(r=>r.cash>v11Cost(lot.price,years)*1.08).map(r=>{
   const interest=E.noise('v19',s.seed,id,s.day,years,r.id,'interest');
-  const affinity=r.focus==='sport'||r.id==='arena'?.17:0;
+  const affinity=(r.focus==='sport'||r.id==='arena')?0.17:0;
   const ceiling=Math.max(lot.price,Math.min(lot.price*4.8,
    Math.floor(lot.price*(1.13+interest*.9+affinity)/1000)*1000));
   const affordable=Math.floor(r.cash/(v11Cost(100000,years)/100000)/1000)*1000;
@@ -4790,11 +4790,18 @@ E.v19Award=function(source,id,retire=false){
  const a0=v19Current(source,id),lot=v19Lot(id);
  if(!a0||!lot||a0.status!=='open')return {error:'Cette enchère est déjà terminée.'};
  if(!retire&&a0.leader!=='player')return {error:'Tu dois avoir la meilleure offre pour remporter les droits.'};
- const s=structuredClone(source),a=s.v19Auctions[id],winner=retire?a.leader:'player';
- if(!winner){
-  // Aucun concurrent : l’abandon annule la vente sans perte.
-  delete s.v19Auctions[id];
-  return {state:s,cancelled:true};
+ const s=structuredClone(source),a=s.v19Auctions[id];
+ let winner='player';
+ if(retire){
+  // Le joueur peut se retirer même lorsqu'il mène. Le meilleur rival reprend sa dernière offre.
+  const other=a.bids.filter(b=>b.actor!=='player').sort((x,y)=>y.amount-x.amount)[0];
+  if(!other){
+   delete s.v19Auctions[id];
+   return {state:s,cancelled:true};
+  }
+  a.highest=other.amount;a.leader=other.actor;
+  winner=other.actor;
+  a.bids.push({actor:winner,name:other.name,amount:other.amount,round:a.bids.filter(b=>b.actor==='player').length+1,withdrawal:true});
  }
  const total=v11Cost(a.highest,a.years);
  if(winner==='player'&&s.cash<total)return {error:'Trésorerie insuffisante pour signer le contrat.'};
@@ -4816,7 +4823,7 @@ function v19Dialog(id){
  const title='<div class="modal-header"><div><div class="kicker">DROITS DE DIFFUSION</div><h2>📡 '+ESC(lot.title)+'</h2></div><button type="button" class="close" data-action="close" aria-label="Fermer">×</button></div>';
  const terms='<div class="v19-terms"><div><small>Réserve / an</small><strong>'+v19Money(lot.price)+'</strong></div><div><small>Diffusions / saison</small><strong>'+lot.airings+'</strong></div><div><small>Trésorerie</small><strong>'+v19Money(game.cash)+'</strong></div></div>';
  let body='';
- if(a?.status==='won'||a?.status==='lost'||(legacyLost&&!a)){
+ if(!own&&(a?.status==='won'||a?.status==='lost'||(legacyLost&&!a))){
   const winner=a?.winner==='player'?game.brandName:a?.winner?game.rivals.find(r=>r.id===a.winner)?.name:other?.name;
   const amount=a?.finalBid||other?.amount||0;
   body='<div class="v19-result"><small>VENTE TERMINÉE</small><strong>'+(a?.status==='won'?'🏆 Droits remportés':'📺 Attribution à '+ESC(winner||'une chaîne concurrente'))+'</strong><div class="v19-price">'+(amount?v19Money(amount)+'/an':'Montant non conservé')+'</div><small>'+(a?'Contrat de '+a.years+' an(s) · montant total '+v19Money(a.total):'Ancienne enchère : seules les informations conservées dans ta carrière peuvent être affichées.')+'</small></div>'
@@ -4857,10 +4864,10 @@ function v19RightsList(){
     const own=game.sportsRights.find(x=>x.id===l.id&&x.endDay>=game.day),
       lost=game.sportsLost.includes(l.id),auction=v19Current(game,l.id),
       active=auction?.status==='open',closed=lost||auction?.status==='lost';
-    const caption=own?'✓ Droits détenus':active?'● Enchères en cours':closed?'Attribution terminée':'Droits disponibles';
-    const act=own?'Renouveler':active?'Reprendre les enchères':closed?'Voir résultat':'Participer aux enchères';
+    const caption=own?'✓ Droits détenus':active?'● Enchères en cours':closed||auction?.status==='won'?'Attribution terminée':'Droits disponibles';
+    const act=own?'Renouveler':active?'Reprendre les enchères':closed||auction?.status==='won'?'Voir résultat':'Participer aux enchères';
     const bids=active?'<span class="v19-rights-label paused">'+auction.bids.length+' offres · '+v19Money(auction.highest)+'/an</span>'
-      :'<span class="v19-rights-label '+(closed?'closed':'')+'">'+caption+'</span>';
+      :'<span class="v19-rights-label '+((closed||auction?.status==='won')?'closed':'')+'">'+caption+'</span>';
     return '<article class="v11-right"><div class="v11-art"><span>'+(icons[l.sport]||'🏆')+'</span><small>'+ESC(l.sport||'SPORT').toUpperCase()+'</small></div><div class="v11-right-body"><h3>'+ESC(l.title)+'</h3><small>'+l.airings+' diffusions / saison</small>'
      +bids+'<strong>'+v19Money(l.price)+' <small>/an (réserve)</small></strong>'
      +'<p>'+(own?'Fin du contrat : '+v11Date(own.endDay):'Horaire : '+E.time(l.slot))+'</p>'
