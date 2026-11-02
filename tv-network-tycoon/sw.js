@@ -1,5 +1,5 @@
 /* TV Network Tycoon V1.7 — cache d'interface, sauvegardes laissées au navigateur */
-const CACHE='tvnetwork-studio-v200-unified-premium-ui';
+const CACHE='tvnetwork-studio-v201-market-recruitment';
 const CORE=['/','/index.html','/manifest.webmanifest','/icons/icon-192-v172.svg','/icons/icon-512-v172.svg','/icons/icon-maskable-v172.svg','/icons/logo-v172.svg'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('tvnetwork-')&&key!==CACHE).map(key=>caches.delete(key)))),self.clients.claim()])));

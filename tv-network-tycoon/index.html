@@ -5234,6 +5234,12 @@ function v20Install(){
  const formerShell=shell;
  shell=function(){
   let result=formerShell();
+  // Le filtre métier doit rester accessible sur chaque entrée Mercato, y compris
+  // lorsque les routeurs historiques rendent une variante de page sans filtre.
+  if(ui.tab==='v14'&&ui.v14?.tab==='mercato'&&!result.includes('id="v18-market-role"')){
+   const role='<label class="v18-role-filter" for="v18-market-role">🎙️ Profession recherchée <select class="input" id="v18-market-role">'+v18RoleOptions(ui.v18MarketRole||'all')+'</select></label>';
+   result=result.replace('<main class="page">','<main class="page">'+role);
+  }
   result=result.replace('<main class="page">',quickbar()+'<main class="page">');
   result=result.replace('Version 1.7<br>Simulation déterministe','Version 2.0 · Studio UI<br>Sauvegardes préservées');
   return result;
