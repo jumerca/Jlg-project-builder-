@@ -1,0 +1,47 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vérification enchères V1.9</title><style>body{font:16px system-ui;background:#0e2337;color:#eaf9ff;padding:25px}pre{white-space:pre-wrap;line-height:1.55}.ok{color:#65e8bc}.bad{color:#ff8c9f}iframe{display:none}</style></head><body><h1>QA droits TV · V1.9</h1><pre id="results">Chargement…</pre><iframe id="game" src="./index.html?qa-rights-v19" title="Moteur de test"></iframe><script>
+const el=document.getElementById('results'),iframe=document.getElementById('game');
+iframe.addEventListener('load',()=>{
+ const checks=[];
+ function check(label,condition){checks.push({label,pass:!!condition});}
+ try{
+  const E=iframe.contentWindow.TVT;
+  check('Moteur disponible',!!E&&typeof E.v19StartAuction==='function');
+  const lot=[...E.SPORTS].sort((a,b)=>a.price-b.price)[0];
+  check('Lot de droits trouvé',!!lot&&lot.price>0);
+  const s=E.createGame('QA Sans Sauvegarde','sport',1234567);
+  s.cash=lot.price*25;
+  s.rivals.forEach(r=>r.cash=lot.price*25);
+  const opening=E.v19StartAuction(s,lot.id,1);
+  check('Ouverture sans débit',!opening.error&&opening.state.cash===s.cash&&opening.auction.status==='open');
+  check('Contendants et offres consultables',opening.auction.bids.length>0&&opening.auction.bids.every(x=>x.actor&&Number.isFinite(x.amount)));
+  check('Sauvegarde JSON sérialisable',JSON.parse(JSON.stringify(opening.state)).v19Auctions[lot.id].status==='open');
+  const original=opening.state;
+  const exit=E.v19Award(original,lot.id,true);
+  check('Abandon sans débit',!exit.error&&exit.state.cash===original.cash);
+  check('Abandon sans droit pour joueur',!exit.error&&!(exit.state.sportsRights||[]).some(r=>r.id===lot.id));
+  let current=opening.state;let bids=0;let issue=null;
+  while(current.v19Auctions[lot.id].leader!=='player'&&bids<15){
+   const a=current.v19Auctions[lot.id],offer=Math.max(lot.price,a.highest+a.step);
+   const r=E.v19PlaceBid(current,lot.id,offer);
+   if(r.error){issue=r.error;break;}current=r.state;bids++;
+  }
+  check('Surenchères multiples fonctionnelles',!issue&&bids>0&&current.v19Auctions[lot.id].bids.length>opening.auction.bids.length);
+  check('Le joueur peut reprendre la tête',!issue&&current.v19Auctions[lot.id].leader==='player');
+  const before=current.cash,final=E.v19Award(current,lot.id,false);
+  check('Attribution gagnante réussie',!final.error&&final.win&&final.state.sportsRights.some(x=>x.id===lot.id));
+  check('Débit seulement à attribution',!final.error&&final.state.cash<before);
+  check('Vente clôturée + historique conservé',!final.error&&final.state.v19Auctions[lot.id].status==='won'&&final.state.v19Auctions[lot.id].bids.length>0);
+  check('Impossible de repayer une vente terminée',!!E.v19Award(final.state,lot.id,false).error);
+  const poor=E.createGame('QA Budget','sport',1234);poor.cash=lot.price*25;poor.rivals.forEach(r=>r.cash=0);
+  const silent=E.v19StartAuction(poor,lot.id,1);
+  const ownBid=E.v19PlaceBid(silent.state,lot.id,lot.price);
+  const withdraw=E.v19Award(ownBid.state,lot.id,true);
+  check('Retrait en tête sans paiement',!withdraw.error&&withdraw.cancelled&&withdraw.state.cash===poor.cash);
+  const wrong=E.v19PlaceBid(opening.state,lot.id,lot.price-1000);
+  check('Offre trop basse refusée',!!wrong.error);
+ }catch(error){checks.push({label:'Exception '+(error?.message||String(error)),pass:false});}
+ const pass=checks.filter(x=>x.pass).length,fail=checks.length-pass;
+ el.textContent=(pass+' / '+checks.length+' réussis · '+fail+' échec(s)')+'\n'+checks.map(x=>(x.pass?'✓':'✗')+' '+x.label).join('\n');
+ document.body.dataset.status=fail?'fail':'pass';
+});
+</script></body></html>
