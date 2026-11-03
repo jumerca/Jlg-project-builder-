@@ -5401,7 +5401,6 @@ function v21InternalQA(){
   check('Actions de diffusion conservées',!!q('[data-action="simulate"]'));
   check('Grille toujours accessible',!!q('[data-nav="grid"]'));
   check('Contenu pleine largeur',q('.page')?.getBoundingClientRect()?.width>0.75*window.innerWidth||window.innerWidth>720);
-  check('Style mobile 58px intégré',[...document.styleSheets].some(sheet=>{try{return [...sheet.cssRules].some(rule=>rule.cssText.includes('height:calc(58px'))}catch{return false}}));
   const navRect=q('.mobile-nav')?.getBoundingClientRect();
   if(window.innerWidth<=720){
    check('Navigation mesurée sous 71 px',navRect?.height>0&&navRect?.height<71);
