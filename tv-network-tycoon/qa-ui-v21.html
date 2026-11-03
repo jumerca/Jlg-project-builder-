@@ -1,0 +1,52 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QA TV Network Tycoon V2.1</title><style>body{font:14px system-ui;background:#0a263b;color:#eafffd;padding:22px}h1{font-size:18px}pre{white-space:pre-wrap;line-height:1.6;background:#133750;padding:16px;border-radius:12px}iframe{position:absolute;left:-9999px;width:390px;height:760px;border:0}</style></head><body><h1>V2.1 · Vérifications navigation et logo</h1><pre id="result">Vérifications en cours…</pre><iframe src="./index.html?test-navbar-21" id="game" title="Carrière de test isolée"></iframe><script>
+const out=document.getElementById('result'),fr=document.getElementById('game'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+fr.addEventListener('load',async()=>{const checks=[],ok=(label,pass)=>checks.push({label,pass:!!pass});
+const w=fr.contentWindow,d=w.document,q=s=>d.querySelector(s),all=s=>[...d.querySelectorAll(s)];
+try{
+ for(let i=0;i<45&&!q('[data-action="home-new"]');i++)await sleep(200);
+ ok('Menu démarré',!!q('[data-action="home-new"]'));
+ const logo=q('.v09-home-mark img');
+ ok('Nouveau logo SVG affiché',!!logo&&logo.getAttribute('src').includes('logo-v21.svg'));
+ if(logo&&!logo.complete)await new Promise(r=>{logo.addEventListener('load',r,{once:true});setTimeout(r,1500)});
+ ok('Logo correctement chargé',!!logo&&logo.complete&&logo.naturalWidth>0);
+ q('[data-action="home-new"]')?.click();await sleep(150);
+ ok('Création de carrière accessible',!!q('#new-form'));
+ const form=q('#new-form');if(!form)throw Error('Formulaire nouvelle partie indisponible');
+ form.querySelector('[name="name"]').value='QA NAV 2.1';
+ form.requestSubmit();await sleep(300);
+ ok('Tableau de bord rendu',!!q('.page')&&!!q('.topbar'));
+ const nav=q('.mobile-nav'),cs=nav?w.getComputedStyle(nav):null,rect=nav?.getBoundingClientRect();
+ ok('Navigation du bas visible',!!nav&&cs.display==='grid');
+ ok('Cinq onglets répartis',all('.mobile-nav>.mobile-tab').length===5&&w.getComputedStyle(nav).gridTemplateColumns.split(' ').length===5);
+ ok('Barre affinée (moins de 71 px)',!!rect&&rect.height>0&&rect.height<71);
+ ok('Barre sur toute la largeur',!!rect&&Math.abs(rect.width-w.innerWidth)<3&&Math.abs(rect.left)<2);
+ const tabs=all('.mobile-nav>.mobile-tab');
+ ok('Onglets de même largeur',tabs.length===5&&Math.max(...tabs.map(t=>t.getBoundingClientRect().width))-Math.min(...tabs.map(t=>t.getBoundingClientRect().width))<2);
+ ok('Onglet actif discret',!!q('.mobile-tab.active')&&w.getComputedStyle(q('.mobile-tab.active')).backgroundColor==='rgba(0, 0, 0, 0)');
+ const page=q('.page');
+ ok('Contenu sans marge géante',!!page&&page.getBoundingClientRect().width>=w.innerWidth-3);
+ ok('Marge de sécurité au-dessus du menu',!!page&&parseFloat(w.getComputedStyle(page).paddingBottom)>rect.height+12);
+ ok('Pas de défilement horizontal',d.documentElement.scrollWidth<=w.innerWidth+4);
+ ok('Pas de menus principaux dupliqués',all('.v20-workbar button[data-nav="dashboard"],.v20-workbar button[data-nav="grid"],.v20-workbar button[data-nav="studio"]').every(b=>w.getComputedStyle(b).display==='none'));
+ ok('Icônes de navigation harmonisées',all('.mobile-nav svg.v20-icon').length===5);
+ q('.mobile-tab[data-nav="grid"]')?.click();await sleep(100);
+ ok('Clic onglet Grille',!!q('.mobile-tab[data-nav="grid"].active')&&!!q('.page'));
+ q('.mobile-tab[data-nav="market"]')?.click();await sleep(100);
+ ok('Clic onglet Marché',!!q('.mobile-tab[data-nav="market"].active'));
+ q('[data-action="v20-go-talent"]')?.click();await sleep(100);
+ ok('Raccourci Recruter opérationnel',!!q('#v18-market-role'));
+ q('[data-action="v20-go-sports"]')?.click();await sleep(100);
+ ok('Droits TV toujours accessibles',!!q('.v19-rights-banner'));
+ q('.mobile-tab[data-nav="studio"]')?.click();await sleep(100);
+ ok('Lancer production toujours accessible',!!q('#production-form'));
+ fr.style.width='360px';await sleep(130);
+ ok('360 px : cinq onglets accessibles',all('.mobile-nav>.mobile-tab').length===5&&q('.mobile-nav').getBoundingClientRect().height<71);
+ ok('360 px : pas de scroll horizontal',d.documentElement.scrollWidth<=w.innerWidth+4);
+ const manifest=await w.fetch('./manifest.webmanifest?qa21').then(x=>x.json());
+ ok('Nouvelles icônes Android déclarées',manifest.icons.length>=3&&manifest.icons.every(i=>i.src.includes('-v21.svg')));
+ }catch(error){checks.push({label:'EXCEPTION : '+String(error?.stack||error).slice(0,350),pass:false})}
+ const pass=checks.filter(x=>x.pass).length;
+ out.textContent=pass+' / '+checks.length+' réussis · '+(checks.length-pass)+' échec(s)\n'+checks.map(x=>(x.pass?'✓ ':'✗ ')+x.label).join('\n');
+ d.body.dataset.qaStatus=checks.every(x=>x.pass)?'ok':'error';
+});
+</script></body></html>
