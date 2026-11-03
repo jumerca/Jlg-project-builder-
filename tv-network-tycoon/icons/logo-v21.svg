@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="200" viewBox="0 0 720 200" fill="none">
+<defs><linearGradient id="t" x1="18" y1="22" x2="178" y2="174" gradientUnits="userSpaceOnUse"><stop stop-color="#1BE4CB"/><stop offset="1" stop-color="#048CA3"/></linearGradient></defs>
+<rect x="14" y="20" width="170" height="160" rx="41" fill="#0C2C43"/>
+<rect x="17" y="23" width="164" height="154" rx="38" stroke="#256D7E" stroke-width="3" opacity=".6"/>
+<rect x="49" y="68" width="104" height="87" rx="21" stroke="url(#t)" stroke-width="11"/>
+<path d="M89 85V138L135 111L89 85Z" fill="#F0FFFB"/>
+<path d="M137 51q17 3 28 16" stroke="#28DFC9" stroke-width="7" stroke-linecap="round"/>
+<path d="M159 36q18 6 30 21" stroke="#E9BF70" stroke-width="6" stroke-linecap="round"/>
+<path d="M209 43v113" stroke="#AAC5CF" stroke-width="2" opacity=".6"/>
+<text x="229" y="93" font-family="Inter,Arial,Helvetica,sans-serif" font-size="49" font-weight="800" letter-spacing="-1.8" fill="#112F48">TV NETWORK</text>
+<text x="229" y="150" font-family="Inter,Arial,Helvetica,sans-serif" font-size="51" font-weight="800" letter-spacing="-1.7" fill="#079C9A">TYCOON</text>
+<text x="583" y="154" font-family="Inter,Arial,Helvetica,sans-serif" font-size="14" font-weight="700" letter-spacing="1" fill="#8399AA">JLG CREATIVE</text></svg>
