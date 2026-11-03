@@ -2695,7 +2695,7 @@ function nav(tab){ui.tab=tab;ui.modal=null;window.scrollTo(0,0);render()}
 function logo(){return `<span class="brand-icon"><img src="./icons/icon-192-v21.svg" alt="" width="42" height="42" loading="eager"></span>`}
 function navbtn(id,label,symbol){return `<button type="button" data-nav="${id}" class="nav-button ${ui.tab===id?'active':''}"><span class="symbol" aria-hidden="true">${symbol}</span>${label}</button>`}
 function mobilebtn(id,label,symbol){return `<button type="button" data-nav="${id}" class="mobile-tab ${ui.tab===id?'active':''}"><span aria-hidden="true">${symbol}</span>${label}</button>`}
-function shell(){const dateLabel=`Semaine ${Math.floor(game.day/7)+1} · ${DAYLONG[game.day%7]} · Jour ${game.day+1}`;return `<div class="app-shell"><aside class="sidebar"><div class="brand">${logo()}<div><div class="brand-name">TV <span>NETWORK</span> TYCOON</div><div class="brand-small">JLG CREATIVE</div></div></div><div><div class="nav-label smallcaps">DIRECTION</div><div class="nav-group">${navbtn('dashboard','Tableau de bord','◫')}${navbtn('grid','Grille TV','▦')}${navbtn('studio','Studio de production','▣')}${navbtn('market','Marché & droits','◇')}</div><div class="nav-label smallcaps" style="margin-top:25px">ANALYSES</div><div class="nav-group">${navbtn('audience','Audiences','⌁')}${navbtn('finance','Finances','◉')}${navbtn('rivals','Concurrence','♜')}${navbtn('more','Paramètres & données','⚙')}</div></div><div class="sidebar-foot"><div class="t-xs"><span class="status-dot"></span>SAUVEGARDE AUTOMATIQUE</div><div class="muted" style="font-size:11px;margin-top:8px">Version 1.7<br>Simulation déterministe</div></div></aside><div class="main-col"><header class="topbar"><div><div class="topbar-name">${ESC(game.brandName)} <span class="chip chip-teal" style="margin-left:5px">${['LOCALE','RÉGIONALE','NATIONALE'][game.tier]}</span></div><div class="topbar-sub">${dateLabel}</div></div><div class="topbar-actions"><div class="cash-pill">◈ ${EUR(game.cash)}</div><button type="button" class="avatar" data-nav="more" aria-label="Paramètres">JLG</button></div></header><main class="page">${page()}</main></div></div><nav class="mobile-nav" aria-label="Navigation">${mobilebtn('dashboard','Accueil','⌂')}${mobilebtn('grid','Grille','▦')}${mobilebtn('studio','Studio','▣')}${mobilebtn('market','Marché','◇')}${mobilebtn('more','Plus','☷')}</nav>${ui.modal?modal():''}`}
+function shell(){const dateLabel=`Semaine ${Math.floor(game.day/7)+1} · ${DAYLONG[game.day%7]} · Jour ${game.day+1}`;return `<div class="app-shell"><aside class="sidebar"><div class="brand">${logo()}<div><div class="brand-name">TV <span>NETWORK</span> TYCOON</div><div class="brand-small">JLG CREATIVE</div></div></div><div><div class="nav-label smallcaps">DIRECTION</div><div class="nav-group">${navbtn('dashboard','Tableau de bord','◫')}${navbtn('grid','Grille TV','▦')}${navbtn('studio','Studio de production','▣')}${navbtn('market','Marché & droits','◇')}</div><div class="nav-label smallcaps" style="margin-top:25px">ANALYSES</div><div class="nav-group">${navbtn('audience','Audiences','⌁')}${navbtn('finance','Finances','◉')}${navbtn('rivals','Concurrence','♜')}${navbtn('more','Paramètres & données','⚙')}</div></div><div class="sidebar-foot"><div class="t-xs"><span class="status-dot"></span>SAUVEGARDE AUTOMATIQUE</div><div class="muted" style="font-size:11px;margin-top:8px">Version 1.7<br>Simulation déterministe</div></div></aside><div class="main-col"><header class="topbar"><div><div class="topbar-name">${ESC(game.brandName)} <span class="chip chip-teal" style="margin-left:5px">${['LOCALE','RÉGIONALE','NATIONALE'][game.tier]}</span></div><div class="topbar-sub">${dateLabel}</div></div><div class="topbar-actions"><div class="cash-pill">◈ ${EUR(game.cash)}</div><button type="button" class="avatar" data-nav="more" aria-label="Paramètres">JLG</button></div></header><main class="page">${page()}</main></div></div><nav class="mobile-nav" aria-label="Navigation">${mobilebtn('dashboard','Accueil','⌂')}${mobilebtn('grid','Grille','▦')}${mobilebtn('studio','Produire','▣')}${mobilebtn('market','Marché','◇')}${mobilebtn('more','Plus','☷')}</nav>${ui.modal?modal():''}`}
 function heading(title,subtitle,right=''){return `<div class="page-head"><div><h1 class="page-title">${title}</h1><p class="page-sub">${subtitle}</p></div>${right}</div>`}
 function panel(title,body,sub=''){return `<section class="panel"><div class="panel-title"><h3>${title}</h3>${sub?`<span class="panel-muted">${sub}</span>`:''}</div>${body}</section>`}
 function stat(label,num,sub,icon){return `<div class="stat"><div class="stat-top"><span class="smallcaps">${label}</span><span class="stat-symbol">${icon}</span></div><div class="stat-value num">${num}</div><div class="stat-caption">${sub}</div></div>`}
@@ -5383,8 +5383,56 @@ function v20InternalQA(){
  div.textContent='QA TV NETWORK V2.0\n'+score+' / '+tests.length+' réussis · '+(tests.length-score)+' échec(s)\n'+tests.map(x=>(x.ok?'✓ ':'✗ ')+x.name).join('\n');
  document.body.replaceChildren(div);
 }
+
+function v21InternalQA(){
+ const tests=[],check=(name,p)=>tests.push({name,ok:!!p});
+ const q=sel=>document.querySelector(sel),all=sel=>[...document.querySelectorAll(sel)];
+ try{
+  game=E.createGame('QA VISUEL V2.1','divert',202111,'generaliste');
+  game.cash=Math.max(5000000,game.cash);
+  ui.startMenuOpen=true;ui.startScreen='menu';render();
+  check('Logo V2.1 du menu chargé',q('.v09-home-mark img')?.getAttribute('src')?.includes('logo-v21.svg'));
+  check('Version V2.1 affichée',document.body.textContent.includes('V2.1'));
+  ui.startMenuOpen=false;ui.tab='dashboard';ui.modal=null;render();
+  check('Tableau de bord fonctionne',!!q('.page')&&all('.stat').length>=4);
+  check('Barre avec 5 onglets',all('.mobile-nav>.mobile-tab').length===5);
+  check('Nouvel intitulé Produire',!!q('.mobile-nav>.mobile-tab[data-nav="studio"]')?.textContent.includes('Produire'));
+  check('Icônes SVG cohérentes',all('.mobile-nav .v20-icon').length===5);
+  check('Actions de diffusion conservées',!!q('[data-action="simulate"]'));
+  check('Grille toujours accessible',!!q('[data-nav="grid"]'));
+  check('Contenu pleine largeur',q('.page')?.getBoundingClientRect()?.width>0.75*window.innerWidth||window.innerWidth>720);
+  check('Style mobile 58px intégré',[...document.styleSheets].some(sheet=>{try{return [...sheet.cssRules].some(rule=>rule.cssText.includes('height:calc(58px'))}catch{return false}}));
+  const navRect=q('.mobile-nav')?.getBoundingClientRect();
+  if(window.innerWidth<=720){
+   check('Navigation mesurée sous 71 px',navRect?.height>0&&navRect?.height<71);
+   check('Largeur de navigation intégrale',Math.abs((navRect?.width||0)-window.innerWidth)<3);
+   check('Zone de contenu non masquée',parseFloat(getComputedStyle(q('.page')).paddingBottom)>navRect.height+12);
+   check('Absence de défilement horizontal',document.documentElement.scrollWidth<=window.innerWidth+4);
+  }else{
+   check('Règles mobiles pour petits écrans présentes',document.querySelector('style')?.textContent.includes('height:calc(58px + env(safe-area-inset-bottom))'));
+  }
+  const click=sel=>{const el=q(sel);if(!el)throw Error('Clic impossible '+sel);handleClick({target:el})};
+  click('[data-action="v20-go-talent"]');
+  check('Mercato et filtre métier accessibles',!!q('#v18-market-role')&&ui.tab==='v14');
+  click('[data-action="v20-go-sports"]');
+  check('Droits TV accessibles',!!q('.v19-rights-banner'));
+  click('[data-action="v20-go-rentree"]');
+  check('Rentrée télévisuelle accessible',!!q('.v14-plan-form')||!!q('.v14-validated'));
+  click('[data-nav="studio"]');
+  check('Production accessible',!!q('#production-form'));
+  check('Moteur de production conservé',typeof E.createProduction==='function');
+  check('Moteur enchères conservé',typeof E.v19PlaceBid==='function');
+  check('Sauvegarde compatible',typeof validSave==='function'&&validSave(game));
+ }catch(e){tests.push({name:'EXCEPTION '+String(e?.stack||e).slice(0,320),ok:false})}
+ const pass=tests.filter(x=>x.ok).length;
+ const div=document.createElement('main');
+ div.style.cssText='font-family:system-ui;max-width:740px;margin:25px auto;padding:22px;background:#102f45;color:#f2fbff;border-radius:14px;white-space:pre-wrap;line-height:1.75';
+ div.textContent='QA TV NETWORK V2.1\n'+pass+' / '+tests.length+' réussis · '+(tests.length-pass)+' échec(s)\n'+tests.map(x=>(x.ok?'✓ ':'✗ ')+x.name).join('\n');
+ document.body.replaceChildren(div);
+}
 v20Install();
-if(location.search.includes('qa-ui-v200-inline'))v20InternalQA();
+if(location.search.includes('qa-ui-v21-inline'))v21InternalQA();
+else if(location.search.includes('qa-ui-v200-inline'))v20InternalQA();
 else init();
 
 })();
