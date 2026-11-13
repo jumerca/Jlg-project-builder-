@@ -171,6 +171,64 @@
     box(g, 2, 14, 10, 16, '#33384d', 2, 1.3); box(g, W - 12, 14, 10, 16, '#33384d', 2, 1.3);
     ell(g, 7, 22, 3, 3, '#666', 0.8); ell(g, W - 7, 22, 3, 3, '#666', 0.8);
   }
+
+  function drawSnack(g, w, h) {
+    const W = w * TS, Hh = h * TS;
+    box(g, 2, 22, W - 4, Hh - 24, '#e9d3a8', 5, 1.4);
+    g.strokeStyle = 'rgba(150,110,60,.35)'; g.lineWidth = 1; for (let x = 10; x < W - 4; x += 10) { g.beginPath(); g.moveTo(x, 24); g.lineTo(x, Hh - 4); g.stroke(); }
+    // kiosque
+    shadow(g, W / 2, 26, W / 2 - 8, 4);
+    box(g, 10, -2, W - 20, 26, '#ffffff', 3, 1.8);
+    box(g, 14, 10, W - 28, 12, '#7a4b2a', 2, 1.3);
+    poly(g, [6, 0, 14, -14, W - 14, -14, W - 6, 0], '#2f9e6b', 1.8);
+    for (let i = 0; i < 7; i++) { const x0 = 6 + i * ((W - 12) / 7); g.beginPath(); g.arc(x0 + (W - 12) / 14, 0, (W - 12) / 14, 0, Math.PI); g.fillStyle = i % 2 ? '#ffffff' : '#2f9e6b'; g.fill(); g.lineWidth = 1.2; g.strokeStyle = INK; g.stroke(); }
+    box(g, W / 2 - 20, -24, 40, 12, '#ffd23f', 3, 1.5); text(g, 'SNACK', W / 2, -17.5, 7.5);
+    ell(g, 22, 7, 5, 5, '#f6c26b', 1.2); ell(g, 22, 7, 3, 3, '#e8553d', 0, false); // pizza
+    box(g, W - 30, 3, 8, 8, '#ff7fa3', 3, 1.1); // glace
+    drawTables(g, [[18, 44], [48, 50], [78, 42]]);
+  }
+  function drawTables(g, pts) {
+    pts.forEach(([x, y], i) => {
+      shadow(g, x, y + 6, 10, 3);
+      ell(g, x, y + 2, 7, 4, '#ffffff', 1.2);
+      g.strokeStyle = INK; g.lineWidth = 1.3; g.beginPath(); g.moveTo(x, y + 2); g.lineTo(x, y - 14); g.stroke();
+      poly(g, [x - 13, y - 12, x, y - 20, x + 13, y - 12], ['#e8553d', '#2a9dd8', '#ffd23f', '#2f9e6b'][i % 4], 1.3);
+    });
+  }
+  function drawUpgrade(g, type, w, h) {
+    const W = w * TS, Hh = h * TS;
+    if (type === 'mobilhome') {
+      ell(g, W - 20, Hh - 14, 10, 6, '#bfe9ff', 1.4); ell(g, W - 20, Hh - 14, 7, 3.6, '#45b2e2', 0, false);
+      g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1; g.beginPath(); g.arc(W - 22, Hh - 15, 2, 0, 7); g.stroke();
+      g.strokeStyle = '#e3a400'; g.lineWidth = 2.4; g.beginPath(); g.moveTo(4, 1); g.lineTo(W - 26, 1); g.stroke();
+      box(g, 6, Hh - 18, 30, 8, '#33233d', 2, 1); text(g, 'PREMIUM', 21, Hh - 13.8, 5, '#ffd23f');
+    } else if (type === 'sanitary') {
+      for (let i = 0; i < 4; i++) { box(g, 12 + i * 18, 3, 15, 9, '#2c3e78', 1, 1.1); g.strokeStyle = 'rgba(160,200,255,.6)'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(12 + i * 18 + 7.5, 4); g.lineTo(12 + i * 18 + 7.5, 11); g.moveTo(13 + i * 18, 7.5); g.lineTo(26 + i * 18, 7.5); g.stroke(); }
+      box(g, W / 2 - 18, 28, 36, 7, '#ffd23f', 2, 1); text(g, 'CONFORT', W / 2, 31.8, 5);
+    } else if (type === 'reception') {
+      poly(g, [4, Hh - 34, W - 4, Hh - 34, W, Hh - 26, 0, Hh - 26], '#2f9e6b', 1.4);
+      for (let i = 0; i < 6; i++) { g.fillStyle = i % 2 ? '#fff' : '#2f9e6b'; g.fillRect(4 + i * ((W - 8) / 6), Hh - 30, (W - 8) / 6, 4); }
+      for (const x of [-6, W + 4]) { g.strokeStyle = INK; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x, Hh); g.lineTo(x, Hh - 34); g.stroke(); poly(g, [x, Hh - 34, x + 10, Hh - 31, x, Hh - 28], x < 0 ? '#e8553d' : '#ffd23f', 1); }
+    } else if (type === 'shop') {
+      box(g, 3, 0, W - 6, 11, '#2f9e6b', 2, 1.4); text(g, 'SUPÉRETTE', W / 2, 5.6, 6.5, '#fff');
+      box(g, W - 14, Hh - 12, 11, 8, C.wood, 1, 1.1); for (let i = 0; i < 2; i++) ell(g, W - 11 + i * 4, Hh - 13, 1.8, 1.8, '#7ac943', 0.8);
+    } else if (type === 'pool') {
+      // toboggan
+      box(g, 2, 4, 16, 16, '#d9dee8', 2, 1.4);
+      g.lineCap = 'round';
+      g.strokeStyle = INK; g.lineWidth = 9; g.beginPath(); g.moveTo(12, 8); g.bezierCurveTo(-14, 20, 40, 34, 20, 54); g.bezierCurveTo(10, 66, 30, 70, 40, 60); g.stroke();
+      g.strokeStyle = '#ffd23f'; g.lineWidth = 6; g.stroke();
+      g.strokeStyle = '#e8553d'; g.lineWidth = 2; g.setLineDash([4, 5]); g.stroke(); g.setLineDash([]);
+      g.lineCap = 'butt';
+    } else if (type === 'stage') {
+      poly(g, [0, -10, W / 2, -42, W, -10], '#e8553d', 2);
+      for (let i = 1; i < 6; i += 2) poly(g, [W / 2, -42, (W / 6) * i, -10, (W / 6) * (i + 1), -10], '#ffffff', 1);
+      g.strokeStyle = INK; g.lineWidth = 2; g.beginPath(); g.moveTo(2, -10); g.lineTo(2, 30); g.moveTo(W - 2, -10); g.lineTo(W - 2, 30); g.stroke();
+      poly(g, [W / 2, -42, W / 2 + 12, -46, W / 2, -50], '#ffd23f', 1);
+    } else if (type === 'snack') {
+      drawTables(g, [[30, 58], [62, 58]]);
+    }
+  }
   function drawPlayground(g, w, h) {
     const W = w * TS, Hh = h * TS;
     box(g, 2, 4, W - 4, Hh - 8, '#f2d89a', 8, 1.6);
@@ -435,7 +493,7 @@
       const cx = b.x + b.w / 2 - 0.5, cy = b.y + b.h / 2 - 0.5;
       let dx = b.ax - cx, dy = b.ay - cy; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
       st.queue.forEach((aid, i) => qpos.set(aid, { x: (b.ax + dx * 0.35 * (i + 0.3) - dy * 0.18 * (i % 2 ? 1 : -1)) * TS + TS / 2, y: (b.ay + dy * 0.35 * (i + 0.3)) * TS + TS / 2 + 6 }));
-      if (b.type === 'pool' || b.type === 'playground' || b.type === 'stage') {
+      if (b.type === 'pool' || b.type === 'playground' || b.type === 'stage' || b.type === 'snack') {
         st.users.forEach((u) => qpos.set(u.aid, { inside: b.type, b }));
       } else st.users.forEach((u) => qpos.set(u.aid, { hidden: true }));
     }
@@ -454,7 +512,8 @@
       if (q && q.inside) {
         const b = q.b, w = b.w * TS, h = b.h * TS;
         if (q.inside === 'pool') { x = b.x * TS + 26 + hash(a.id, 1) * (w - 52) + Math.sin(t * 0.0006 + a.id) * 6; y = b.y * TS + 28 + hash(1, a.id) * (h - 66); list.push({ z: b.y * TS + h - 199 + y * 0.001, kind: 'swim', a, x, y }); continue; }
-        if (q.inside === 'stage') { x = b.x * TS + 12 + hash(a.id, 3) * (w - 24); y = b.y * TS + 60 + hash(3, a.id) * (h - 66) - (S.stageWindow(s) && S.stageWindow(s).show ? Math.abs(Math.sin(t * 0.008 + a.id)) * 2 : 0); }
+        if (q.inside === 'snack') { const tabs = b.level === 2 ? [[18, 44], [48, 50], [78, 42], [30, 58], [62, 58]] : [[18, 44], [48, 50], [78, 42]]; const tb = tabs[a.id % tabs.length]; const k = (a.id >> 2) % 4; x = b.x * TS + tb[0] + [-9, 9, -9, 9][k]; y = b.y * TS + tb[1] + [0, 0, 8, 8][k]; }
+        else if (q.inside === 'stage') { x = b.x * TS + 12 + hash(a.id, 3) * (w - 24); y = b.y * TS + 60 + hash(3, a.id) * (h - 66) - (S.stageWindow(s) && S.stageWindow(s).show ? Math.abs(Math.sin(t * 0.008 + a.id)) * 2 : 0); }
         else { x = b.x * TS + 10 + hash(a.id, 2) * (w - 20) + Math.sin(t * 0.002 + a.id) * 5; y = b.y * TS + 22 + hash(2, a.id) * (h - 26); }
         if (!vis(x, y)) continue;
         list.push({ z: b.y * TS + h + 0.5 + y * 0.0001, kind: 'p', a, x, y });
@@ -498,11 +557,16 @@
   RP.drawBuilding = function (g, s, b, occupant) {
     const def = BUILDINGS[b.type], w = b.w, h = b.h, px = b.x * TS, py = b.y * TS;
     const put = (spr) => g.drawImage(spr, px - spr.ox, py - spr.oy, spr.w, spr.h);
-    if (b.progress > 0) { put(sprite(`site${b.type}${b.progress}`, w * TS + 20, h * TS + 40, 6, 32, (gg) => drawSite(gg, w, h, b.progress, def.build))); return; }
+    if (b.progress > 0) { const tot = b.buildTotal || def.build; put(sprite(`site${b.type}${b.progress}-${tot}`, w * TS + 20, h * TS + 40, 6, 32, (gg) => drawSite(gg, w, h, b.progress, tot))); return; }
+    this.drawBase(g, s, b, occupant, put, w, h, px, py);
+    if (b.level === 2) put(sprite('up' + b.type, w * TS + 40, h * TS + 70, 20, 56, (gg) => drawUpgrade(gg, b.type, w, h)));
+  };
+  RP.drawBase = function (g, s, b, occupant, put, w, h, px, py) {
     switch (b.type) {
       case 'reception': put(sprite('rec' + s.name, w * TS + 30, h * TS + 40, 6, 32, (gg) => drawReception(gg, w, h, s.name))); break;
       case 'sanitary': put(sprite('san', w * TS + 12, h * TS + 12, 6, 6, (gg) => drawSanitary(gg, w, h))); break;
       case 'shop': put(sprite('shop', w * TS + 12, h * TS + 12, 6, 6, (gg) => drawShop(gg, w, h))); break;
+      case 'snack': put(sprite('snack', w * TS + 12, h * TS + 40, 6, 32, (gg) => drawSnack(gg, w, h))); break;
       case 'playground': put(sprite('play', w * TS + 12, h * TS + 12, 6, 6, (gg) => drawPlayground(gg, w, h))); break;
       case 'stage': {
         put(sprite('stage', w * TS + 12, h * TS + 40, 6, 32, (gg) => drawStage(gg, w, h)));
@@ -619,6 +683,8 @@
       g.restore();
       if (gh.label) { const lx = (gh.rect ? gh.rect.x + gh.rect.w / 2 : gh.tiles[0][0] + 0.5) * TS, ly = (gh.rect ? gh.rect.y : gh.tiles[0][1]) * TS - 12; const tw = gh.label.length * 5.4 + 14; box(g, lx - tw / 2, ly - 9, tw, 18, gh.ok ? '#ffffff' : '#ffe1dc', 6, 1.6); text(g, gh.label, lx, ly + 0.5, 9.5); }
     }
+    // feu d'artifice
+    if (s.rt.fireworks && s.rt.fireworks.day === s.day && s.minute >= 22 * 60 + 30 && s.minute < 23 * 60 + 20) this.fireworks = true; else this.fireworks = false;
     // météo & lumière (espace écran)
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     const wx = s.phase === 'season' ? s.weather.type : 'cloud';
@@ -642,6 +708,23 @@
         }
         g.restore();
       }
+    }
+    if (this.fireworks) {
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const cols = ['#ff5d73', '#ffd23f', '#3ccfc0', '#b06cff', '#ffffff', '#ff9f1c'];
+      for (let k = 0; k < 7; k++) {
+        const period = 1600 + k * 230, ph = ((now + k * 517) % period) / period;
+        const seed = Math.floor((now + k * 517) / period) * 13 + k;
+        const wx0 = (40 + hash(seed, 1) * 6) * TS, wy0 = (4 + hash(1, seed) * 22) * TS;
+        const sx = (wx0 - this.cam.x) * this.cam.z, sy = (wy0 - this.cam.y) * this.cam.z;
+        const col = cols[seed % cols.length];
+        if (ph < 0.25) { g.fillStyle = col; g.beginPath(); g.arc(sx, sy + (1 - ph / 0.25) * 140 * this.cam.z, 2.5, 0, 7); g.fill(); continue; }
+        const t2 = (ph - 0.25) / 0.75, r0 = (30 + 60 * t2) * this.cam.z;
+        g.globalAlpha = 1 - t2; g.fillStyle = col;
+        for (let i = 0; i < 22; i++) { const a = i / 22 * Math.PI * 2; g.beginPath(); g.arc(sx + Math.cos(a) * r0, sy + Math.sin(a) * r0 + t2 * t2 * 30 * this.cam.z, 2.2 * this.cam.z + 1, 0, 7); g.fill(); }
+        g.globalAlpha = 1;
+      }
+      g.restore();
     }
     if (wx === 'rain' || wx === 'storm') {
       const n = wx === 'storm' ? 220 : 130;
@@ -673,6 +756,7 @@
     else if (type === 'pool') { drawPoolBase(g, w, h); }
     else if (type === 'playground') drawPlayground(g, w, h);
     else if (type === 'stage') drawStage(g, w, h);
+    else if (type === 'snack') drawSnack(g, w, h);
     else if (type === 'mobilhome') drawMobilhome(g, w, h, 1);
     else if (type === 'tent') { rr(g, 2, 2, 60, 60, 6); g.fillStyle = '#9bd66c'; g.fill(); drawTentPitchBits(g, 1); g.translate(8, 2); drawTent(g, '#e8553d', 0); }
     else if (type === 'caravan') { rr(g, 2, 2, 92, 60, 6); g.fillStyle = '#d8cdb5'; g.fill(); drawCaravanPitchBits(g, 1); g.translate(22, 10); drawCaravan(g, '#2a9dd8', false); }

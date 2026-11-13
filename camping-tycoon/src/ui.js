@@ -73,6 +73,9 @@
       <p>📅 <b>Réservations</b> : les clients réservent à l’avance (acompte de 30 %, solde à l’arrivée). Familles le samedi pour une semaine, couples pour quelques nuits, itinérants souvent sans réserver.</p>
       <p>🏷️ <b>Tarifs</b> : trop cher, les demandes fondent ; trop bon marché, vous laissez de l’argent sur la table. Le classement ★ relève le prix accepté.</p>
       <p>👷 <b>Équipe</b> : accueil (files plus rapides), entretien (sanitaires, mobil-homes), maintenance (pannes, piscine). Contrats saisonniers payés chaque jour.</p>
+      <p>🎲 <b>Décisions</b> : des événements surgissent (inspection, tour-opérateur, concurrent, motards…) : à vous de trancher.</p>
+      <p>⬆️ <b>Améliorations</b> : sélectionnez un bâtiment pour le passer au niveau 2 (mobil-home Premium, toboggan, sanitaires Confort…).</p>
+      <p>💬 <b>Avis</b> : chaque client raconte son séjour. Lisez-les pour savoir quoi améliorer.</p>
       <p>🎤 <b>Animations</b> : une scène + un animateur = club enfants l’après-midi et spectacle le soir (sauf pluie).</p>
       <p>🏦 <b>Banque</b> (onglet Finances) : empruntez pour investir plus vite, remboursement quotidien.</p>
       <p>☀️ <b>Météo</b> : canicule = piscine bondée ; pluie = tentes mécontentes ; orage = piscine fermée et pannes.</p>
@@ -100,7 +103,7 @@
     while (s.rt.events.length) handleEvent(s.rt.events.shift());
     if (now - (ui.ambT || 0) > 150) { ui.ambT = now; CT.sfx.ambience(s, ui.speed > 0 && $('modal').classList.contains('hidden')); }
     // HUD
-    if (now - ui.panelTick > 400) { ui.panelTick = now; hud(); if (ui.tab && ui.tab !== 'prices') renderPanel(); if (ui.sel) renderInspector(); }
+    if (now - ui.panelTick > 400) { ui.panelTick = now; hud(); tutoTick(); if (ui.tab && ui.tab !== 'prices') renderPanel(); if (ui.sel) renderInspector(); }
     // sauvegarde auto : chaque jour de jeu et toutes les 45 s
     const dayKey = s.year * 1000 + s.day;
     if (dayKey !== ui.lastDay || now - ui.lastSave > 45000) { if (ui.lastDay !== -1) SV.autosave(s); ui.lastDay = dayKey; ui.lastSave = now; }
@@ -109,6 +112,7 @@
 
   function handleEvent(e) {
     if (e.type === 'season-end') { R.groundKey = ''; CT.sfx.play('season'); showReport(e.report); return; }
+    if (e.type === 'decision') { showDecision(); return; }
     if (e.type === 'goal') CT.sfx.play('goal'); else if (e.type === 'bad') CT.sfx.play('bad');
     if (e.text.startsWith('Avis') && e.type !== 'bad') return;
     if (e.type === 'info' && /présenté/.test(e.text)) return;
@@ -391,7 +395,7 @@
         <button class="btn" data-act="help">❓ Comment jouer</button>
         <button class="btn red" data-act="new">⛺ Nouvelle partie</button>
       </div>
-      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v1.1 · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
+      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v1.2 · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
       resume: () => { closeModal(); setSpeed(1); },
       save: () => { toast(SV.autosave(s) ? 'Partie sauvegardée.' : 'Stockage local indisponible : utilisez l’export.', SV.hasAuto() ? 'good' : 'warn'); closeModal(); },
       export: exportDialog,
@@ -433,7 +437,7 @@
   }
 
   /* ================= Panneaux ================= */
-  const TITLES = { bookings: '📅 Réservations', prices: '🏷️ Tarifs', staff: '👷 Équipe', finance: '📊 Finances', goals: '🏆 Objectifs & classement', log: '📰 Journal du camping' };
+  const TITLES = { reviews: '💬 Avis des vacanciers', bookings: '📅 Réservations', prices: '🏷️ Tarifs', staff: '👷 Équipe', finance: '📊 Finances', goals: '🏆 Objectifs & classement', log: '📰 Journal du camping' };
   function openPanel(tab) {
     ui.tab = tab; $('panel').classList.remove('hidden'); $('ptitle').textContent = TITLES[tab];
     document.querySelectorAll('#tools [data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
@@ -446,7 +450,7 @@
     const body = $('pbody');
     if (!force && body.contains(document.activeElement) && document.activeElement.tagName !== 'BODY' && document.activeElement.tagName !== 'BUTTON') return;
     const scroll = body.scrollTop;
-    const fn = { bookings: pBookings, prices: pPrices, staff: pStaff, finance: pFinance, goals: pGoals, log: pLog }[ui.tab];
+    const fn = { reviews: pReviews, bookings: pBookings, prices: pPrices, staff: pStaff, finance: pFinance, goals: pGoals, log: pLog }[ui.tab];
     if (!fn) return;
     body.innerHTML = fn();
     body.scrollTop = scroll;
@@ -479,6 +483,8 @@
       }
     }
     h += `</div>`;
+    const mods = (s.mods || []).filter((m) => m.kind === 'demand' && m.until >= s.day);
+    if (mods.length) h += `<p class="note">📣 ${mods.map((m) => `${m.label || 'Effet'} : demande ×${m.mult.toFixed(2)} jusqu’au ${S.dateParts(m.until).d} ${S.dateParts(m.until).m}`).join('<br>📣 ')}</p>`;
     const st = s.stats;
     h += `<p class="note">Demandes cette saison : <b>${st.requests}</b> · refusées faute de place : <b>${st.lostFull}</b> · trouvées trop chères : <b>${st.lostPrice}</b>. ${st.lostFull > st.requests * 0.3 ? '👉 La demande dépasse votre capacité : construisez !' : st.lostPrice > st.requests * 0.25 ? '👉 Beaucoup de clients trouvent vos tarifs trop élevés.' : ''}</p>`;
     h += `<h3>🛬 Arrivées du jour (${today.length})</h3><div class="list">`;
@@ -505,8 +511,10 @@
       const accept = (p) => Math.round(Math.min(1, Math.pow(D.REF_PRICES[t] * mult / p, 1.3)) * 100);
       h += `<div class="price"><div class="top"><span>${TYPE_NAME[t]} <small>/ nuit</small></span><span class="val" id="pv-${t}">${s.prices[t]} €</span></div>
         <input type="range" min="5" max="${t === 'mobilhome' ? 220 : 80}" value="${s.prices[t]}" data-price="${t}">
-        <small id="pa-${t}">Référence ${ref} € · ~${accept(s.prices[t])} % des demandes acceptent ce prix</small></div>`;
+        ${t === 'mobilhome' && S.units(s).some((b) => b.level === 2) ? `<small>Premium : <b id="pp">${eur2(s.prices.mobilhome * S.PREMIUM)}</b> /nuit (+30 %)</small><br>` : ''}<small id="pa-${t}">Référence ${ref} € · ~${accept(s.prices[t])} % des demandes acceptent ce prix</small></div>`;
     }
+    h += `<div class="price"><div class="top"><span>Supplément par personne <small>(au-delà de 2, tente & caravane)</small></span><span class="val" id="pv-extra">${s.prices.extra} €</span></div>
+      <input type="range" min="0" max="15" value="${s.prices.extra}" data-price="extra"><small>Les familles y sont sensibles ; les couples ne le paient pas.</small></div>`;
     h += `<div class="price"><div class="top"><span>Marge de l’épicerie</span><span class="val" id="pv-shop">×${s.shopMarkup.toFixed(2)}</span></div>
       <input type="range" min="80" max="160" value="${Math.round(s.shopMarkup * 100)}" data-markup="1"><small>Au-delà de ×1,35 les clients râlent ; en dessous de ×1,05 ils apprécient.</small></div>`;
     void cl;
@@ -591,6 +599,16 @@
     }
     return h;
   }
+  function pReviews() {
+    const rv = s.reviews.slice().reverse();
+    if (!rv.length) return '<p class="note">Aucun avis pour l’instant : les vacanciers notent leur séjour au moment du départ.</p>';
+    const season = s.reviews.filter((r) => r.y === s.year), avg = season.length ? season.reduce((a, r) => a + r.rating, 0) / season.length : 0;
+    const dist = [5, 4, 3, 2, 1].map((n) => season.filter((r) => Math.round(r.rating) === n).length);
+    let h = `<div class="kpis"><div class="kpi"><b style="color:#e39a00">${avg ? avg.toFixed(1) : '—'}/5</b><small>moyenne saison</small></div><div class="kpi"><b>${season.length}</b><small>avis cette saison</small></div><div class="kpi"><b>${Math.round(s.reputation)}</b><small>réputation</small></div></div>`;
+    h += '<h3>Répartition</h3>' + dist.map((n, i) => `<div class="stat" style="display:flex;gap:8px;align-items:center;font-size:12px"><span style="width:52px">${'★'.repeat(5 - i)}</span><div class="meter" style="flex:1;width:auto"><i style="width:${season.length ? n / season.length * 100 : 0}%;background:#f2a516"></i></div><b style="width:24px;text-align:right">${n}</b></div>`).join('');
+    h += '<h3>Derniers avis</h3>' + rv.map((r) => `<div class="row" style="align-items:flex-start"><span style="font-size:18px">${PROF(r.profile)}</span><div class="grow"><b>${esc(r.name)} <span style="color:#e39a00">${'★'.repeat(Math.round(r.rating))}${'☆'.repeat(5 - Math.round(r.rating))}</span></b><small style="white-space:normal;display:block">« ${esc(r.text)} »</small><small>${TYPE_NAME[r.type]} · ${r.nights} nuit${r.nights > 1 ? 's' : ''} · ${S.dateParts(r.d).d} ${S.dateParts(r.d).m}</small></div></div>`).join('');
+    return h;
+  }
   function pLog() {
     return s.log.slice().reverse().map((l) => `<div class="log ${l.type}"><small>an ${l.y} · ${S.dateParts(l.d).d} ${S.dateParts(l.d).m.slice(0, 4)}. ${S.fmtTime(l.m)}</small>${esc(l.text)}</div>`).join('');
   }
@@ -604,6 +622,8 @@
     body.querySelectorAll('[data-report]').forEach((b) => (b.onclick = () => showReport(s.reports[+b.dataset.report])));
     body.querySelectorAll('[data-price]').forEach((inp) => (inp.oninput = () => {
       const t = inp.dataset.price; S.setPrice(s, t, +inp.value);
+      if (t === 'extra') { $('pv-extra').textContent = s.prices.extra + ' €'; return; }
+      if (t === 'mobilhome' && $('pp')) $('pp').textContent = eur2(s.prices.mobilhome * S.PREMIUM);
       $('pv-' + t).textContent = s.prices[t] + ' €';
       const ref = D.REF_PRICES[t] * (0.8 + 0.1 * s.stars);
       $('pa-' + t).textContent = `Référence ${Math.round(ref)} € · ~${Math.round(Math.min(1, Math.pow(ref / s.prices[t], 1.3)) * 100)} % des demandes acceptent ce prix`;
@@ -617,7 +637,7 @@
     const b = ui.sel, el = $('inspector');
     if (!b || !s.buildings.includes(b)) { el.classList.add('hidden'); ui.sel = null; return; }
     const def = D.BUILDINGS[b.type];
-    let h = `<h3><span>${def.name}${b.num ? ' n°' + b.num : ''}</span><button class="iconbtn" style="width:30px;height:30px;font-size:13px" data-x="1">✕</button></h3><div class="desc">${def.desc}</div>`;
+    let h = `<h3><span>${S.displayName(b)}${b.num ? ' n°' + b.num : ''}${b.level === 2 ? ' <span class="tag warn">★ niv. 2</span>' : ''}</span><button class="iconbtn" style="width:30px;height:30px;font-size:13px" data-x="1">✕</button></h3><div class="desc">${b.level === 2 && def.upgrade ? def.upgrade.desc : def.desc}</div>`;
     if (b.progress > 0) h += `<div class="stat"><span>🚧 Chantier</span><b>encore ${b.progress} jour${b.progress > 1 ? 's' : ''}</b></div>`;
     else {
       h += `<div class="stat"><span>État ${b.broken ? '<span class="tag bad">EN PANNE</span>' : ''}</span>${meter(b.cond, b.cond > 60 ? '#2f9e6b' : b.cond > 35 ? '#f2a516' : '#e8553d')}</div>`;
@@ -626,10 +646,12 @@
       if (b.type === 'sanitary') h += `<div class="stat"><span>Propreté</span>${meter(100 - b.dirt, b.dirt < 40 ? '#2a9dd8' : b.dirt < 70 ? '#f2a516' : '#8a5a2b')}</div>`;
       if (b.type === 'pool') h += `<div class="stat"><span>Qualité de l’eau</span>${meter(b.water, b.water > 60 ? '#2a9dd8' : '#7a9a3a')}</div><div class="stat"><span>Ouverture</span><b>${S.poolOpen(s, b) ? 'ouverte' : 'fermée'} (10h–19h30)</b></div>`;
       const st = s.rt.bstate.get(b.id);
-      if (def.service) h += `<div class="stat"><span>Utilisateurs / file</span><b>${st ? st.users.length : 0}${def.slots ? ' / ' + def.slots : ''} · file : ${st ? st.queue.length : 0}</b></div>`;
+      const slots = b.level === 2 ? ({ sanitary: 9, shop: 3, pool: 36, snack: 24 }[b.type] || def.slots) : def.slots;
+      if (def.service) h += `<div class="stat"><span>Utilisateurs / file</span><b>${st ? st.users.length : 0}${slots ? ' / ' + slots : ''} · file : ${st ? st.queue.length : 0}</b></div>`;
+      if (b.type === 'snack') h += `<div class="stat"><span>Service</span><b>${S.snackOpen(s, b) ? 'en cours' : 'fermé'} (11h30–14h, 18h30–21h30)</b></div>`;
       if (b.type === 'reception') { let n = 0; for (const a of s.rt.agents) if (!a.dead && a.kind === 'staff' && a.role === 'reception' && a.state === 'work') n++; h += `<div class="stat"><span>Au comptoir</span><b>${n ? n + ' réceptionniste' + (n > 1 ? 's' : '') : 'vous (lent)'}</b></div>`; }
       if (def.unit) {
-        h += `<div class="stat"><span>Capacité</span><b>${def.cap} pers. · ${s.prices[def.unitType]} €/nuit</b></div>`;
+        h += `<div class="stat"><span>Capacité</span><b>${def.cap} pers. · ${eur2(S.unitPrice(s, b))}/nuit</b></div>`;
         h += `<div class="stat"><span>Paysage alentour</span><b>${'🌿'.repeat(Math.min(5, Math.round(S.beautyAt(s, b) / 3))) || '—'}</b></div>`;
         if (b.clean) h += `<p class="note">🧹 Ménage à faire avant la prochaine arrivée.</p>`;
         const cur = s.bookings.find((k) => k.unit === b.id && k.status === 'onsite');
@@ -639,10 +661,55 @@
       }
     }
     const refund = def.cost * D.DEMOLISH_REFUND * (b.progress > 0 ? 2 : 1);
+    if (def.upgrade && b.level !== 2) {
+      const cu = S.canUpgrade(s, b);
+      h += `<div class="loan" style="margin-top:8px"><b>⬆️ ${def.upgrade.name}</b><br><small>${def.upgrade.desc}</small><div class="acts"><button class="btn small primary" data-up="1" ${cu.ok ? '' : 'disabled'}>Améliorer — ${eur(def.upgrade.cost)} · ${def.upgrade.build} j</button></div>${cu.ok ? '' : `<small>${cu.why}</small>`}</div>`;
+    }
     h += `<div class="acts"><button class="btn small red" data-demo="1">🧨 Démolir (+${eur(Math.min(refund, def.cost))})</button></div>`;
     el.innerHTML = h; el.classList.remove('hidden');
     el.querySelector('[data-x]').onclick = () => { ui.sel = null; el.classList.add('hidden'); };
+    const upb = el.querySelector('[data-up]');
+    if (upb) upb.onclick = () => { const r = S.upgrade(s, b.id); if (r.ok) { CT.sfx.play('build'); toast(`Amélioration lancée : ${def.upgrade.name}.`, 'good'); renderInspector(); } else { CT.sfx.play('error'); toast(r.why, 'bad'); } };
     el.querySelector('[data-demo]').onclick = () => { const r = S.demolish(s, b.x, b.y); if (!r.ok) toast(r.why || 'Impossible', 'warn'); else { ui.sel = null; el.classList.add('hidden'); toast(`Démoli : +${eur(r.refund)}.`, 'info'); } };
+  }
+
+  /* ================= Tutoriel « Premiers pas » ================= */
+  const TUTO = [
+    { t: 'Tracez une allée', d: 'Outil 🟫 Allées : prolongez l’allée principale vers l’est (glissez sur la carte).', ok: () => s.tiles.filter((x) => x === 1).length >= (ui.tutoPaths || 0) + 4 },
+    { t: 'Posez des emplacements', d: '⛺ Héberger → Emplacement tente, le long de votre nouvelle allée. Posez-en deux.', ok: () => s.buildings.filter((b) => D.BUILDINGS[b.type].unit).length >= (ui.tutoUnits || 9) + 2 },
+    { t: 'Consultez les réservations', d: 'Ouvrez l’onglet 📅 Résas : arrivées du jour, remplissage, demandes refusées.', ok: () => ui.tab === 'bookings' },
+    { t: 'Recrutez un agent d’entretien', d: 'Onglet 👷 Équipe : sans lui, les sanitaires deviennent vite sales.', ok: () => s.staff.some((x) => x.role === 'cleaning') },
+    { t: 'Ajustez vos tarifs', d: 'Onglet 🏷️ Tarifs : trouvez le bon équilibre entre remplissage et recettes.', ok: () => ui.tab === 'prices' },
+    { t: 'Ouvrez une épicerie', d: '🏠 Services → Épicerie : le pain du matin, c’est sacré au camping !', ok: () => s.buildings.some((b) => b.type === 'shop') },
+    { t: 'Accélérez le temps', d: 'Passez en vitesse ▶▶ et regardez votre camping vivre. Bonne saison !', ok: () => ui.speed >= 2 }
+  ];
+  function tutoTick() {
+    const el = $('tuto'); const T = s.tuto || { done: true };
+    if (T.done || s.phase !== 'season' || (ui.sel && !$('inspector').classList.contains('hidden'))) { el.classList.add('hidden'); return; }
+    if (ui.tutoPaths === undefined) { ui.tutoPaths = s.tiles.filter((x) => x === 1).length; ui.tutoUnits = s.buildings.filter((b) => D.BUILDINGS[b.type].unit).length; }
+    const step = TUTO[T.step];
+    if (!step) { T.done = true; toast('🎓 Premiers pas terminés ! À vous de jouer, directeur.', 'goal'); CT.sfx.play('goal'); el.classList.add('hidden'); return; }
+    if (step.ok()) { T.step++; CT.sfx.play('coin'); if (T.step === 1) ui.tutoUnits = s.buildings.filter((b) => D.BUILDINGS[b.type].unit).length; return tutoTick(); }
+    el.innerHTML = `<div class="tt"><b>🎓 Premiers pas · ${T.step + 1}/${TUTO.length}</b><button class="btn small" data-skip="1">Passer</button></div><div class="tstep">${step.t}</div><small>${step.d}</small><div class="tbar"><i style="width:${T.step / TUTO.length * 100}%"></i></div>`;
+    el.querySelector('[data-skip]').onclick = () => { T.done = true; el.classList.add('hidden'); };
+    el.classList.remove('hidden');
+  }
+
+  /* ================= Décisions ================= */
+  function showDecision() {
+    const v = S.eventView(s); if (!v) return;
+    if (!$('modal').classList.contains('hidden')) { setTimeout(showDecision, 1500); return; }
+    ui.speedBefore = ui.speed || 1; setSpeed(0); CT.sfx.play('hire');
+    const acts = {};
+    modal(`<div style="display:flex;gap:12px;align-items:center"><span style="font-size:46px">${v.icon}</span><div><small style="font-weight:700;opacity:.7">DÉCISION DU DIRECTEUR · ${S.fmtDate(s)}</small><h2 style="margin:0">${v.title}</h2></div></div>
+      <p style="font-size:16px">${esc(v.text)}</p>
+      <div class="acts" style="flex-direction:column;align-items:stretch">${v.choices.map((c, i) => `<button class="btn ${i === 0 ? 'primary' : ''}" data-act="c${i}" ${c.afford ? '' : 'disabled'}>${esc(c.label)}</button>`).join('')}</div>`, acts);
+    v.choices.forEach((c, i) => (acts['c' + i] = () => {
+      const r = S.resolveEvent(s, i);
+      if (!r || !r.ok) { toast(r ? r.text : 'Impossible', 'bad'); return; }
+      modal(`<div style="text-align:center"><span style="font-size:46px">${v.icon}</span><h2>${v.title}</h2><p style="font-size:16px">${esc(r.text)}</p><div class="acts" style="justify-content:center"><button class="btn primary" data-act="ok">Continuer ▶</button></div></div>`, { ok: () => { closeModal(); setSpeed(ui.speedBefore || 1); } });
+      s.rt.events = s.rt.events.filter((x) => x.type !== 'info' || !x.text.includes(v.title));
+    }));
   }
 
   /* ================= Bilan de saison ================= */

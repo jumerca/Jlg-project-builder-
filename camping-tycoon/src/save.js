@@ -29,6 +29,10 @@
     // format 0 -> 1 : champs ajoutés après coup (valeurs par défaut)
     o.settings = Object.assign({ nightFast: true }, o.settings || {});
     if (o.loan === undefined) o.loan = null;
+    if (o.prices && o.prices.extra === undefined) o.prices.extra = 5;
+    o.mods = o.mods || []; o.reviews = o.reviews || []; o.eventLog = o.eventLog || []; if (o.event === undefined) o.event = null;
+    o.tuto = o.tuto || { step: 99, done: true }; if (o.nextEventDay === undefined) o.nextEventDay = o.day + 3;
+    for (const b of o.buildings) { if (!b.level) b.level = 1; }
     o.totals = Object.assign({ groups: 0, nights: 0, seasons: 0, shows: 0 }, o.totals || {});
     if (o.settings.sound === undefined) o.settings.sound = true;
     o.lastTeam = o.lastTeam || [];

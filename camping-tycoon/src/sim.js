@@ -69,7 +69,7 @@
       fin: { cash: 30000, start: 30000, season: {}, all: {}, history: [] },
       stats: newSeasonStats(), totals: { groups: 0, nights: 0, seasons: 0, shows: 0 },
       weather: null, forecast: [], log: [], objectives: {}, reports: [], lastTeam: [],
-      settings: { nightFast: true, sound: true }, loan: null
+      settings: { nightFast: true, sound: true }, loan: null, mods: [], event: null, eventLog: [], reviews: [], tuto: { step: 0, done: false }, nextEventDay: 4
     };
     rand(s);
     genMap(s);
@@ -124,6 +124,7 @@
   function addBuilding(s, type, x, y) {
     const def = BUILDINGS[type];
     const b = { id: s.nextId++, type, x, y, w: def.w, h: def.h, cond: 100, broken: false, brokenDay: -1, dirt: 0, water: 100, progress: def.build, clean: false, uses: 0, ax: -1, ay: -1 };
+    b.level = 1; b.buildTotal = def.build;
     if (def.unit) b.num = 1 + s.buildings.filter((o) => BUILDINGS[o.type].unit).reduce((m, o) => Math.max(m, o.num || 0), 0);
     for (let j = y; j < y + def.h; j++) for (let i = x; i < x + def.w; i++) s.deco[idx(i, j)] = DECO.NONE;
     s.buildings.push(b);
@@ -270,7 +271,7 @@
   }
 
   /* ---------- Finances ---------- */
-  const INCOME = new Set(['Acomptes', 'Soldes séjours', 'Épicerie', 'Primes', 'Ventes']);
+  const INCOME = new Set(['Acomptes', 'Soldes séjours', 'Épicerie', 'Restauration', 'Primes', 'Ventes']);
   const FINANCING = 'Financement'; // emprunts et remboursements de capital : hors résultat
   function money(s, amount, cat) {
     amount = r2(amount);
@@ -326,12 +327,21 @@
     if (services(s, 'pool').length) a *= 1 + 0.25 * (w.pool || 0.5);
     if (services(s, 'playground').length) a *= 1 + 0.12 * (w.playground || 0.2);
     if (services(s, 'shop').length) a *= 1 + 0.08 * (w.shop || 0.5);
+    if (services(s, 'snack').length) a *= 1.06;
+    if (services(s, 'pool').some((b) => b.level === 2)) a *= 1 + 0.1 * (w.pool || 0.5);
     if (services(s, 'stage').length && s.staff.some((x) => x.role === 'animation')) a *= 1 + 0.1 * (w.anim || 0.5);
     a *= 1 + Math.min(10, avgBeauty(s)) * 0.012 * (w.beauty || 0.6);
     return a;
   }
 
   /** Traite une demande de réservation de façon atomique. Retourne la réservation ou un motif de refus. */
+  const PREMIUM = 1.3;
+  function unitPrice(s, b) { return r2(s.prices[BUILDINGS[b.type].unitType] * (b.level === 2 ? PREMIUM : 1)); }
+  function acceptRate(s, type, profile, tier = 1) {
+    const ref = D.REF_PRICES[type] * starMult(s) * (tier === 2 ? 1.22 : 1);
+    return Math.min(1, Math.pow(ref / (s.prices[type] * (tier === 2 ? PREMIUM : 1)), PROFILES[profile].elasticity));
+  }
+  function priceAccepted(s, req, tier) { return rand(s) <= acceptRate(s, req.type, req.profile, tier); }
   function requestBooking(s, req) {
     s.stats.requests++;
     const def = Object.keys(BUILDINGS).find((k) => BUILDINGS[k].unitType === req.type);
@@ -340,16 +350,22 @@
     if (!(req.nights >= 1) || req.arrive < s.day || s.phase !== 'season') return { refused: 'dates' };
     const depart = req.arrive + req.nights;
     if (depart > D.SEASON_DAYS - 1) return { refused: 'dates' };
-    if (!req.force) {
-      const ref = D.REF_PRICES[req.type] * starMult(s);
-      const p = Math.min(1, Math.pow(ref / s.prices[req.type], PROFILES[req.profile].elasticity));
-      if (rand(s) > p) { s.stats.lostPrice++; return { refused: 'price' }; }
+    const cands = units(s).filter((b) => BUILDINGS[b.type].unitType === req.type && accessible(s, b) && !b.broken && !isBooked(s, b.id, req.arrive, depart));
+    if (!cands.length) { s.stats.lostFull++; return { refused: 'full' }; }
+    // gamme : standard ou premium, selon le profil
+    const prefPremium = rand(s) < (req.profile === 'couple' ? 0.6 : req.profile === 'family' ? 0.45 : 0);
+    const tiers = prefPremium ? [2, 1] : [1, 2];
+    let unit = null, priceOk = false;
+    for (const tier of tiers) {
+      const u = cands.find((b) => (b.level === 2 ? 2 : 1) === tier);
+      if (!u) continue;
+      if (!req.force && !priceAccepted(s, req, tier)) continue;
+      unit = u; priceOk = true; break;
     }
-    const cands = units(s).filter((b) => BUILDINGS[b.type].unitType === req.type && accessible(s, b) && !b.broken);
-    let unit = null;
-    for (const b of cands) if (!isBooked(s, b.id, req.arrive, depart)) { unit = b; break; }
-    if (!unit) { s.stats.lostFull++; return { refused: 'full' }; }
-    const price = s.prices[req.type];
+    if (!unit) { s.stats.lostPrice++; return { refused: 'price' }; }
+    void priceOk;
+    const extra = req.type === 'mobilhome' ? 0 : Math.max(0, req.size - 2) * (s.prices.extra ?? 5);
+    const price = r2(unitPrice(s, unit) + extra);
     const total = r2(price * req.nights);
     const deposit = r2(total * D.DEPOSIT_RATE);
     const kids = req.profile === 'family' ? Math.max(1, req.size - 2) : 0;
@@ -357,7 +373,7 @@
       id: s.nextId++, name: req.name || pick(s, D.FIRST_NAMES), profile: req.profile, size: req.size, kids, type: req.type,
       unit: unit.id, arrive: req.arrive, depart, nights: req.nights, price, total, paid: 0, deposit,
       status: 'booked', bookedDay: s.day, arrTime: req.arrTime ?? (req.profile === 'nomad' ? rint(s, 15 * 60, 20 * 60) : rint(s, 13 * 60 + 30, 19 * 60)),
-      depTime: rint(s, 8 * 60 + 30, 11 * 60 + 30), sat: 65, walkin: !!req.walkin, shopDay: -1
+      depTime: rint(s, 8 * 60 + 30, 11 * 60 + 30), sat: 65, walkin: !!req.walkin, shopDay: -1, firm: !!req.force
     };
     s.bookings.push(bk);
     bk.paid = deposit; money(s, deposit, 'Acomptes');
@@ -378,7 +394,7 @@
 
   function generateDemand(s, fromDay, todayVirtual) {
     // Demandes émises "aujourd'hui" (todayVirtual) pour des arrivées à partir de fromDay
-    const peak = 24;
+    const peak = 14;
     const attr = {};
     for (const p in PROFILES) attr[p] = attractiveness(s, p);
     for (let d = Math.max(fromDay, todayVirtual); d < Math.min(D.SEASON_DAYS - 1, todayVirtual + 60); d++) {
@@ -389,7 +405,7 @@
       if (wx) wf = wx.type === 'rain' ? 0.6 : wx.type === 'storm' ? 0.5 : wx.type === 'heat' ? 1.2 : wx.type === 'sun' ? 1.08 : 1;
       for (const p in PROFILES) {
         const P = PROFILES[p];
-        let lam = peak * seasonCurve(d) * P.share * attr[p] * wf;
+        let lam = peak * seasonCurve(d) * P.share * attr[p] * wf * demandMod(s, d);
         if (p === 'family') lam *= wd === 5 ? 2.2 : 0.8; else if (wd === 4 || wd === 5) lam *= 1.3;
         const lead = (1 / P.lead) * Math.exp(-L / P.lead);
         const n = poisson(s, lam * lead);
@@ -413,7 +429,7 @@
     s.day = saveDay;
   }
   function generateDemandVirtual(s, v) {
-    const peak = 24; const attr = {};
+    const peak = 14; const attr = {};
     for (const p in PROFILES) attr[p] = attractiveness(s, p);
     for (let d = 0; d < 60; d++) {
       const L = d - v;
@@ -454,6 +470,8 @@
   const bookingById = (s, id) => s.bookings.find((b) => b.id === id);
   /** Effet individuel (une personne) sur la satisfaction du groupe : pondéré par la taille du groupe. */
   function adj(bk, v) { if (bk) bk.sat = clamp(bk.sat + v * 2 / (bk.size + 1), 0, 100); }
+  /** Mémorise ce que le groupe a vécu (sert à rédiger son avis). */
+  function note(bk, k, n = 1) { if (!bk) return; bk.n = bk.n || {}; bk.n[k] = (bk.n[k] || 0) + n; }
 
   function sendTo(s, a, dest) { a.dest = dest; a.state = 'walk'; a.wait = 0; }
 
@@ -536,10 +554,14 @@
     let sat = 60 - Math.max(0, s.stars - 2) * 4; // clientèle plus exigeante quand le classement monte
     if (noDesk) sat -= 10;
     const ref = D.REF_PRICES[bk.type] * starMult(s);
-    if (bk.price > ref * 1.2) sat -= 10; else if (bk.price < ref * 0.9) sat += 5;
+    const tierF = unit && unit.level === 2 ? PREMIUM : 1;
+    if (bk.price > ref * tierF * 1.2) { sat -= 10; note(bk, 'price'); } else if (bk.price < ref * tierF * 0.9) { sat += 5; note(bk, 'cheap'); }
+    if (unit && unit.level === 2) { sat += 8; note(bk, 'premium'); }
+    const rec0 = services(s, 'reception')[0];
+    if (rec0 && rec0.level === 2 && !noDesk) { sat += 3; note(bk, 'welcome'); }
     sat += Math.min(10, beautyAt(s, unit) * 0.7);
-    if (unit.clean) { sat -= 18; unit.clean = false; log(s, `Famille ${bk.name} : mobil-home n°${unit.num} pas nettoyé à l’arrivée !`, 'bad'); }
-    if (unit.broken) sat -= 12;
+    if (unit.clean) { sat -= 18; unit.clean = false; note(bk, 'mhdirty', 3); log(s, `Famille ${bk.name} : mobil-home n°${unit.num} pas nettoyé à l’arrivée !`, 'bad'); }
+    if (unit.broken) { sat -= 12; note(bk, 'broken', 2); }
     bk.sat = clamp(sat, 0, 100);
     s.stats.groups++; s.totals.groups++; s.stats.persons += bk.size;
     const g = s.rt.groups.get(bk.id);
@@ -556,11 +578,13 @@
     bk.rating = rating;
     s.stats.ratings.push(rating);
     s.stats.nights += bk.nights; s.totals.nights += bk.nights;
-    s.reputation = clamp(s.reputation * 0.975 + rating * 20 * 0.025, 0, 100);
+    const wgt = bk.influencer ? 0.12 : 0.025;
+    s.reputation = clamp(s.reputation * (1 - wgt) + rating * 20 * wgt, 0, 100);
     const unit = byId(s, bk.unit);
     if (unit && BUILDINGS[unit.type].needsCleaning) unit.clean = true;
-    if (rating <= 2) log(s, `Avis ${'★'.repeat(Math.round(rating))} de ${PROFILES[bk.profile].name.toLowerCase()} ${bk.name} : « Déçus par notre séjour. »`, 'bad');
-    else if (rating >= 4.5) log(s, `Avis ★★★★★ de ${bk.name} : « Des vacances formidables, on reviendra ! »`, 'good');
+    const review = writeReview(s, bk, rating);
+    s.reviews.push(review); if (s.reviews.length > 60) s.reviews.shift();
+    if (rating <= 2) log(s, `Avis ${'★'.repeat(Math.max(1, Math.round(rating)))} — ${bk.name} : « ${review.text} »`, 'bad');
   }
 
   function startDeparture(s, bk) {
@@ -616,6 +640,7 @@
       }
       if (b.type === 'pool' && !poolOpen(s, b)) { adj(bk, -(2)); return sendTo(s, a, { kind: 'home', id: bk.unit }); }
       if (b.type === 'stage' && !stageLive(s, b)) return sendTo(s, a, { kind: 'home', id: bk.unit });
+      if (b.type === 'snack' && !snackOpen(s, b)) return sendTo(s, a, { kind: 'home', id: bk.unit });
       a.state = 'queue'; a.wait = 0; a.inB = b.id; a.purpose = d.purpose;
       bs(s, b).queue.push(a.id);
     }
@@ -659,6 +684,7 @@
     const pSan = 3 / (16 * 60) * sanMult;
     const poolF = wx === 'heat' ? 2.4 : wx === 'sun' ? (temp >= 24 ? 1.5 : 0.8) : wx === 'cloud' ? 0.35 : 0.04;
     const stage = ofType(s, 'stage').some((b) => stageLive(s, b));
+    const snack = ofType(s, 'snack').some((b) => snackOpen(s, b));
     for (const [bid, g] of s.rt.groups) {
       if (g.phase !== 'home') continue;
       const bk = bookingById(s, bid);
@@ -671,18 +697,19 @@
         if (m.aid) continue;
         const r = rand(s);
         let target = null, purpose = null;
-        if (r < pSan) { target = nearestService(s, 'sanitary', home); purpose = 'use'; if (!target) { if (rand(s) < 0.05) adj(bk, -(1)); continue; } }
+        if (r < pSan) { target = nearestService(s, 'sanitary', home); purpose = 'use'; if (!target) { if (rand(s) < 0.05) { adj(bk, -(1)); note(bk, 'nosan', 0.2); } continue; } }
         else if (!m.kid && bk.shopDay !== s.day && h >= 8 && h < 11 && i === 0 && r < pSan + 1 / 90) { target = nearestService(s, 'shop', home); purpose = 'buy'; bk.shopDay = s.day; }
         else if (h >= 16 && h < 19.5 && !m.kid && r < pSan + (wx === 'rain' ? 1 / 500 : 1 / 1100) * (P.wants.shop || 1)) { target = nearestService(s, 'shop', home); purpose = 'buy'; }
         else if (h >= 10 && h < 18.5 && wx !== 'storm' && r < pSan + poolF * (P.wants.pool || 0.6) * (m.kid ? 1.4 : 1) / 420) { target = nearestService(s, 'pool', home); purpose = 'swim'; }
         else if (m.kid && h >= 9.5 && h < 19 && wx !== 'rain' && wx !== 'storm' && r < pSan + 1 / 350) { target = nearestService(s, 'playground', home); purpose = 'play'; }
+        else if (snack && ((h >= 12 && h < 13.5) || (h >= 19 && h < 20.75)) && r < pSan + (bk.profile === 'nomad' ? 1 / 160 : 1 / 260)) { target = nearestService(s, 'snack', home); purpose = 'eat'; if (target && !snackOpen(s, target)) target = null; }
         else if (stage && ((m.kid && h >= 15 && h < 16.5) || (h >= 20 && h < 21.25)) && r < pSan + (h >= 20 ? (m.kid ? 1 / 45 : 1 / 60) : 1 / 90) * (P.wants.anim || 0.5)) { target = nearestService(s, 'stage', home); purpose = 'show'; if (target && !stageLive(s, target)) target = null; }
         else if (!m.kid && h >= 9 && h < 21.5 && wx !== 'rain' && wx !== 'storm' && r < pSan + (bk.profile === 'couple' ? 1 / 450 : 1 / 1200)) {
           const pt = pathTiles(s); const tile = pt[Math.floor(rand(s) * pt.length)];
           if (tile !== undefined) {
             const a = newAgent(s, { kind: 'guest', bk: bk.id, kid: false, profile: bk.profile, x: home.ax, y: home.ay, speed: 0.4 });
             m.aid = a.id; sendTo(s, a, { kind: 'tile', x: tile % W, y: (tile / W) | 0 });
-            adj(bk, (0.2 + Math.min(10, avgBeauty(s)) * 0.06));
+            adj(bk, (0.2 + Math.min(10, avgBeauty(s)) * 0.06)); if (avgBeauty(s) > 6) note(bk, 'beauty', 0.3);
           }
           continue;
         }
@@ -715,32 +742,35 @@
         for (const u of st.users) {
           const a = s.rt.agentMap.get(u.aid);
           if (!a) continue;
-          const closing = (b.type === 'pool' && !poolOpen(s, b)) || (b.type === 'stage' && !stageLive(s, b));
+          const closing = (b.type === 'pool' && !poolOpen(s, b)) || (b.type === 'stage' && !stageLive(s, b)) || (b.type === 'snack' && !snackOpen(s, b) && s.minute > 21 * 60 + 50);
           if (u.until <= now || closing) finishUse(s, b, a, u);
           else keep.push(u);
         }
         st.users = keep;
       }
       // admission
-      let slots = def.slots || 1;
+      let slots = (def.slots || 1);
+      if (b.level === 2) slots = { sanitary: 9, shop: 3, pool: 36, snack: 24 }[b.type] || slots;
       let staffed = true;
-      if (b.type === 'reception') { const n = receptionServers(s, b); staffed = n > 0; slots = Math.max(1, n); }
+      if (b.type === 'reception') { const n = receptionServers(s, b); staffed = n > 0; slots = Math.max(1, n) + (b.level === 2 ? 1 : 0); }
       if (b.broken && b.type !== 'reception') slots = 0;
       if (b.type === 'pool' && !poolOpen(s, b)) slots = 0;
       if (b.type === 'stage' && !stageLive(s, b)) slots = 0;
+      if (b.type === 'snack' && !snackOpen(s, b)) slots = 0;
       while (st.queue.length && st.users.length < slots) {
         const aid = st.queue.shift();
         const a = s.rt.agentMap.get(aid);
         if (!a) continue;
         const bk = bookingById(s, a.bk);
         let dur = 5;
-        if (b.type === 'sanitary') { dur = rint(s, 7, 15); b.dirt = Math.min(100, b.dirt + (s.weather.type === 'heat' ? 0.9 : 0.6)); }
+        if (b.type === 'sanitary') { dur = rint(s, 7, 15); b.dirt = Math.min(100, b.dirt + (s.weather.type === 'heat' ? 0.9 : 0.6) * (b.level === 2 ? 0.65 : 1)); }
         else if (b.type === 'shop') dur = rint(s, 2, 4);
         else if (b.type === 'pool') dur = rint(s, 45, 130);
         else if (b.type === 'playground') dur = rint(s, 20, 55);
+        else if (b.type === 'snack') dur = rint(s, 25, 45);
         else if (b.type === 'stage') { const w = stageWindow(s); dur = Math.max(1, w ? w.to - s.minute - 1 : 1); if (w && w.show) s.rt.showDay = s.day; }
         else if (b.type === 'reception') dur = a.purpose === 'checkin' ? (staffed ? rint(s, 3, 5) : rint(s, 10, 14)) : (staffed ? 2 : 5);
-        if (bk && a.wait > 10) { adj(bk, -(Math.min(8, (a.wait - 10) / 4))); }
+        if (bk && a.wait > 10) { adj(bk, -(Math.min(8, (a.wait - 10) / 4))); note(bk, 'queue', 0.5); }
         s.stats.waits += a.wait;
         b.uses++;
         a.state = 'use';
@@ -752,10 +782,10 @@
         if (!a) { st.queue.splice(i, 1); continue; }
         a.wait++;
         const patience = b.type === 'reception' ? 999 : b.type === 'pool' ? 25 : 20;
-        if (a.wait > patience || (b.broken && b.type !== 'reception') || (b.type === 'pool' && !poolOpen(s, b)) || (b.type === 'stage' && !stageLive(s, b))) {
+        if (a.wait > patience || (b.broken && b.type !== 'reception') || (b.type === 'pool' && !poolOpen(s, b)) || (b.type === 'stage' && !stageLive(s, b)) || (b.type === 'snack' && !snackOpen(s, b))) {
           st.queue.splice(i, 1);
           const bk = bookingById(s, a.bk);
-          if (bk) { adj(bk, -(5)); if (!b._qwarn || b._qwarn < s.day) { b._qwarn = s.day; log(s, `File d’attente trop longue : ${BUILDINGS[b.type].short.toLowerCase()} saturé(e).`, 'warn'); } }
+          if (bk) { adj(bk, -(5)); note(bk, 'queue'); if (!b._qwarn || b._qwarn < s.day) { b._qwarn = s.day; log(s, `File d’attente trop longue : ${BUILDINGS[b.type].short.toLowerCase()} saturé(e).`, 'warn'); } }
           a.inB = 0;
           sendTo(s, a, { kind: 'home', id: bk ? bk.unit : 0 });
         }
@@ -770,16 +800,23 @@
     const wx = s.weather.type;
     if (b.type === 'sanitary') {
       const d = b.dirt;
-      adj(bk, ((d > 80 ? -6 : d > 50 ? -3 : d < 20 ? 1 : 0.3)));
+      adj(bk, ((d > 80 ? -6 : d > 50 ? -3 : d < 20 ? 1 : 0.3) + (b.level === 2 ? 0.5 : 0)));
+      if (d > 50) note(bk, 'dirty'); else if (d < 20) note(bk, 'clean', 0.3);
     } else if (b.type === 'shop') {
-      const basket = (5 + rand(s) * 16) * s.shopMarkup * (wx === 'heat' ? 1.3 : 1);
+      const basket = (4 + rand(s) * 10) * s.shopMarkup * (wx === 'heat' ? 1.3 : 1) * (b.level === 2 ? 1.25 : 1);
       money(s, basket, 'Épicerie'); money(s, -basket / s.shopMarkup * 0.55, 'Stock épicerie');
       adj(bk, ((s.shopMarkup <= 1.05 ? 1.5 : s.shopMarkup >= 1.35 ? -2 : 0.5)));
     } else if (b.type === 'pool') {
       b.water = Math.max(0, b.water - 0.22);
-      adj(bk, ((wx === 'heat' ? 4 : 2.5) * (b.water < 50 ? 0.3 : 1)));
-    } else if (b.type === 'playground') adj(bk, (3));
-    else if (b.type === 'stage') adj(bk, a.kid ? 3 : 3.5);
+      adj(bk, ((wx === 'heat' ? 4 : 2.5) * (b.water < 50 ? 0.3 : 1) * (b.level === 2 ? 1.3 : 1)));
+      note(bk, b.water < 50 ? 'greenpool' : b.level === 2 ? 'slide' : 'pool', b.water < 50 ? 1 : 0.4);
+    } else if (b.type === 'playground') { adj(bk, (3)); note(bk, 'play', 0.3); }
+    else if (b.type === 'stage') { adj(bk, a.kid ? 3 : 3.5); note(bk, 'show', 0.4); }
+    else if (b.type === 'snack') {
+      const bill = (9 + rand(s) * 8) * s.shopMarkup * (b.level === 2 ? 1.35 : 1) * (a.kid ? 0.7 : 1);
+      money(s, bill, 'Restauration'); money(s, -bill / s.shopMarkup * 0.42, 'Stock restauration');
+      adj(bk, s.shopMarkup >= 1.35 ? 0.5 : 2.5); note(bk, 'food', 0.4);
+    }
     else if (b.type === 'reception') {
       if (a.purpose === 'checkin') {
         checkIn(s, bk, false);
@@ -937,7 +974,7 @@
     if (s.minute % 5 === 0) {
       for (const bk of s.bookings) {
         if (bk.status === 'booked' && bk.arrive === s.day && s.minute >= bk.arrTime && !rt.groups.has(bk.id)) {
-          if (rand(s) < 0.02) { bk.status = 'noshow'; log(s, `${bk.name} ne s’est pas présenté (acompte conservé).`, 'info'); continue; }
+          if (!bk.firm && rand(s) < 0.02) { bk.status = 'noshow'; log(s, `${bk.name} ne s’est pas présenté (acompte conservé).`, 'info'); continue; }
           spawnArrival(s, bk);
         } else if (bk.status === 'onsite' && bk.depart === s.day && s.minute >= bk.depTime) {
           const g = rt.groups.get(bk.id);
@@ -946,6 +983,7 @@
         }
       }
     }
+    if ((s.day === FIREWORKS[0] || s.day === FIREWORKS[1]) && s.minute === 22 * 60 + 30) fireworks(s);
     guestTrips(s);
     staffStep(s);
     for (const a of rt.agents) {
@@ -998,6 +1036,7 @@
     money(s, -energy, 'Eau & énergie');
     if (s.rt.showDay === s.day) { s.totals.shows = (s.totals.shows || 0) + 1; s.stats.shows = (s.stats.shows || 0) + 1; }
     loanDaily(s);
+    if (hasMod(s, 'leak')) money(s, -70, 'Eau & énergie');
     money(s, -upkeep, 'Charges fixes');
     // salaires (journaliers, charges comprises)
     let sal = 0;
@@ -1018,11 +1057,12 @@
       const unit = byId(s, bk.unit);
       let d = 0;
       const wx = s.weather.type;
-      if (bk.type === 'tent') d += wx === 'rain' ? -4 : wx === 'storm' ? -7 : 0;
+      if (bk.type === 'tent') { d += wx === 'rain' ? -4 : wx === 'storm' ? -7 : 0; if (wx === 'rain' || wx === 'storm') note(bk, 'rain'); }
       else d += wx === 'rain' ? -1.5 : wx === 'storm' ? -3 : 0;
-      if (wx === 'heat') d += services(s, 'pool').length ? 2 : -4;
+      if (wx === 'heat') { d += services(s, 'pool').length ? 2 : (hasMod(s, 'mist') ? -1.5 : -4); if (!services(s, 'pool').length) note(bk, 'heat'); }
       if (wx === 'sun') d += 1;
-      if (unit && unit.broken) d -= 8;
+      if (unit && unit.broken) { d -= 8; note(bk, 'broken'); }
+      if (hasMod(s, 'noise')) { d -= 3; note(bk, 'noise'); }
       if (bk.kids && !hasPlay) d -= 1;
       if (!hasPool) d -= bk.profile === 'family' ? 1.5 : bk.profile === 'couple' ? 0.6 : 0;
       if (!hasShop) d -= bk.profile === 'nomad' ? 1.5 : 0.7;
@@ -1040,7 +1080,10 @@
     }
     // chantiers
     for (const b of s.buildings) if (b.progress > 0) { b.progress--; if (b.progress === 0) { log(s, `Chantier terminé : ${BUILDINGS[b.type].name.toLowerCase()}${b.num ? ' n°' + b.num : ''}.`, 'good'); mapChanged(s); } }
+    if (s.event && s.day - s.event.day >= 2) { const ev = EVENTS.find((e) => e.id === s.event.id); resolveEvent(s, ev ? ev.choices.length - 1 : 0); }
+    s.mods = (s.mods || []).filter((m) => m.until >= s.day);
     generateDemand(s, s.day, s.day);
+    rollEvent(s);
     // purge
     if (s.bookings.length > 900) s.bookings = s.bookings.filter((b) => !((b.status === 'done' || b.status === 'cancelled' || b.status === 'noshow') && b.depart < s.day - 14));
     s.stars = classement(s).stars;
@@ -1060,7 +1103,7 @@
   function stageLive(s, b) {
     if (!b || b.broken || b.progress > 0 || b.ax < 0) return false;
     const wx = s.weather.type;
-    if (wx === 'rain' || wx === 'storm') return false;
+    if ((wx === 'rain' || wx === 'storm') && b.level !== 2) return false;
     if (!stageWindow(s)) return false;
     for (const a of s.rt.agents) if (!a.dead && a.kind === 'staff' && a.role === 'animation' && a.state === 'work' && a.workB === b.id) return true;
     return false;
@@ -1102,6 +1145,226 @@
     if (L.left <= 0.01) { s.loan = null; log(s, 'Dernière échéance payée : emprunt soldé !', 'good'); }
   }
 
+
+  /* ---------- Restauration ---------- */
+  function snackOpen(s, b) {
+    if (!b || b.broken || b.progress > 0 || b.ax < 0) return false;
+    const m = s.minute;
+    return (m >= 11 * 60 + 30 && m < 14 * 60) || (m >= 18 * 60 + 30 && m < 21 * 60 + 30);
+  }
+
+  /* ---------- Feux d'artifice (14 juillet, 15 août) ---------- */
+  const FIREWORKS = [104, 136];
+  function fireworks(s) {
+    const wx = s.weather.type;
+    if (wx === 'rain' || wx === 'storm') { log(s, 'Feu d’artifice annulé à cause de la météo… dommage !', 'warn'); return; }
+    let n = 0;
+    for (const bk of s.bookings) if (bk.status === 'onsite') { bk.sat = clamp(bk.sat + 4, 0, 100); note(bk, 'fireworks'); n++; }
+    s.rt.fireworks = { day: s.day };
+    log(s, `🎆 Feu d’artifice sur le lac ! ${n} familles émerveillées.`, 'goal');
+  }
+
+  /* ---------- Améliorations (niveau 2) ---------- */
+  function canUpgrade(s, b) {
+    const up = BUILDINGS[b.type].upgrade;
+    if (!up) return { ok: false, why: 'Pas d’amélioration possible' };
+    if (b.level === 2) return { ok: false, why: 'Déjà amélioré' };
+    if (b.progress > 0) return { ok: false, why: 'Chantier en cours' };
+    if (s.fin.cash < up.cost) return { ok: false, why: 'Trésorerie insuffisante', cost: up.cost };
+    if (s.phase === 'season') {
+      if (BUILDINGS[b.type].unit && s.bookings.some((bk) => bk.unit === b.id && (bk.status === 'onsite' || (bk.status === 'booked' && bk.arrive < s.day + up.build + 1))))
+        return { ok: false, why: `Occupé ou réservé dans les ${up.build + 1} prochains jours` };
+      const st = s.rt.bstate.get(b.id);
+      if (st && (st.users.length || st.queue.length)) return { ok: false, why: 'Des clients l’utilisent en ce moment' };
+    }
+    return { ok: true, cost: up.cost, up };
+  }
+  function upgrade(s, id) {
+    const b = byId(s, id); if (!b) return { ok: false, why: 'Introuvable' };
+    const c = canUpgrade(s, b); if (!c.ok) return c;
+    money(s, -c.cost, 'Constructions');
+    b.level = 2; b.cond = 100; b.broken = false;
+    b.progress = s.phase === 'winter' ? 0 : c.up.build; b.buildTotal = c.up.build;
+    log(s, `Travaux d’amélioration : ${c.up.name}${b.num ? ' n°' + b.num : ''}${b.progress ? ` (${b.progress} j)` : ''}.`, 'good');
+    mapChanged(s); checkObjectives(s);
+    return { ok: true };
+  }
+  const displayName = (b) => (b.level === 2 && BUILDINGS[b.type].upgrade ? BUILDINGS[b.type].upgrade.name : BUILDINGS[b.type].name);
+
+  /* ---------- Modificateurs temporaires ---------- */
+  function addMod(s, kind, days, mult = 1, label = '') { s.mods.push({ kind, mult, from: s.day, until: s.day + days - 1, label }); }
+  function hasMod(s, kind) { return (s.mods || []).some((m) => m.kind === kind && m.from <= s.day && m.until >= s.day); }
+  function demandMod(s, d) {
+    let f = 1;
+    for (const m of s.mods || []) if (m.kind === 'demand' && m.from <= d && m.until >= d) f *= m.mult;
+    return f;
+  }
+
+  /* ---------- Avis clients ---------- */
+  const PRAISE = {
+    premium: 'Le mobil-home premium avec spa : un rêve !', slide: 'Les enfants n’ont pas quitté le toboggan !', pool: 'Piscine impeccable, on y passait nos après-midi.',
+    show: 'Les soirées spectacle étaient géniales.', fireworks: 'Le feu d’artifice sur le lac, inoubliable.', clean: 'Sanitaires toujours propres, bravo à l’équipe.',
+    welcome: 'Accueil aux petits soins dès l’arrivée.', beauty: 'Un cadre fleuri et verdoyant, très reposant.', food: 'Le snack-bar est top, pizzas excellentes.',
+    play: 'L’aire de jeux a fait le bonheur des petits.', cheap: 'Excellent rapport qualité-prix.'
+  };
+  const COMPLAINT = {
+    mhdirty: 'Mobil-home sale à notre arrivée, inadmissible.', dirty: 'Sanitaires sales, ça gâche tout.', queue: 'Des files d’attente interminables.',
+    price: 'Beaucoup trop cher pour ce que c’est.', rain: 'Trempés sous la tente, rien pour s’abriter.', heat: 'Fournaise et pas de piscine pour se rafraîchir.',
+    broken: 'Équipement en panne pendant notre séjour.', nosan: 'Pas assez de sanitaires.', greenpool: 'Eau de la piscine douteuse…', noise: 'Bruyant jusque tard le soir.'
+  };
+  function writeReview(s, bk, rating) {
+    const n = bk.n || {};
+    const WGT = { clean: 0.15, pool: 0.8, slide: 1.5, premium: 3, show: 1.5, fireworks: 5, welcome: 2, beauty: 1, food: 1, play: 1, cheap: 2, mhdirty: 3, price: 2, broken: 1.5 };
+    const top = (dict) => Object.keys(dict).filter((k) => n[k]).sort((a, b) => n[b] * (WGT[b] || 1) - n[a] * (WGT[a] || 1))[0];
+    const bad = top(COMPLAINT), good = top(PRAISE);
+    let text;
+    if (rating <= 2.5) text = bad ? COMPLAINT[bad] : 'Séjour décevant, on ne reviendra pas.';
+    else if (rating <= 3.5) text = (good ? PRAISE[good] + ' ' : 'Correct sans plus. ') + (bad ? 'Mais : ' + COMPLAINT[bad].charAt(0).toLowerCase() + COMPLAINT[bad].slice(1) : '');
+    else text = good ? PRAISE[good] : 'Des vacances formidables, on reviendra !';
+    return { name: bk.name, profile: bk.profile, rating, text: text.trim(), y: s.year, d: s.day, type: bk.type, nights: bk.nights };
+  }
+
+  /* ---------- Événements : décisions de directeur ---------- */
+  const EVENTS = [
+    { id: 'inspection', title: 'Contrôle sanitaire', icon: '🧑‍⚕️', weight: 1, min: 10,
+      text: () => 'Un inspecteur de l’ARS se présente à l’accueil pour contrôler vos sanitaires et la piscine.',
+      choices: [
+        { label: 'Le recevoir tout de suite', go: (s) => {
+          const san = ofType(s, 'sanitary'); const worst = san.reduce((m, b) => Math.max(m, b.dirt), 0);
+          const pool = ofType(s, 'pool').some((b) => b.water < 50);
+          if (worst > 55 || pool) { money(s, -1000, 'Amendes'); s.reputation = clamp(s.reputation - 4, 0, 100); return 'Rapport défavorable : 1 000 € d’amende et la presse locale en parle (−4 réputation).'; }
+          s.reputation = clamp(s.reputation + 3, 0, 100); return 'Rapport exemplaire ! Le label « Hygiène irréprochable » vous vaut +3 de réputation.'; } },
+        { label: 'Négocier un report (frais de dossier 300 €)', cost: 300, go: (s) => { money(s, -300, 'Amendes'); s.nextEventDay = s.day + 2; s.forceEvent = 'inspection'; return 'L’inspecteur repassera dans deux jours. Profitez-en pour tout nettoyer !'; } }
+      ] },
+    { id: 'bikers', title: 'Une bande de motards', icon: '🏍️', weight: 1, min: 20,
+      text: () => 'Douze motards en road-trip demandent des emplacements pour deux nuits, à partir de ce soir. Sympathiques… mais bruyants.',
+      choices: [
+        { label: 'Les accueillir', go: (s) => {
+          let ok = 0;
+          for (let i = 0; i < 6; i++) { const r = requestBooking(s, { profile: 'nomad', type: rand(s) < 0.5 ? 'tent' : 'caravan', arrive: s.day, nights: 2, size: 2, force: true, arrTime: 17 * 60 + i * 5 }); if (r.booking) ok++; }
+          if (ok) addMod(s, 'noise', 2);
+          return ok ? `${ok} emplacements loués. Les voisins risquent de râler un peu…` : 'Plus aucune place libre : ils repartent sans rancune.'; } },
+        { label: 'Refuser poliment', go: () => 'Ils repartent vers le camping voisin.' }
+      ] },
+    { id: 'influencer', title: 'Une influenceuse voyage', icon: '📸', weight: 0.8, min: 15, when: (s) => ofType(s, 'mobilhome').length > 0,
+      text: () => '« Lou en Vadrouille » (480 000 abonnés) propose un séjour gratuit de 3 nuits en mobil-home contre des stories.',
+      choices: [
+        { label: 'Offrir le séjour', go: (s) => {
+          const r = requestBooking(s, { profile: 'couple', type: 'mobilhome', arrive: s.day + 1, nights: 3, size: 2, force: true, name: 'Lou en Vadrouille' });
+          if (!r.booking) return 'Aucun mobil-home libre dans les prochains jours : occasion manquée.';
+          money(s, -r.booking.deposit, 'Acomptes'); r.booking.total = 0; r.booking.paid = 0; r.booking.influencer = true;
+          return 'Réservation offerte. Son avis comptera triple pour la réputation… soignez-la !'; } },
+        { label: 'Décliner', go: () => 'Elle choisira un autre camping.' }
+      ] },
+    { id: 'tour', title: 'Tour-opérateur néerlandais', icon: '🇳🇱', weight: 0.7, min: 10, when: (s) => s.day < 95 && ofType(s, 'mobilhome').length >= 2,
+      text: (s) => `Zon & Vakantie propose de réserver d’un coup vos mobil-homes libres pour la 1re quinzaine d’août, à −20 % sur votre tarif (${Math.round(s.prices.mobilhome * 0.8)} €/nuit).`,
+      choices: [
+        { label: 'Signer le contrat', go: (s) => {
+          let n = 0;
+          for (const b of ofType(s, 'mobilhome')) {
+            for (const a of [122, 129]) { if (isBooked(s, b.id, a, a + 7)) continue; const save = s.prices.mobilhome; s.prices.mobilhome = Math.round(save * 0.8);
+              const r = requestBooking(s, { profile: 'family', type: 'mobilhome', arrive: a, nights: 7, size: 4, force: true, name: 'Zon & Vakantie' }); s.prices.mobilhome = save;
+              if (r.booking) { if (r.booking.unit !== b.id) { /* attribué ailleurs : accepté quand même */ } n++; } }
+            if (n >= Math.ceil(ofType(s, 'mobilhome').length * 0.6) * 2) break;
+          }
+          return n ? `${n} semaines vendues d’avance. Trésorerie sécurisée, marge réduite.` : 'Tout est déjà réservé en août !'; } },
+        { label: 'Garder la main sur mes prix', go: () => 'Vous comptez sur la clientèle individuelle.' }
+      ] },
+    { id: 'radio', title: 'Campagne radio', icon: '📻', weight: 1, min: 0, when: (s) => s.day < 150,
+      text: () => 'France Bleu vous propose une campagne de 3 semaines : « Le camping où il fait bon vivre ». Coût : 2 500 €.',
+      choices: [
+        { label: 'Lancer la campagne (2 500 €)', cost: 2500, go: (s) => { money(s, -2500, 'Publicité'); addMod(s, 'demand', 21, 1.3, 'Campagne radio'); return 'Les demandes de réservation vont grimper de 30 % pendant 3 semaines.'; } },
+        { label: 'Pas cette fois', go: () => 'Le bouche-à-oreille suffira.' }
+      ] },
+    { id: 'competitor', title: 'Un concurrent s’installe', icon: '🏕️', weight: 0.6, min: 20,
+      text: () => 'Le « Domaine des Pins » ouvre à 3 km avec des prix d’appel agressifs. Vos demandes vont baisser.',
+      choices: [
+        { label: 'Riposter : promo en ligne (1 800 €)', cost: 1800, go: (s) => { money(s, -1800, 'Publicité'); addMod(s, 'demand', 15, 0.95, 'Concurrence'); return 'Votre campagne limite la casse (−5 % pendant 15 jours).'; } },
+        { label: 'Laisser passer l’orage', go: (s) => { addMod(s, 'demand', 20, 0.8, 'Concurrence'); return 'Demandes en baisse de 20 % pendant 20 jours.'; } }
+      ] },
+    { id: 'leak', title: 'Fuite d’eau', icon: '💧', weight: 0.8, min: 5,
+      text: () => 'Une canalisation enterrée fuit près des sanitaires. Le compteur s’affole.',
+      choices: [
+        { label: 'Plombier en urgence (900 €)', cost: 900, go: (s) => { money(s, -900, 'Réparations'); return 'Fuite réparée dans la journée.'; } },
+        { label: 'Attendre la fin de saison', go: (s) => { addMod(s, 'leak', 25); return 'La fuite vous coûtera ~70 €/jour pendant près d’un mois…'; } }
+      ] },
+    { id: 'raise', title: 'Demande d’augmentation', icon: '💬', weight: 0.8, min: 0, when: (s) => s.staff.length > 0,
+      init: (s) => ({ sid: pick(s, s.staff).id }),
+      text: (s, d) => { const st = s.staff.find((x) => x.id === d.sid); return `${st ? st.name : 'Un employé'} vous demande une augmentation de 150 €/mois : « Avec l’été qu’on vit, je le mérite ! »`; },
+      choices: [
+        { label: 'Accepter (+150 €/mois)', go: (s, d) => { const st = s.staff.find((x) => x.id === d.sid); if (st) { st.wage += 150; st.happy = true; } return 'Motivation au top : l’équipe apprécie votre geste.'; } },
+        { label: 'Refuser', go: (s, d) => { const st = s.staff.find((x) => x.id === d.sid); if (st && rand(s) < 0.4) { fire(s, st.id); return `${st.name} démissionne dans la foulée…`; } return 'Il fait la moue mais reste.'; } }
+      ] },
+    { id: 'heatwave', title: 'Canicule annoncée', icon: '🌡️', weight: 1, min: 40, when: (s) => s.forecast.some((f) => f.type === 'heat') && !hasMod(s, 'mist'),
+      text: () => 'Météo-France annonce une vague de chaleur. Un fournisseur propose d’installer des brumisateurs dans les allées (1 400 €, pour le reste de la saison).',
+      choices: [
+        { label: 'Installer les brumisateurs', cost: 1400, go: (s) => { money(s, -1400, 'Constructions'); addMod(s, 'mist', D.SEASON_DAYS); return 'Les vacanciers souffriront beaucoup moins de la chaleur.'; } },
+        { label: 'Non merci', go: () => 'Espérons que la piscine suffise.' }
+      ] },
+    { id: 'wedding', title: 'Mariage au camping', icon: '💍', weight: 0.6, min: 30, when: (s) => services(s, 'stage').length > 0,
+      text: () => 'Les Lambert veulent privatiser votre scène samedi soir pour leur mariage : 2 000 € de location.',
+      choices: [
+        { label: 'Accepter (+2 000 €)', go: (s) => { money(s, 2000, 'Ventes'); addMod(s, 'noise', 1); return 'Belle fête ! Les autres vacanciers trouvent la soirée un peu bruyante.'; } },
+        { label: 'Garder la soirée pour mes clients', go: () => 'Le spectacle habituel aura lieu.' }
+      ] },
+    { id: 'festival', title: 'Festival au village', icon: '🎸', weight: 0.7, min: 30, when: (s) => s.day < 170,
+      text: () => 'Le festival « Rock au Lac » a lieu dans 5 jours. Proposer une navette gratuite pour vos clients ? (500 €)',
+      choices: [
+        { label: 'Affréter la navette (500 €)', cost: 500, go: (s) => { money(s, -500, 'Publicité'); addMod(s, 'demand', 8, 1.35, 'Festival'); s.reputation = clamp(s.reputation + 2, 0, 100); return 'Afflux de festivaliers attendu, et une belle image (+2 réputation).'; } },
+        { label: 'Ne rien faire', go: (s) => { addMod(s, 'demand', 8, 1.15, 'Festival'); return 'Quelques festivaliers viendront quand même.'; } }
+      ] },
+    { id: 'grant', title: 'Subvention de la Région', icon: '🏛️', weight: 0.5, min: 0, when: (s) => avgBeauty(s) < 9,
+      text: () => 'La Région finance la moitié d’un plan de fleurissement « Village nature » : 25 massifs et 10 arbres plantés, 1 500 € à votre charge.',
+      choices: [
+        { label: 'Accepter (1 500 €)', cost: 1500, go: (s) => { money(s, -1500, 'Paysagisme'); return `${autoPlant(s)} plantations réalisées autour des hébergements.`; } },
+        { label: 'Refuser', go: () => 'Dossier classé.' }
+      ] }
+  ];
+
+  function autoPlant(s) {
+    let n = 0;
+    const tiles = [];
+    for (const b of units(s)) for (let j = b.y - 1; j <= b.y + b.h; j++) for (let i = b.x - 1; i <= b.x + b.w; i++) {
+      if (!inMap(i, j) || i < 2) continue;
+      const k = idx(i, j);
+      if (s.tiles[k] === TERRAIN.GRASS && !occupancyGrid(s)[k] && !s.deco[k]) tiles.push(k);
+    }
+    for (let t = 0; t < 35 && tiles.length; t++) {
+      const k = tiles.splice(Math.floor(rand(s) * tiles.length), 1)[0];
+      s.deco[k] = t < 25 ? DECO.FLOWERS : DECO.TREE; n++;
+    }
+    return n;
+  }
+
+  function rollEvent(s) {
+    if (s.event || s.day < s.nextEventDay || s.day > D.SEASON_DAYS - 5) return;
+    let pool = EVENTS.filter((e) => s.day >= e.min && (!e.when || e.when(s)) && (s.eventLog || []).filter((l) => l.id === e.id && l.y === s.year).length < (e.id === 'inspection' ? 2 : 1));
+    if (s.forceEvent) { pool = EVENTS.filter((e) => e.id === s.forceEvent); s.forceEvent = null; }
+    if (!pool.length) return;
+    const w = {}; pool.forEach((e) => (w[e.id] = e.weight));
+    const chosen = wpick(s, w);
+    const ev = EVENTS.find((e) => e.id === chosen);
+    s.event = { id: ev.id, day: s.day, data: ev.init ? ev.init(s) : {} };
+    s.nextEventDay = s.day + rint(s, 6, 11);
+    if (s.rt) s.rt.events.push({ type: 'decision' });
+  }
+  function eventView(s) {
+    if (!s.event) return null;
+    const ev = EVENTS.find((e) => e.id === s.event.id); if (!ev) return null;
+    return { id: ev.id, title: ev.title, icon: ev.icon, text: ev.text(s, s.event.data), choices: ev.choices.map((c) => ({ label: c.label, afford: !c.cost || s.fin.cash >= c.cost })) };
+  }
+  function resolveEvent(s, i) {
+    if (!s.event) return null;
+    const ev = EVENTS.find((e) => e.id === s.event.id);
+    const c = ev && ev.choices[i]; if (!c) return null;
+    if (c.cost && s.fin.cash < c.cost) return { ok: false, text: 'Trésorerie insuffisante pour ce choix.' };
+    const data = s.event.data; s.event = null;
+    const text = c.go(s, data);
+    s.eventLog = (s.eventLog || []).concat({ id: ev.id, y: s.year, d: s.day, choice: i }).slice(-40);
+    log(s, `${ev.icon} ${ev.title} — ${text}`, 'info');
+    return { ok: true, text };
+  }
+
   /* ---------- Saisons ---------- */
   function endSeason(s) {
     s.day = D.SEASON_DAYS - 1; s.minute = 23 * 60 + 59;
@@ -1116,17 +1379,19 @@
     const totalInc = Object.values(inc).reduce((a, b) => a + b, 0);
     const totalExp = Object.values(exp).reduce((a, b) => a + b, 0);
     const result = r2(totalInc + totalExp);
+    const invest = r2(-((s.fin.season['Constructions'] || 0) + (s.fin.season['Paysagisme'] || 0)));
+    const operating = r2(result + invest);
     const avgRating = st.ratings.length ? st.ratings.reduce((a, b) => a + b, 0) / st.ratings.length : 0;
     const avgOcc = st.occ.length ? st.occ.reduce((a, b) => a + b, 0) / st.occ.length : 0;
     const peakDays = st.occ.slice(91, 153);
     const report = {
       year: s.year, groups: st.groups, nights: st.nights, persons: st.persons, inc, exp, totalInc: r2(totalInc), totalExp: r2(totalExp), result,
-      avgRating: Math.round(avgRating * 10) / 10, avgOcc, peakOcc: st.peakOcc, summerOcc: peakDays.length ? peakDays.reduce((a, b) => a + b, 0) / peakDays.length : 0,
+      operating, invest, avgRating: Math.round(avgRating * 10) / 10, avgOcc, peakOcc: st.peakOcc, summerOcc: peakDays.length ? peakDays.reduce((a, b) => a + b, 0) / peakDays.length : 0,
       lostFull: st.lostFull, lostPrice: st.lostPrice, requests: st.requests, breakdowns: st.breakdowns,
       repStart: st.repStart ?? 42, repEnd: Math.round(s.reputation), stars: s.stars, units: units(s).length, cash: s.fin.cash,
       objectives: Object.keys(s.objectives).filter((k) => !k.startsWith('_') && s.objectives[k] === s.year)
     };
-    if (result > 0) s.objectives._profit = true;
+    if (operating > 0) s.objectives._profit = true;
     s.reports.push(report);
     s.totals.seasons++;
     s.lastTeam = s.staff.map((x) => ({ role: x.role, name: x.name }));
@@ -1134,6 +1399,7 @@
     s.staff = [];
     s.phase = 'winter';
     s.bookings = [];
+    s.event = null; s.mods = [];
     checkObjectives(s);
     log(s, `Saison ${s.year} terminée : résultat ${result >= 0 ? '+' : ''}${Math.round(result).toLocaleString('fr-FR')} €.`, result >= 0 ? 'good' : 'bad');
     if (s.rt) s.rt.events.push({ type: 'season-end', report });
@@ -1152,6 +1418,7 @@
     s.stats = newSeasonStats(); s.stats.repStart = Math.round(s.reputation);
     s.weather = genWeather(s, 0); s.forecast = [genWeather(s, 1), genWeather(s, 2), genWeather(s, 3)];
     s.phase = 'season';
+    s.nextEventDay = 4;
     initRuntime(s);
     mapChanged(s);
     s.stars = classement(s).stars;
@@ -1175,6 +1442,8 @@
       profit: !!s.objectives._profit,
       mh8: ofType(s, 'mobilhome').length >= 8,
       shows20: (s.totals.shows || 0) >= 20,
+      premium4: s.buildings.filter((b) => b.type === 'mobilhome' && b.level === 2 && b.progress <= 0).length >= 4,
+      rating45: s.stats.ratings.length >= 40 && s.stats.ratings.reduce((a, b) => a + b, 0) / s.stats.ratings.length >= 4.2,
       stars4: s.stars >= 4,
       rep85: s.reputation >= 85
     };
@@ -1279,7 +1548,7 @@
     return { ok: false };
   }
 
-  function setPrice(s, type, v) { s.prices[type] = clamp(Math.round(v), 5, 400); }
+  function setPrice(s, type, v) { s.prices[type] = clamp(Math.round(v), type === 'extra' ? 0 : 5, 400); }
   function setMarkup(s, v) { s.shopMarkup = clamp(Math.round(v * 100) / 100, 0.8, 1.6); }
 
   /* ---------- Vue d'ensemble pour l'UI ---------- */
@@ -1295,7 +1564,8 @@
     requestBooking, isBooked, occupancy, classement, units, built, ofType, services, accessible, beautyAt, avgBeauty,
     hire, fire, build, buildPath, placeDeco, demolish, canPlace, buildingAt, byId, setPrice, setMarkup,
     startSeason, endSeason, endOfDay, checkIn, checkOut, money, summary, field, idx, bs, mapChanged, attractiveness, weatherAt,
-    occupancyGrid, poolOpen, INCOME, FINANCING, r2, stageLive, stageWindow, borrow, repayLoan, loanCapacity
+    occupancyGrid, poolOpen, INCOME, FINANCING, r2, stageLive, stageWindow, borrow, repayLoan, loanCapacity,
+    snackOpen, canUpgrade, upgrade, displayName, unitPrice, acceptRate, eventView, resolveEvent, EVENTS, hasMod, demandMod, FIREWORKS, rollEvent, PREMIUM
   };
   root.CT = root.CT || {};
   root.CT.sim = api;

@@ -20,7 +20,7 @@ Aucune installation, aucune compilation : HTML, CSS et JavaScript.
 node --test tests/*.test.js      # ou : npm test   (Node 18+)
 ```
 
-14 tests (dont emprunt et animations) : réservations simultanées (pas de double attribution), capacité maximale, arrivées/départs et rotation le même jour, facturation (acompte 30 % + solde, tarif verrouillé, annulation), salaires, cohérence trésorerie/grand livre, déplacements sur les allées uniquement, capacité des équipements, sauvegarde/reprise, migration et rejet de fichiers invalides, saison complète avec bilan, construction et démolition protégée.
+19 tests (dont emprunt, animations, améliorations, snack-bar, événements, avis) : réservations simultanées (pas de double attribution), capacité maximale, arrivées/départs et rotation le même jour, facturation (acompte 30 % + solde, tarif verrouillé, annulation), salaires, cohérence trésorerie/grand livre, déplacements sur les allées uniquement, capacité des équipements, sauvegarde/reprise, migration et rejet de fichiers invalides, saison complète avec bilan, construction et démolition protégée.
 
 ## Architecture
 
@@ -42,6 +42,17 @@ L’état persistant est un simple objet JSON ; tout ce qui est transitoire (per
 - Scène d’animation + métier d’animateur : club enfants 15h–17h, spectacle 20h–22h (annulé s’il pleut), objectif « Ambiance du soir », exigé pour le 5★.
 - Banque : emprunts de 10 000 à 100 000 € (capacité = 20 000 € + 50 % de la valeur des installations), 4,5 %/an, remboursement quotidien sur 300 jours d’ouverture, remboursement anticipé (+1 %).
 - Sons et ambiance sonore, coupables (bouton 🔊 ou menu).
+
+## Nouveautés v1.2
+
+- **Décisions de directeur** : 12 événements à choix (contrôle sanitaire, motards, influenceuse, tour-opérateur, campagne radio, concurrent, fuite d’eau, augmentation, canicule, mariage, festival, subvention).
+- **Améliorations niveau 2** : mobil-home Premium (+30 %), Sanitaires Confort, Supérette, Toboggan aquatique, Accueil & conciergerie, Scène couverte, Restaurant-terrasse.
+- **Snack-bar** (service midi et soir) et **feux d’artifice** du 14 juillet et du 15 août.
+- **Avis des vacanciers** rédigés selon leur séjour réel (onglet 💬).
+- **Tutoriel « Premiers pas »** en 7 étapes.
+- **Tarifs** : supplément par personne au-delà de 2 (tentes et caravanes).
+- **Bilan** : résultat d’exploitation séparé des investissements.
+- **Équilibrage** vérifié par un joueur automatique : `node tools/bot.js [graine] [saisons] -v`.
 
 ## Commandes
 

@@ -6,7 +6,7 @@ const SV = require('../src/save.js');
 const D = require('../src/data.js');
 
 const ledgerSum = (s) => Object.values(s.fin.all).reduce((a, b) => a + b, 0);
-const fresh = (seed = 1) => { const s = S.newGame({ seed }); s.bookings = []; return s; };
+const fresh = (seed = 1) => { const s = S.newGame({ seed }); s.bookings = []; s.nextEventDay = 1e9; return s; };
 const unitsOf = (s, t) => S.units(s).filter((b) => b.type === t);
 
 function noOverlap(s) {
@@ -248,4 +248,75 @@ test('animations : spectacles le soir seulement avec un animateur, comptés pour
   }
   assert.ok(seen > 0, 'du public est venu');
   assert.ok(s.totals.shows >= 1, `soirées : ${s.totals.shows}`);
+});
+
+test('améliorations : mobil-home premium loué 30 % plus cher, interdit si occupé', () => {
+  const s = fresh(31);
+  S.money(s, 40000, 'Primes');
+  const a = S.build(s, 'mobilhome', 13, 9).building; a.progress = 0;
+  const b = S.build(s, 'mobilhome', 16, 9).building; b.progress = 0; S.mapChanged(s);
+  const up = S.upgrade(s, b.id); assert.ok(up.ok, up.why);
+  assert.equal(b.level, 2); assert.ok(b.progress > 0, 'chantier d’amélioration');
+  for (let i = 0; i < 4; i++) S.step(s, 1440);
+  assert.equal(b.progress, 0);
+  assert.equal(S.unitPrice(s, b), S.r2(s.prices.mobilhome * S.PREMIUM));
+  for (const k of s.bookings) if (k.unit === a.id || k.unit === b.id) k.status = 'cancelled';
+  const r = S.requestBooking(s, { profile: 'couple', type: 'mobilhome', arrive: s.day + 2, nights: 3, size: 2, force: true });
+  assert.ok(r.booking);
+  const u = S.byId(s, r.booking.unit);
+  assert.equal(r.booking.price, S.unitPrice(s, u));
+  const busy = S.upgrade(s, a.id);
+  if (u.id === a.id) assert.equal(busy.ok, false);
+  assert.equal(S.upgrade(s, b.id).ok, false, 'pas deux fois');
+});
+
+test('snack-bar : ouvert aux heures des repas, recettes et coût des marchandises', () => {
+  const s = S.newGame({ seed: 32 }); s.nextEventDay = 1e9;
+  S.money(s, 20000, 'Primes');
+  const sn = S.build(s, 'snack', 5, 17); assert.ok(sn.ok, sn.why); sn.building.progress = 0; S.mapChanged(s);
+  for (let m = 0; m < 1440 * 20; m++) {
+    S.tick(s);
+    const st = s.rt.bstate.get(sn.building.id);
+    if (st && st.users.length && !S.snackOpen(s, sn.building)) assert.ok(s.minute >= 21 * 60 + 30 && s.minute <= 21 * 60 + 52 || s.minute >= 14 * 60 && s.minute < 15 * 60, 'service hors horaires ' + S.fmtTime(s.minute));
+  }
+  assert.ok(s.fin.all['Restauration'] > 0, 'des repas vendus');
+  assert.ok(s.fin.all['Stock restauration'] < 0);
+});
+
+test('événements : une décision se présente, son choix s’applique, sinon résolution automatique', () => {
+  const s = S.newGame({ seed: 33 });
+  let seen = 0;
+  for (let d = 0; d < 60; d++) {
+    S.step(s, 1440);
+    if (s.event) {
+      seen++;
+      const v = S.eventView(s); assert.ok(v.title && v.choices.length >= 2);
+      const r = S.resolveEvent(s, v.choices.length - 1); assert.ok(r.ok);
+      assert.equal(s.event, null);
+    }
+  }
+  assert.ok(seen >= 3, `événements vus : ${seen}`);
+  // résolution automatique si on ignore
+  const s2 = S.newGame({ seed: 34 });
+  S.step(s2, 1440 * 40);
+  assert.ok(s2.eventLog.length >= 2);
+  assert.ok(Math.abs(s2.fin.cash - (s2.fin.start + ledgerSum(s2))) < 0.05);
+});
+
+test('campagne radio : la demande augmente', () => {
+  const base = S.newGame({ seed: 35 }); base.nextEventDay = 1e9;
+  const boosted = S.newGame({ seed: 35 }); boosted.nextEventDay = 1e9;
+  boosted.mods.push({ kind: 'demand', mult: 1.5, from: 0, until: 60 });
+  S.step(base, 1440 * 30); S.step(boosted, 1440 * 30);
+  assert.ok(boosted.stats.requests > base.stats.requests * 1.2, `${boosted.stats.requests} vs ${base.stats.requests}`);
+});
+
+test('avis clients rédigés selon le vécu, feu d’artifice du 14 juillet', () => {
+  const s = S.newGame({ seed: 36 }); s.nextEventDay = 1e9;
+  S.step(s, 1440 * 30);
+  assert.ok(s.reviews.length > 5);
+  for (const r of s.reviews) { assert.ok(r.text.length > 8); assert.ok(r.rating >= 1 && r.rating <= 5); }
+  S.step(s, 1440 * (S.FIREWORKS[0] - s.day) + 22 * 60 + 31 - s.minute);
+  const onsite = s.bookings.filter((b) => b.status === 'onsite');
+  if (s.weather.type !== 'rain' && s.weather.type !== 'storm') assert.ok(onsite.every((b) => b.n && b.n.fireworks), 'tout le monde a vu le feu d’artifice');
 });
