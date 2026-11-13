@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Camping Tycoon">
+  <defs>
+    <clipPath id="cmC"><rect x="16" y="16" width="224" height="224" rx="56"/></clipPath>
+    <linearGradient id="cmSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f8fd0"/><stop offset=".8" stop-color="#8fdcff"/></linearGradient>
+    <linearGradient id="cmTent" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff6b4a"/><stop offset="1" stop-color="#e2412d"/></linearGradient>
+  </defs>
+  <rect x="24" y="24" width="224" height="224" rx="56" fill="#33233d"/>
+  <g clip-path="url(#cmC)">
+    <rect width="256" height="256" fill="url(#cmSky)"/>
+    <g transform="translate(74 78)" fill="#fff6c2" opacity=".35"><path d="M0 0 L300 -60 L300 0Z"/><path d="M0 0 L300 60 L300 140Z"/><path d="M0 0 L140 300 L60 300Z"/><path d="M0 0 L180 -300 L260 -300Z"/></g>
+    <circle cx="74" cy="78" r="30" fill="#ffd23f" stroke="#33233d" stroke-width="7"/>
+    <path d="M0 196 Q80 160 140 182 T260 170 V260 H0Z" fill="#5fbf4a" stroke="#33233d" stroke-width="7"/>
+    <path d="M0 214 q20 -11 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 V260 H0Z" fill="#3aa8dc" stroke="#33233d" stroke-width="7"/>
+  </g>
+  <g stroke="#33233d" stroke-width="8" stroke-linejoin="round">
+    <path d="M58 204 L140 66 L222 204Z" fill="url(#cmTent)"/>
+    <path d="M140 66 L176 204 L222 204Z" fill="#b63b2c"/>
+    <path d="M112 204 L142 140 L166 204Z" fill="#33233d"/>
+  </g>
+  <path d="M140 68 V34" stroke="#33233d" stroke-width="7" stroke-linecap="round"/>
+  <path d="M142 34 C158 26 168 44 188 34 L186 56 C168 66 158 48 142 56Z" fill="#ffd23f" stroke="#33233d" stroke-width="6" stroke-linejoin="round"/>
+  <rect x="16" y="16" width="224" height="224" rx="56" fill="none" stroke="#33233d" stroke-width="9"/>
+</svg>

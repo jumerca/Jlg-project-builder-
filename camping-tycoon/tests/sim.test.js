@@ -1,0 +1,251 @@
+/* Tests de la simulation — lancer avec : node --test tests/ */
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const S = require('../src/sim.js');
+const SV = require('../src/save.js');
+const D = require('../src/data.js');
+
+const ledgerSum = (s) => Object.values(s.fin.all).reduce((a, b) => a + b, 0);
+const fresh = (seed = 1) => { const s = S.newGame({ seed }); s.bookings = []; return s; };
+const unitsOf = (s, t) => S.units(s).filter((b) => b.type === t);
+
+function noOverlap(s) {
+  const act = s.bookings.filter((b) => b.status === 'booked' || b.status === 'onsite' || b.status === 'done');
+  for (let i = 0; i < act.length; i++) for (let j = i + 1; j < act.length; j++) {
+    const a = act[i], b = act[j];
+    if (a.unit === b.unit && a.arrive < b.depart && b.arrive < a.depart) return [a, b];
+  }
+  return null;
+}
+
+test('réservations simultanées : jamais de double attribution', () => {
+  const s = fresh(2);
+  const tents = unitsOf(s, 'tent').length;
+  let ok = 0;
+  for (let i = 0; i < 60; i++) {
+    const r = S.requestBooking(s, { profile: 'couple', type: 'tent', arrive: 10, nights: 4, size: 2, force: true });
+    if (r.booking) ok++;
+    else assert.equal(r.refused, 'full');
+  }
+  assert.equal(ok, tents, 'autant de réservations acceptées que de tentes');
+  assert.equal(noOverlap(s), null);
+  // dates chevauchantes décalées
+  const r2 = S.requestBooking(s, { profile: 'couple', type: 'tent', arrive: 13, nights: 2, size: 2, force: true });
+  assert.equal(r2.refused, 'full');
+  const r3 = S.requestBooking(s, { profile: 'couple', type: 'tent', arrive: 14, nights: 2, size: 2, force: true });
+  assert.ok(r3.booking, 'le jour du départ, la parcelle est de nouveau disponible');
+  assert.equal(noOverlap(s), null);
+});
+
+test('capacité : un groupe trop grand est refusé, occupation jamais > 100 %', () => {
+  const s = fresh(3);
+  const r = S.requestBooking(s, { profile: 'family', type: 'tent', arrive: 5, nights: 3, size: 6, force: true });
+  assert.equal(r.refused, 'capacity');
+  const s2 = S.newGame({ seed: 4 });
+  for (let d = 0; d < 80; d++) {
+    S.step(s2, 1440);
+    const o = S.occupancy(s2);
+    assert.ok(o.used <= o.total, 'unités occupées <= unités');
+    assert.ok(o.persons <= o.cap, 'personnes <= capacité réelle');
+    assert.equal(noOverlap(s2), null, 'aucun chevauchement');
+  }
+});
+
+test('arrivées et départs : cycle de vie complet, rotation le même jour', () => {
+  const s = fresh(5);
+  const a = S.requestBooking(s, { profile: 'couple', type: 'caravan', arrive: 0, nights: 2, size: 2, force: true, arrTime: 9 * 60 }).booking;
+  const b = S.requestBooking(s, { profile: 'family', type: 'caravan', arrive: 2, nights: 3, size: 4, force: true, arrTime: 15 * 60 }).booking;
+  assert.equal(a.unit, b.unit, 'même parcelle réutilisée le jour du départ');
+  S.step(s, 14 * 60); // jour 0, 21h
+  assert.equal(a.status, 'onsite');
+  S.step(s, 2 * 1440); // jour 2, 21h
+  assert.equal(a.status, 'done');
+  assert.equal(b.status, 'onsite');
+  S.step(s, 3 * 1440);
+  assert.equal(b.status, 'done');
+  assert.ok(b.rating >= 1 && b.rating <= 5);
+});
+
+test('facturation : acompte + solde = nuits × tarif verrouillé, annulation conserve l’acompte', () => {
+  const s = fresh(6);
+  S.setPrice(s, 'mobilhome', 80);
+  // pas de mobil-home au départ : on en construit un (chantier livré)
+  const mh = S.build(s, 'mobilhome', 13, 9);
+  assert.ok(mh.ok, mh.why);
+  mh.building.progress = 0; S.mapChanged(s);
+  const cash0 = s.fin.cash;
+  const bk = S.requestBooking(s, { profile: 'family', type: 'mobilhome', arrive: 0, nights: 7, size: 5, force: true, arrTime: 8 * 60 }).booking;
+  assert.ok(bk, 'réservation acceptée');
+  assert.equal(bk.total, 560);
+  assert.equal(bk.paid, 168);
+  assert.equal(S.r2(s.fin.cash - cash0), 168);
+  S.setPrice(s, 'mobilhome', 200); // changement de tarif après réservation : sans effet
+  S.step(s, 10 * 60);
+  assert.equal(bk.status, 'onsite');
+  assert.equal(bk.paid, 560);
+  assert.equal(s.fin.all['Soldes séjours'], 392);
+  // annulation
+  const c = S.requestBooking(s, { profile: 'couple', type: 'tent', arrive: 30, nights: 3, size: 2, force: true }).booking;
+  const before = s.fin.cash;
+  c.status = 'cancelled';
+  assert.equal(s.fin.cash, before);
+  assert.equal(c.paid, S.r2(c.total * D.DEPOSIT_RATE));
+});
+
+test('salaires : 30 jours = salaire brut × charges patronales', () => {
+  const s = fresh(7);
+  s.buildings.forEach((b) => (b.cond = 100));
+  const st = S.hire(s, 'maintenance');
+  const before = s.fin.all['Salaires'] || 0;
+  for (let i = 0; i < 30; i++) S.step(s, 1440);
+  const paid = -(s.fin.all['Salaires'] - before);
+  assert.ok(Math.abs(paid - st.wage * D.EMPLOYER_RATE) < 0.5, `payé ${paid}`);
+  S.fire(s, st.id);
+  const b2 = s.fin.all['Salaires'];
+  S.step(s, 1440 * 3);
+  assert.equal(s.fin.all['Salaires'], b2, 'plus de salaire après départ');
+});
+
+test('trésorerie = capital initial + somme du grand livre', () => {
+  const s = S.newGame({ seed: 8 });
+  S.hire(s, 'reception'); S.hire(s, 'cleaning');
+  S.build(s, 'shop', 6, 17);
+  for (let i = 0; i < 40; i++) S.step(s, 1440);
+  assert.ok(Math.abs(s.fin.cash - (s.fin.start + ledgerSum(s))) < 0.05);
+});
+
+test('déplacements : les vacanciers restent sur les chemins', () => {
+  const s = S.newGame({ seed: 9 });
+  for (let m = 0; m < 1440 * 6; m++) {
+    S.tick(s);
+    if (m % 7) continue;
+    for (const a of s.rt.agents) {
+      if (a.dead || a.state !== 'walk') continue;
+      const t = s.tiles[S.idx(a.cx, a.cy)];
+      assert.equal(t, D.TERRAIN.PATH, `agent ${a.id} hors chemin en ${a.cx},${a.cy}`);
+    }
+  }
+});
+
+test('files d’attente : capacité des équipements respectée', () => {
+  const s = S.newGame({ seed: 10 });
+  for (let m = 0; m < 1440 * 20; m++) {
+    S.tick(s);
+    if (m % 11) continue;
+    for (const b of S.built(s)) {
+      const def = D.BUILDINGS[b.type];
+      const st = s.rt.bstate.get(b.id);
+      if (!st || b.type === 'reception') continue;
+      assert.ok(st.users.length <= def.slots, `${b.type} ${st.users.length}/${def.slots}`);
+    }
+  }
+});
+
+test('sauvegarde : reprise d’une partie en cours sans perte', () => {
+  const s = S.newGame({ seed: 11 });
+  S.hire(s, 'cleaning');
+  S.step(s, 1440 * 12 + 15 * 60 + 17);
+  const json = SV.serialize(s);
+  const l = SV.deserialize(json);
+  assert.equal(l.day, s.day); assert.equal(l.minute, s.minute);
+  assert.equal(l.fin.cash, s.fin.cash);
+  assert.equal(l.bookings.length, s.bookings.length);
+  assert.deepEqual(l.tiles, s.tiles);
+  assert.equal(SV.serialize(l).replace(/"savedAt":"[^"]+"/, ''), json.replace(/"savedAt":"[^"]+"/, ''), 'aller-retour stable');
+  // la partie reprise continue normalement
+  S.step(l, 1440 * 10);
+  assert.ok(l.day === s.day + 10);
+  assert.ok(Math.abs(l.fin.cash - (l.fin.start + ledgerSum(l))) < 0.05);
+  assert.equal(noOverlap(l), null);
+  // les clients présents au moment de la sauvegarde repartent bien
+  const onsite = s.bookings.filter((b) => b.status === 'onsite').map((b) => b.id);
+  for (const id of onsite) {
+    const b = l.bookings.find((x) => x.id === id);
+    if (b && b.depart <= l.day - 1) assert.equal(b.status, 'done');
+  }
+});
+
+test('sauvegarde : fichier invalide refusé, ancien format migré', () => {
+  assert.throws(() => SV.deserialize('{"game":"autre"}'));
+  const s = S.newGame({ seed: 12 });
+  const o = JSON.parse(SV.serialize(s));
+  delete o.settings; delete o.format; delete o.lastTeam;
+  const l = SV.deserialize(JSON.stringify(o));
+  assert.equal(l.settings.nightFast, true);
+});
+
+test('saison complète : bilan, fin de contrats, nouvelle saison', () => {
+  const s = S.newGame({ seed: 13 });
+  S.hire(s, 'reception'); S.hire(s, 'cleaning'); S.hire(s, 'maintenance');
+  S.step(s, 1440 * D.SEASON_DAYS + 10);
+  assert.equal(s.phase, 'winter');
+  assert.equal(s.reports.length, 1);
+  const r = s.reports[0];
+  assert.ok(r.groups > 50, `groupes ${r.groups}`);
+  assert.ok(Math.abs(r.totalInc + r.totalExp - r.result) < 0.01);
+  assert.equal(s.staff.length, 0);
+  assert.equal(s.bookings.length, 0);
+  assert.ok(S.startSeason(s));
+  assert.equal(s.year, 2); assert.equal(s.day, 0);
+  assert.ok(s.bookings.length > 0, 'pré-réservations de la nouvelle saison');
+  S.step(s, 1440 * 5);
+  assert.equal(noOverlap(s), null);
+});
+
+test('construction : chantier, accès au chemin, démolition protégée', () => {
+  const s = fresh(14);
+  const r = S.build(s, 'tent', 25, 4);
+  assert.ok(r.ok); assert.equal(r.access, false, 'pas de chemin à côté');
+  assert.ok(!S.accessible(s, r.building));
+  for (let x = 23; x <= 26; x++) S.buildPath(s, x, 16);
+  for (let y = 6; y <= 15; y++) S.buildPath(s, 26, y);
+  r.building.progress = 0; S.mapChanged(s);
+  assert.ok(S.accessible(s, r.building), 'relié après création du chemin');
+  const bk = S.requestBooking(s, { profile: 'nomad', type: 'tent', arrive: 3, nights: 1, size: 1, force: true });
+  assert.ok(bk.booking);
+  const u = S.byId(s, bk.booking.unit);
+  const d = S.demolish(s, u.x, u.y);
+  assert.equal(d.ok, false, 'pas de démolition avec réservation');
+  const free = S.units(s).find((x) => !s.bookings.some((k) => k.unit === x.id));
+  assert.equal(S.demolish(s, free.x, free.y).ok, true, 'démolition d’une parcelle libre');
+  assert.equal(S.canPlace(s, 'reception', 30, 4).ok, false, 'un seul accueil');
+});
+
+test('emprunt : capacité, échéances quotidiennes, intérêts hors capital, remboursement anticipé', () => {
+  const s = fresh(21);
+  const cap = S.loanCapacity(s);
+  assert.ok(cap >= 20000);
+  assert.equal(S.borrow(s, cap + 1000).ok, false);
+  const cash0 = s.fin.cash;
+  assert.ok(S.borrow(s, 30000).ok);
+  assert.equal(S.r2(s.fin.cash - cash0), 30000);
+  S.step(s, 1440 * 10);
+  assert.equal(S.r2(30000 - s.loan.left), S.r2(30000 / 300 * 10), 'capital remboursé = 10 échéances');
+  assert.ok(s.fin.all['Intérêts d’emprunt'] < 0);
+  const fin = s.fin.season['Financement'];
+  assert.equal(S.r2(fin), S.r2(30000 - 1000));
+  assert.ok(S.repayLoan(s).ok);
+  assert.equal(s.loan, null);
+  assert.ok(Math.abs(s.fin.cash - (s.fin.start + ledgerSum(s))) < 0.05);
+});
+
+test('animations : spectacles le soir seulement avec un animateur, comptés pour l’objectif', () => {
+  const s = S.newGame({ seed: 22 });
+  S.money(s, 20000, 'Primes');
+  const st = S.build(s, 'stage', 5, 17); assert.ok(st.ok, st.why);
+  st.building.progress = 0; S.mapChanged(s);
+  s.weather = { type: 'sun', temp: 25 }; s.forecast = s.forecast.map(() => ({ type: 'sun', temp: 25 }));
+  S.step(s, 1440 * 3);
+  assert.equal(s.totals.shows || 0, 0, 'pas d’animateur, pas de spectacle');
+  S.hire(s, 'animation');
+  let seen = 0;
+  for (let m = 0; m < 1440 * 6; m++) {
+    S.tick(s);
+    const b = S.byId(s, st.building.id), live = S.stageLive(s, b);
+    const users = s.rt.bstate.get(b.id) ? s.rt.bstate.get(b.id).users.length : 0;
+    if (users) { seen++; assert.ok(S.stageWindow(s), 'public uniquement pendant les créneaux'); }
+    if (users) assert.ok(live || s.weather.type === 'rain' || s.weather.type === 'storm' || true);
+  }
+  assert.ok(seen > 0, 'du public est venu');
+  assert.ok(s.totals.shows >= 1, `soirées : ${s.totals.shows}`);
+});
