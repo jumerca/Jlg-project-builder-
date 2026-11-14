@@ -27,7 +27,10 @@ L'aperçu intégré à claude.ai reste jouable en HTTPS mais n'autorise pas l'in
 
 ### Vue 3D
 - Le musée et les chantiers s'affichent en **vraie 3D** (WebGL), dans un style BD : aplats ombrés, contours encrés, ombres portées.
-- **Souris** : glisser pour tourner, molette pour zoomer, clic droit ou Maj + glisser pour se déplacer. **Tactile** : un doigt pour tourner, deux doigts pour zoomer et se déplacer.
+- **Déplacement libre, comme sur une carte** : glisser (souris ou un doigt) fait défiler le musée sous le pointeur.
+- **Pivoter / incliner** : clic droit (ou Ctrl/Maj + glisser) ; au tactile, tourner deux doigts.
+- **Zoom** : molette (vers l'endroit pointé) ou pincement à deux doigts.
+- **Clavier** : flèches ou ZQSD pour se déplacer, A / E pour pivoter, + / − pour zoomer.
 - Boutons ⟲ ⟳ ＋ － ⌂ en bas à droite ; touchez une vitrine pour ouvrir la fiche de son objet, une salle pour la gérer.
 - Bouton **2D** pour revenir à la vue en coupe façon BD (aussi dans ⚙). Si l'appareil n'a pas WebGL, le jeu passe automatiquement en 2D.
 

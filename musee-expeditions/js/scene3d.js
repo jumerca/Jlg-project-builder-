@@ -373,7 +373,7 @@
     handlers = handlers || {};
     const canvas = doc.createElement('canvas');
     canvas.className = 'gl-canvas';
-    canvas.setAttribute('aria-label', 'Musée en 3D : faites glisser pour tourner, touchez une salle ou une vitrine');
+    canvas.setAttribute('aria-label', 'Musée en 3D : faites glisser pour vous déplacer, deux doigts ou clic droit pour pivoter, touchez une salle ou une vitrine');
     wrap.appendChild(canvas);
     let R;
     try { R = GL3D.create(canvas, { shadowSize: G.innerWidth < 720 ? 1024 : 2048, preserve: handlers.preserve }); } catch (e) { R = null; }
@@ -381,10 +381,10 @@
     const U = unitMeshes(R);
     const ov = overlay(wrap);
     const mobile = () => wrap.clientWidth < 720;
-    const cam = { target: [19, 0, 0], yaw: 0.42, pitch: 0.92, dist: 38, minDist: 9, maxDist: 95, minPitch: 0.3, maxPitch: 1.42, bounds: [-6, 46, -12, 12] };
+    const cam = { target: [19, 0, 0], yaw: 0.42, pitch: 0.92, dist: 38, minDist: 6, maxDist: 95, minPitch: 0.3, maxPitch: 1.42, bounds: [-14, 52, -18, 20] };
     const home = () => { cam.goalTarget = [19, 0, mobile() ? 0.5 : 0]; cam.goalYaw = 0.42; cam.goalPitch = 0.92; cam.goalDist = mobile() ? 62 : 38; };
     if (mobile()) { cam.dist = 62; }
-    GL3D.orbit(canvas, cam, (x, y) => pick(x, y));
+    GL3D.orbit(canvas, cam, (x, y) => pick(x, y), { groundAt: (x, y) => R.groundAt(x, y) });
     toolbar(wrap, cam, home, handlers.toggle ? '<button type="button" class="wide" data-toggle="1" title="Revenir à la vue BD 2D">2D</button>' : '');
     wrap.querySelector('[data-toggle]') && wrap.querySelector('[data-toggle]').addEventListener('click', handlers.toggle);
 
@@ -502,6 +502,7 @@
       sigT -= dt;
       if (sigT <= 0) { const sg = signature(s); if (sg !== sig) { sig = sg; rebuild(s); } sigT = 0.4; }
       ease(cam, dt);
+      cam.keyTick && cam.keyTick(dt);
       const eye = cam.eye();
       const opaque = [{ mesh: ext, shadow: false }];
       const transparent = [], sprites = [];
@@ -716,7 +717,7 @@
     const sea = biome === 'sea';
     const rnd = ME.seeded(exp0.id.length * 7919 + exp0.startWeek);
     const cam = { target: [0, sea ? 1.5 : 0.5, 1], yaw: 0.55, pitch: sea ? 0.32 : 0.6, dist: sea ? 17 : 21, minDist: 8, maxDist: 40, minPitch: 0.15, maxPitch: 1.35, bounds: [-12, 12, -10, 10] };
-    GL3D.orbit(canvas, cam, null);
+    GL3D.orbit(canvas, cam, null, { groundAt: (x, y) => R.groundAt(x, y) });
     toolbar(wrap, cam, () => { cam.goalYaw = 0.55; cam.goalDist = 21; cam.goalTarget = [0, sea ? 1.5 : 0.5, 1]; cam.goalPitch = sea ? 0.32 : 0.6; });
     const back = R.mesh(buildBackdrop(biome, rnd));
     const boat = sea ? R.mesh(buildBoat()) : null;
@@ -731,6 +732,7 @@
       if (sg !== sig) { sig = sg; if (dig) R.free(dig); dig = R.mesh(buildDig(exp, state, biome)); }
       if (!cam.userMoved) cam.yaw = 0.55 + Math.sin(time * 0.12) * 0.35;
       ease(cam, dt);
+      cam.keyTick && cam.keyTick(dt);
       const opaque = [{ mesh: back }, { mesh: dig }];
       const transparent = [];
       const team = exp.team.map((id) => state.staff.find((p) => p.id === id)).filter(Boolean);

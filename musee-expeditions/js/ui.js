@@ -171,7 +171,7 @@
     const lv = S.lastVisit;
     const rooms = Object.keys(D.ROOMS).filter((k) => ['expo', 'temp', 'hall'].includes(D.ROOMS[k].kind));
     let html = '<div id="scene-slot" data-key="musee"></div>';
-    html += '<p class="hint">✎ ' + (use3d() ? 'Faites glisser pour tourner autour du musée, pincez ou utilisez la molette pour zoomer. Touchez une salle ou une vitrine.' : 'Touchez une salle pour gérer ses vitrines, son thème et son éclairage.') + '</p><div class="cols"><div>';
+    html += '<p class="hint">✎ ' + (use3d() ? 'Faites glisser pour vous déplacer dans le musée · deux doigts (ou clic droit) pour pivoter · pincez ou molette pour zoomer · flèches/ZQSD au clavier. Touchez une salle ou une vitrine.' : 'Touchez une salle pour gérer ses vitrines, son thème et son éclairage.') + '</p><div class="cols"><div>';
     if (S.pendingReveals.length) html += '<div class="panel paper"><div class="panel-head"><h3>📦 ' + S.pendingReveals.length + ' caisse(s) à déballer</h3><button class="btn gold" data-action="openReveal">Déballer au pinceau</button></div><small>Vos découvertes sont arrivées : dégagez-les délicatement pour révéler leur histoire.</small></div>';
     html += '<div class="panel"><div class="panel-head"><h3>Salles d\'exposition</h3><small>Parcours : ' + ['hall'].concat(E.normalizeRoute(S)).map((r) => esc(D.ROOMS[r].name)).join(' → ') + '</small></div><div class="room-list">';
     rooms.forEach((k) => {

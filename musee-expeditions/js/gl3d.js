@@ -457,6 +457,15 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       const a = M.apply(inv, [x, y, -1]), b = M.apply(inv, [x, y, 1]);
       return { o: a, d: V.norm(V.sub(b, a)) };
     };
+    /** Point du sol (plan y = h) sous un point de l'écran, ou null. */
+    R.groundAt = function (px, py, h) {
+      if (!R.vp) return null;
+      const r = R.ray(px, py);
+      if (Math.abs(r.d[1]) < 1e-4) return null;
+      const t = ((h || 0) - r.o[1]) / r.d[1];
+      if (t <= 0) return null;
+      return [r.o[0] + r.d[0] * t, h || 0, r.o[2] + r.d[2] * t];
+    };
     /** Coordonnées écran (pixels CSS) d'un point 3D, ou null s'il est derrière la caméra. */
     R.toScreen = function (p) {
       if (!R.vp) return null;
@@ -483,10 +492,12 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
   };
 
   /* ================= Caméra orbitale (souris, molette, tactile) ================= */
-  GL3D.orbit = function (canvas, cam, onTap) {
-    // cam = { target:[x,y,z], yaw, pitch, dist, minDist, maxDist }
+  /** Caméra « carte » : on fait glisser le décor librement, on pivote à deux doigts.
+   *  opts.groundAt(x, y) -> point [x, 0, z] du sol sous le pointeur (pour un glissement exact). */
+  GL3D.orbit = function (canvas, cam, onTap, opts) {
+    opts = opts || {};
     const pts = new Map();
-    let moved = 0, pinch0 = 0, dist0 = 0, last = null, panMode = false;
+    let moved = 0, gesture = null, mode = 'pan';
     cam.eye = function () {
       const cp = Math.cos(cam.pitch);
       return [cam.target[0] + Math.sin(cam.yaw) * cp * cam.dist, cam.target[1] + Math.sin(cam.pitch) * cam.dist, cam.target[2] + Math.cos(cam.yaw) * cp * cam.dist];
@@ -496,21 +507,42 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       cam.dist = ME.clamp(cam.dist, cam.minDist || 5, cam.maxDist || 80);
       if (cam.bounds) { cam.target[0] = ME.clamp(cam.target[0], cam.bounds[0], cam.bounds[1]); cam.target[2] = ME.clamp(cam.target[2], cam.bounds[2], cam.bounds[3]); }
     };
-    const pan = (dx, dy) => {
-      // glisser : on « attrape » le sol. droite = (cos yaw, 0, -sin yaw), avant = (-sin yaw, 0, -cos yaw)
-      const s = cam.dist * 0.0022, c = Math.cos(cam.yaw), sn = Math.sin(cam.yaw);
-      cam.target[0] += -c * dx * s - sn * dy * s;
-      cam.target[2] += sn * dx * s - c * dy * s;
+    const stopTweens = () => { cam.goalTarget = null; cam.goalYaw = null; cam.goalDist = null; cam.goalPitch = null; cam.userMoved = true; };
+    /** Déplacement en pixels écran → déplacement du point visé (repli si pas de groundAt). */
+    const panPixels = (dx, dy) => {
+      const k = cam.dist * 0.0024, c = Math.cos(cam.yaw), sn = Math.sin(cam.yaw);
+      cam.target[0] += -c * dx * k - sn * dy * k / Math.max(0.35, Math.sin(cam.pitch));
+      cam.target[2] += sn * dx * k - c * dy * k / Math.max(0.35, Math.sin(cam.pitch));
+    };
+    /** Glissement exact : le point du sol saisi reste sous le doigt. */
+    const drag = (x0, y0, x1, y1) => {
+      const a = opts.groundAt && opts.groundAt(x0, y0), b = opts.groundAt && opts.groundAt(x1, y1);
+      if (a && b && Math.hypot(a[0] - b[0], a[2] - b[2]) < cam.dist) { cam.target[0] += a[0] - b[0]; cam.target[2] += a[2] - b[2]; }
+      else panPixels(x1 - x0, y1 - y0);
+    };
+    const zoomAt = (factor, x, y) => {
+      const before = opts.groundAt && x != null ? opts.groundAt(x, y) : null;
+      cam.dist = ME.clamp(cam.dist * factor, cam.minDist || 5, cam.maxDist || 80);
+      if (before) { // rapproche le point visé de l'endroit pointé
+        const t = 1 - factor;
+        cam.target[0] += (before[0] - cam.target[0]) * t;
+        cam.target[2] += (before[2] - cam.target[2]) * t;
+      }
       cam.clamp();
+    };
+    const twoInfo = () => {
+      const [a, b] = Array.from(pts.values());
+      return { d: Math.hypot(a[0] - b[0], a[1] - b[1]), ang: Math.atan2(b[1] - a[1], b[0] - a[0]), mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 };
     };
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     canvas.addEventListener('pointerdown', (e) => {
       canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
       pts.set(e.pointerId, [e.clientX, e.clientY]);
-      moved = 0; last = [e.clientX, e.clientY];
-      panMode = e.button === 2 || e.shiftKey;
-      cam.userMoved = true;
-      if (pts.size === 2) { const [a, b] = Array.from(pts.values()); pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); dist0 = cam.dist; }
+      moved = 0;
+      stopTweens();
+      // clic gauche : déplacer · clic droit, Ctrl ou Maj : pivoter / incliner
+      mode = e.button === 2 || e.ctrlKey || e.shiftKey || e.altKey ? 'rotate' : 'pan';
+      if (pts.size === 2) gesture = twoInfo();
     });
     canvas.addEventListener('pointermove', (e) => {
       if (!pts.has(e.pointerId)) return;
@@ -518,24 +550,52 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       pts.set(e.pointerId, [e.clientX, e.clientY]);
       const dx = e.clientX - prev[0], dy = e.clientY - prev[1];
       moved += Math.abs(dx) + Math.abs(dy);
-      if (pts.size === 2) {
-        const [a, b] = Array.from(pts.values());
-        const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
-        if (pinch0) { cam.dist = dist0 * pinch0 / d; }
-        pan(dx / 2, dy / 2);
-        cam.clamp();
-      } else if (panMode) pan(dx, dy);
-      else { cam.yaw -= dx * 0.008; cam.pitch += dy * 0.006; cam.clamp(); }
+      if (pts.size >= 2 && gesture) {
+        const g = twoInfo();
+        drag(gesture.mx, gesture.my, g.mx, g.my);
+        if (gesture.d > 0) zoomAt(gesture.d / g.d, g.mx, g.my);
+        let da = g.ang - gesture.ang;
+        if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI;
+        cam.yaw += da;
+        gesture = g;
+      } else if (mode === 'rotate') {
+        cam.yaw -= dx * 0.008; cam.pitch += dy * 0.006;
+      } else {
+        drag(prev[0], prev[1], e.clientX, e.clientY);
+      }
+      cam.clamp();
       e.preventDefault();
     });
     const up = (e) => {
       if (pts.size === 1 && moved < 8 && onTap) onTap(e.clientX, e.clientY);
       pts.delete(e.pointerId);
-      if (pts.size < 2) pinch0 = 0;
+      gesture = pts.size === 2 ? twoInfo() : null;
     };
     canvas.addEventListener('pointerup', up);
-    canvas.addEventListener('pointercancel', (e) => { pts.delete(e.pointerId); pinch0 = 0; });
-    canvas.addEventListener('wheel', (e) => { e.preventDefault(); cam.dist *= Math.exp(e.deltaY * 0.0012); cam.clamp(); cam.userMoved = true; }, { passive: false });
+    canvas.addEventListener('pointercancel', (e) => { pts.delete(e.pointerId); gesture = null; });
+    canvas.addEventListener('wheel', (e) => { e.preventDefault(); stopTweens(); zoomAt(Math.exp(e.deltaY * 0.0012), e.clientX, e.clientY); }, { passive: false });
+    // clavier : flèches / ZQSD pour se déplacer, A / E pour pivoter, + / - pour zoomer
+    canvas.tabIndex = 0;
+    const keys = new Set();
+    canvas.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'z', 'q', 's', 'd', 'w', 'a', 'e', '+', '-', '='].includes(k)) { keys.add(k); e.preventDefault(); stopTweens(); }
+    });
+    canvas.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
+    canvas.addEventListener('blur', () => keys.clear());
+    cam.keyTick = function (dt) {
+      if (!keys.size) return;
+      const sp = 260 * dt;
+      if (keys.has('arrowup') || keys.has('z') || keys.has('w')) panPixels(0, sp);
+      if (keys.has('arrowdown') || keys.has('s')) panPixels(0, -sp);
+      if (keys.has('arrowleft') || keys.has('q')) panPixels(sp, 0);
+      if (keys.has('arrowright') || keys.has('d')) panPixels(-sp, 0);
+      if (keys.has('a')) cam.yaw += 1.4 * dt;
+      if (keys.has('e')) cam.yaw -= 1.4 * dt;
+      if (keys.has('+') || keys.has('=')) cam.dist *= 1 - 1.2 * dt;
+      if (keys.has('-')) cam.dist *= 1 + 1.2 * dt;
+      cam.clamp();
+    };
     cam.clamp();
     return cam;
   };
