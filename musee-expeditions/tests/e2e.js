@@ -163,6 +163,27 @@ function check(c, m) { if (!c) throw new Error('ÉCHEC : ' + m); log('✔ ' + m)
   await page.click('[data-tab="musee"]');
   await page.waitForTimeout(3500);
   await shot('11-musee-3d-anime');
+  // Aménagement : glisser une vitrine à la souris
+  await page.click('[data-edit]');
+  await page.evaluate(() => { const c = ME.UI.view.scenes[0].cam; c.goalTarget = null; c.target = [15, 0, 4]; c.dist = 16; c.pitch = 1.0; c.yaw = 0; c.userMoved = true; });
+  await page.waitForTimeout(800);
+  const layoutBefore = await page.evaluate(() => JSON.parse(JSON.stringify(ME.UI.getState().rooms.salle1.layout || ME.Exhibitions.layout(ME.UI.getState(), 'salle1'))));
+  const pts = await page.evaluate(() => {
+    const sc = ME.UI.view.scenes[0], R = sc.R, c = document.querySelector('.gl-canvas').getBoundingClientRect();
+    const [x, z] = ME.Scene3D.positions(ME.UI.getState(), 'salle1')[0];
+    const a = R.toScreen([x, 0.6, z]), b = R.toScreen([x + 1.0, 0.0, z + 2.6]);
+    return { ax: c.left + a.x, ay: c.top + a.y, bx: c.left + b.x, by: c.top + b.y };
+  });
+  await page.mouse.move(pts.ax, pts.ay); await page.mouse.down();
+  await page.mouse.move(pts.bx, pts.by, { steps: 14 });
+  await shot('11c-amenagement-glisser');
+  await page.mouse.up();
+  const layoutAfter = await page.evaluate(() => ME.UI.getState().rooms.salle1.layout);
+  check(layoutAfter[0].x !== layoutBefore[0].x || layoutAfter[0].z !== layoutBefore[0].z, 'vitrine déplacée à la souris (' + layoutBefore[0].x.toFixed(2) + ', ' + layoutBefore[0].z.toFixed(2) + ') → (' + layoutAfter[0].x + ', ' + layoutAfter[0].z + ')');
+  check(!(await page.$('.modal')), 'le glisser n\'ouvre pas de fiche par erreur');
+  await page.reload(); await page.waitForTimeout(1500);
+  const kept = await page.evaluate(() => ME.UI.getState().rooms.salle1.layout[0]);
+  check(kept.x === layoutAfter[0].x && kept.z === layoutAfter[0].z, 'disposition conservée après rechargement');
   await page.evaluate(() => { const c = ME.UI.view.scenes[0].cam; c.userMoved = true; c.target = [15, 0, 1.5]; c.dist = 15; c.pitch = 0.62; c.yaw = 0.25; });
   await page.waitForTimeout(2500);
   await shot('11b-musee-3d-rapproche');

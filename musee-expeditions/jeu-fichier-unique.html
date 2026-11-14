@@ -354,6 +354,28 @@ textarea { width: 100%; min-height: 90px; font-family: ui-monospace, Menlo, mono
 .plate .gl-tools, .dig .gl-tools { display: none; }
 .fiche .plate .tag { z-index: 3; }
 
+/* ---------- Aménagement des vitrines (3D) ---------- */
+.gl-edit { position: absolute; left: 10px; top: 10px; z-index: 3; width: min(320px, calc(100% - 20px)); background: rgba(255,250,240,.96); border: 2px solid var(--ink); border-radius: 8px; padding: 8px 10px; box-shadow: 3px 3px 0 var(--ink); font-size: .9rem; }
+.gl-edit[hidden] { display: none; }
+.gl-edit b { font-family: var(--title); font-size: 1.05rem; display: block; }
+.gl-edit small { display: block; margin: 2px 0; }
+.gl-edit ul { margin: 4px 0; padding-left: 16px; }
+.gl-edit-sel { font-weight: 700; margin-top: 6px; }
+.gl-edit-btns { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.gl-edit-btns button { border: 2px solid var(--ink); background: var(--card); border-radius: 6px; padding: 4px 10px; font: 700 .85rem var(--body); cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+.gl-edit-btns button.ok { background: var(--green); color: #fff; }
+.gl-label.room.tip { font-size: 12px; background: #eef7ec; border-color: var(--green); }
+.gl-label.room.tip.warn { background: #fff0e8; border-color: var(--red); color: var(--red); }
+@media (max-width: 720px) { .gl-edit { font-size: .8rem; } .gl-edit small:first-of-type { display: none; } }
+
+@media (max-width: 720px) {
+  .gl-tools { right: 6px; bottom: 6px; gap: 4px; }
+  .gl-tools button, .gl-tools button.wide { width: 34px; height: 34px; padding: 0; border-radius: 50%; font-size: 15px; }
+  .gl-tools .lbl { display: none; }
+  .gl-edit { padding: 6px 8px; }
+  .gl-edit-btns button { padding: 3px 8px; }
+}
+
 </style>
 </head>
 <body>
@@ -1724,6 +1746,126 @@ textarea { width: 100%; min-height: 90px; font-family: ui-monospace, Menlo, mono
     [r[i], r[j]] = [r[j], r[i]];
   };
 
+  /* ---------------- Disposition des vitrines ----------------
+   * Positions relatives au centre de la salle (10 × 8 unités), en unités de jeu.
+   * Effets : vitrines trop serrées (circulation), vitrine devant une porte (passage encombré),
+   * pièce maîtresse isolée (mise en valeur). */
+  E.ROOM_W = 10; E.ROOM_D = 8;
+  E.MIN_GAP = 1.15;   // en dessous, deux vitrines se chevauchent : interdit
+  E.CROWD = 1.7;      // en dessous, la circulation est gênée
+  E.DOOR_CLEAR = 1.7; // une vitrine plus proche d'une porte encombre le passage
+  E.SOLO = 2.6;       // espace libre autour d'une pièce maîtresse mise en valeur
+  const MARGIN = 0.75;
+
+  E.defaultLayout = function (roomId, n) {
+    if (roomId === 'hall') return [{ x: 1.2, z: -1.2, r: 0 }];
+    if (n === 6) return [-3, 0, 3].map((x) => ({ x, z: -2, r: 0 })).concat([-3, 0, 3].map((x) => ({ x, z: 1.3, r: 0 })));
+    const step = n >= 5 ? 1.85 : 2.3;
+    return Array.from({ length: n }, (_, i) => ({ x: (i - (n - 1) / 2) * step, z: -1.4, r: 0 }));
+  };
+
+  E.PRESETS = {
+    ligne: { label: 'Alignée', desc: 'Une rangée face au public, le long du mur du fond.' },
+    ilots: { label: 'En îlots', desc: 'Petits groupes répartis : on circule autour.' },
+    galerie: { label: 'Allée centrale', desc: 'Deux rangées qui encadrent une allée.' },
+    maitresse: { label: 'Pièce maîtresse au centre', desc: 'La vitrine 1 trône au milieu, les autres en couronne.' },
+  };
+  E.presetLayout = function (roomId, n, key) {
+    if (roomId === 'hall' || n <= 1) return E.defaultLayout(roomId, n);
+    const out = [];
+    if (key === 'ligne') {
+      const step = Math.min(2.2, 8 / Math.max(1, n - 1));
+      for (let i = 0; i < n; i++) out.push({ x: (i - (n - 1) / 2) * step, z: -2.4, r: 0 });
+    } else if (key === 'ilots') {
+      const spots = [[-2.8, -1.8], [2.8, -1.8], [-2.8, 1.2], [2.8, 1.2], [0, -0.3], [0, 2.2]];
+      for (let i = 0; i < n; i++) out.push({ x: spots[i][0], z: spots[i][1], r: 0 });
+    } else if (key === 'galerie') {
+      const per = Math.ceil(n / 2);
+      for (let i = 0; i < n; i++) { const row = i < per ? 0 : 1, k = row ? i - per : i, m = row ? n - per : per; out.push({ x: (k - (m - 1) / 2) * 2.4, z: row ? 1.6 : -2.4, r: row ? Math.PI : 0 }); }
+    } else { // pièce maîtresse
+      out.push({ x: 0, z: -0.2, r: 0 });
+      const ring = [[-3.4, -2.4], [3.4, -2.4], [-3.4, 2.0], [3.4, 2.0], [0, -2.9]];
+      for (let i = 1; i < n; i++) out.push({ x: ring[i - 1][0], z: ring[i - 1][1], r: 0 });
+    }
+    return out;
+  };
+  E.applyPreset = function (state, roomId, key) {
+    const room = state.rooms[roomId];
+    room.layout = E.presetLayout(roomId, room.vitrines.length, key);
+    return room.layout;
+  };
+
+  /** Positions des vitrines (créées par défaut si absentes ou si le nombre de vitrines a changé). */
+  E.layout = function (state, roomId) {
+    const room = state.rooms[roomId];
+    if (!room.layout || room.layout.length !== room.vitrines.length) room.layout = E.defaultLayout(roomId, room.vitrines.length);
+    return room.layout;
+  };
+
+  /** Portes d'une salle (centres, coordonnées relatives). */
+  E.doors = function (roomId) {
+    const d = D.ROOMS[roomId], out = [];
+    const has = (c, r) => Object.values(D.ROOMS).some((x) => x.col === c && x.row === r);
+    if (has(d.col - 1, d.row) || roomId === 'hall') out.push({ x: -E.ROOM_W / 2, z: 0 });
+    if (has(d.col + 1, d.row)) out.push({ x: E.ROOM_W / 2, z: 0 });
+    if (has(d.col, d.row - 1)) out.push({ x: 0, z: -E.ROOM_D / 2 });
+    if (has(d.col, d.row + 1)) out.push({ x: 0, z: E.ROOM_D / 2 });
+    return out;
+  };
+
+  /** Vérifie un emplacement : hors limites ou chevauchement = refusé ; avertissements sinon. */
+  E.checkSpot = function (state, roomId, index, x, z) {
+    const lim = { x: E.ROOM_W / 2 - MARGIN, z: E.ROOM_D / 2 - MARGIN };
+    if (Math.abs(x) > lim.x || Math.abs(z) > lim.z) return { ok: false, reason: 'Trop près du mur.' };
+    const L = E.layout(state, roomId);
+    for (let i = 0; i < L.length; i++) {
+      if (i === index) continue;
+      if (Math.hypot(L[i].x - x, L[i].z - z) < E.MIN_GAP) return { ok: false, reason: 'Une autre vitrine occupe déjà cette place.' };
+    }
+    const warn = [];
+    if (E.doors(roomId).some((d) => Math.hypot(d.x - x, d.z - z) < E.DOOR_CLEAR)) warn.push('encombre un passage');
+    if (L.some((p, i) => i !== index && Math.hypot(p.x - x, p.z - z) < E.CROWD)) warn.push('trop serrée');
+    return { ok: true, warn };
+  };
+
+  E.moveVitrine = function (state, roomId, index, x, z, r) {
+    const snap = (v) => Math.round(v * 4) / 4;
+    x = snap(x); z = snap(z);
+    const chk = E.checkSpot(state, roomId, index, x, z);
+    if (!chk.ok) return { ok: false, error: chk.reason };
+    const L = E.layout(state, roomId);
+    L[index] = { x, z, r: r != null ? r : L[index].r || 0 };
+    return { ok: true, warn: chk.warn };
+  };
+  E.rotateVitrine = function (state, roomId, index) {
+    const L = E.layout(state, roomId);
+    L[index].r = ((L[index].r || 0) + Math.PI / 2) % (Math.PI * 2);
+  };
+
+  /** Effets de la disposition sur l'attrait d'une salle. */
+  E.layoutEffects = function (state, roomId) {
+    const room = state.rooms[roomId];
+    const L = E.layout(state, roomId);
+    const notes = [];
+    let mult = 1;
+    if (L.length < 2 && roomId !== 'hall') return { mult, notes };
+    let crowded = 0;
+    for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) if (Math.hypot(L[i].x - L[j].x, L[i].z - L[j].z) < E.CROWD) crowded++;
+    if (crowded) { const m = Math.max(0.8, 1 - 0.05 * crowded); mult *= m; notes.push({ t: 'Vitrines trop serrées : circulation difficile (−' + Math.round((1 - m) * 100) + ' %)', s: -1, layout: true }); }
+    const doors = E.doors(roomId);
+    const blocking = L.filter((p) => doors.some((d) => Math.hypot(d.x - p.x, d.z - p.z) < E.DOOR_CLEAR)).length;
+    if (blocking) { mult *= 0.9; notes.push({ t: blocking + ' vitrine(s) encombrent un passage : −10 %', s: -1, layout: true }); }
+    // pièce maîtresse isolée
+    let best = -1, bestScore = 0;
+    room.vitrines.forEach((id, i) => { if (id) { const sc = D.RARITY[state.objects[id].rarity].score; if (sc > bestScore) { bestScore = sc; best = i; } } });
+    if (best >= 0 && bestScore >= 3.5 && L.length > 1) {
+      const free = L.every((p, i) => i === best || Math.hypot(p.x - L[best].x, p.z - L[best].z) >= E.SOLO);
+      if (free) { mult *= 1.1; notes.push({ t: 'Pièce maîtresse mise en valeur, avec de l\'espace autour : +10 %', s: 1, layout: true }); }
+      else notes.push({ t: 'Astuce : isolez votre plus belle pièce (≥ ' + E.SOLO + ' m des autres) pour la mettre en valeur', s: 0, layout: true });
+    }
+    return { mult, notes };
+  };
+
   /** Analyse d'une salle : score d'attrait et explications lisibles. */
   E.analyzeRoom = function (state, roomId) {
     const room = state.rooms[roomId];
@@ -1754,6 +1896,9 @@ textarea { width: 100%; min-height: 90px; font-family: ui-monospace, Menlo, mono
     if (unstudied) notes.push({ t: unstudied + ' cartel(s) pauvre(s) : objets peu étudiés', s: -1 });
     const stars = objs.filter((o) => D.RARITY[o.rarity].score >= 3.5).length;
     if (stars) notes.push({ t: stars + ' chef(s)-d\'œuvre exposé(s)', s: 1 });
+    const lay = E.layoutEffects(state, roomId);
+    mult *= lay.mult;
+    notes.push(...lay.notes);
     const base = objs.reduce((a, o) => a + Obj.appeal(o), 0);
     return { score: base * mult, base, mult, objs, notes, periods };
   };
@@ -4286,7 +4431,13 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
     return [A.cx, 0, 0];
   }
 
-  /** Emplacements des vitrines d'une salle. */
+  /** Positions absolues des vitrines d'après la disposition enregistrée : [[x, z, rotation], ...] */
+  function positions(state, id) {
+    const r = roomBox(id);
+    return ME.Exhibitions.layout(state, id).map((p) => [r.cx + p.x, r.cz + p.z, p.r || 0]);
+  }
+  S3.positions = positions;
+  /** Emplacements par défaut des vitrines d'une salle. */
   function slots(id, n) {
     const r = roomBox(id);
     if (id === 'hall') return [[r.cx + 1.2, r.cz - 1.2]];
@@ -4309,11 +4460,26 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       glass: b((B) => B.box(M.ident(), '#ffffff', { outline: false })),
       beam: b((B) => B.cyl(M.ident(), '#ffffff', 14, 0.12, 0.5, { outline: false })),
       water: b((B) => B.box(M.ident(), '#ffffff', { outline: false })),
+      vitrine: b((B) => vitrineGeom(B, '#fffaf0')),
+      vitrineEmpty: b((B) => vitrineGeom(B, '#d9cfb4')),
+      lamp: b((B) => { B.cyl(M.chain(M.T(0, 0.45, 0), M.S(0.035, 0.9, 0.035)), '#2b2118', 5); B.cyl(M.chain(M.T(0, 0, 0), M.S(0.26, 0.24, 0.26)), '#2b2118', 8, 0.35, 0.5); }),
+      ring: b((B) => B.cyl(M.ident(), '#ffffff', 24, null, null, { outline: false })),
     };
   }
   const c3 = (h) => new Float32Array(GL3D.hex(h));
   const tintCache = {};
   const tint = (h) => tintCache[h] || (tintCache[h] = c3(h));
+
+  /** Vitrine centrée à l'origine, posée au sol (socle, cartel vers +z, montants de la cloche). */
+  function vitrineGeom(B, cartel) {
+    B.block(0, 0.08, 0, 0.92, 0.95, 0.92, '#efe2c2');
+    B.block(0, 0.08, 0, 0.98, 0.12, 0.98, '#7a5a3a');
+    B.box(M.chain(M.T(0, 0.75, 0.47), M.RX(-0.5), M.S(0.34, 0.2, 0.03)), cartel);
+    const h = 0.95, g = 0.43;
+    for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) B.block(sx * g, 1.03, sz * g, 0.04, h, 0.04, '#5a4a3a', { outline: false });
+    for (const sg of [-1, 1]) { B.block(sg * g, 1.03 + h, 0, 0.04, 0.04, 0.9, '#5a4a3a', { outline: false }); B.block(0, 1.03 + h, sg * g, 0.9, 0.04, 0.04, '#5a4a3a', { outline: false }); }
+    return B;
+  }
 
   /** Ajoute un personnage à la liste de dessin. pose : walk | stand | work | kneel | dive */
   function person(list, U, x, y, z, yaw, look, o) {
@@ -4469,25 +4635,9 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       B.box(M.chain(M.T(r.cx + 2, 0.3, r.cz), M.S(1, 0.5, 0.8)), '#d39b2a');
       return B;
     }
-    if (kind === 'expo' || kind === 'temp' || kind === 'hall') {
-      const n = room.vitrines.length;
-      slots(id, n).forEach(([vx, vz], i) => {
-        const big = id === 'hall' ? 1.25 : 1;
-        B.block(vx, 0.08, vz, 0.92 * big, 0.95, 0.92 * big, '#efe2c2');
-        B.block(vx, 0.08, vz, 0.98 * big, 0.12, 0.98 * big, '#7a5a3a');
-        B.box(M.chain(M.T(vx, 0.75, vz + 0.47 * big), M.RX(-0.5), M.S(0.34, 0.2, 0.03)), room.vitrines[i] ? '#fffaf0' : '#d9cfb4');
-        // montants de la cloche de verre
-        const h = 0.95 * big, g = 0.43 * big;
-        for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) B.block(vx + sx * g, 1.03, vz + sz * g, 0.04, h, 0.04, '#5a4a3a', { outline: false });
-        for (const sg of [-1, 1]) { B.block(vx + sg * g, 1.03 + h, vz, 0.04, 0.04, 0.9 * big, '#5a4a3a', { outline: false }); B.block(vx, 1.03 + h, vz + sg * g, 0.9 * big, 0.04, 0.04, '#5a4a3a', { outline: false }); }
-      });
-      if (kind !== 'hall') {
-        // rail d'éclairage et projecteurs
-        B.block(r.cx, 3.05, r.cz - 1.4, RW - 0.6, 0.08, 0.08, '#2b2118');
-        slots(id, n).forEach(([vx, vz]) => { B.cyl(M.chain(M.T(vx, 2.98, vz), M.S(0.24, 0.22, 0.24)), '#2b2118', 8); });
-        B.block(r.cx, 0.08, r.z1 - 1.6, 2.2, 0.42, 0.6, '#7a5a3a'); // banc
-        B.block(r.cx, 0.5, r.z1 - 1.6, 2.4, 0.08, 0.7, '#b98a55');
-      }
+    if (kind === 'expo' || kind === 'temp') {
+      B.block(r.cx, 0.08, r.z1 - 1.0, 2.2, 0.42, 0.6, '#7a5a3a'); // banc
+      B.block(r.cx, 0.5, r.z1 - 1.0, 2.4, 0.08, 0.7, '#b98a55');
     }
     if (kind === 'hall') {
       B.block(r.x0 + 7.2, 0.08, r.z0 + 6.2, 2.6, 1.0, 0.7, '#8a5a34'); B.block(r.x0 + 7.2, 1.08, r.z0 + 6.2, 2.8, 0.1, 0.9, '#efe2c2');
@@ -4639,18 +4789,103 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
     const home = () => { cam.goalTarget = [19, 0, mobile() ? 0.5 : 0]; cam.goalYaw = 0.42; cam.goalPitch = 0.92; cam.goalDist = mobile() ? 62 : 38; };
     if (mobile()) { cam.dist = 62; }
     GL3D.orbit(canvas, cam, (x, y) => pick(x, y), { groundAt: (x, y) => R.groundAt(x, y) });
-    toolbar(wrap, cam, () => { follow = null; home(); }, '<button type="button" class="wide" data-follow="1" title="Suivre un visiteur" aria-label="Suivre un visiteur">👁 Suivre</button>' + (handlers.toggle ? '<button type="button" class="wide" data-toggle="1" title="Revenir à la vue BD 2D">2D</button>' : ''));
+    toolbar(wrap, cam, () => { follow = null; home(); }, '<button type="button" class="wide" data-follow="1" title="Suivre un visiteur" aria-label="Suivre un visiteur">👁<span class="lbl"> Suivre</span></button>' + (handlers.toggle ? '<button type="button" class="wide" data-toggle="1" title="Revenir à la vue BD 2D">2D</button>' : ''));
     let follow = null;
+    // ---- mode « Aménager » : déplacer les vitrines à la main
+    const edit = { on: false, sel: null, drag: null };
+    const tools = wrap.querySelector('.gl-tools');
+    const ebtn = doc.createElement('button');
+    ebtn.type = 'button'; ebtn.className = 'wide'; ebtn.dataset.edit = '1'; ebtn.innerHTML = '✥<span class="lbl"> Aménager</span>'; ebtn.setAttribute('aria-label', 'Aménager les vitrines'); ebtn.title = 'Déplacer les vitrines';
+    tools.insertBefore(ebtn, tools.firstChild);
+    const panel = doc.createElement('div'); panel.className = 'gl-edit'; panel.hidden = true; wrap.appendChild(panel);
+    function editPanel() {
+      if (!edit.on) { panel.hidden = true; return; }
+      panel.hidden = false;
+      const s = getState();
+      let h = '<b>Aménagement</b><small>Glissez une vitrine pour la déplacer. Laissez les portes libres, espacez les vitrines, isolez votre plus belle pièce.</small>';
+      if (edit.sel) {
+        const room = s.rooms[edit.sel.room];
+        const oid = room.vitrines[edit.sel.index];
+        const fx = ME.Exhibitions.layoutEffects(s, edit.sel.room).notes;
+        h += '<div class="gl-edit-sel">' + D.ROOMS[edit.sel.room].name + ' · vitrine ' + (edit.sel.index + 1) + (oid ? ' — ' + s.objects[oid].name : ' — vide') + '</div>';
+        h += fx.length ? '<ul>' + fx.map((n) => '<li class="' + (n.s > 0 ? 'plus' : n.s < 0 ? 'minus' : 'muted') + '">' + n.t + '</li>').join('') + '</ul>' : '<small class="plus">Disposition sans défaut.</small>';
+        h += '<div class="gl-edit-btns"><button type="button" data-ed="rot">↻ Pivoter</button><button type="button" data-ed="obj">' + (oid ? 'Fiche' : 'Placer un objet') + '</button></div>';
+      }
+      if (edit.msg) h += '<small class="minus">' + edit.msg + '</small>';
+      h += '<div class="gl-edit-btns"><button type="button" data-ed="done" class="ok">✔ Terminer</button></div>';
+      panel.innerHTML = h;
+    }
+    panel.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-ed]'); if (!b) return;
+      const k = b.dataset.ed, s = getState();
+      if (k === 'done') { edit.on = false; edit.sel = null; ebtn.classList.remove('on'); editPanel(); return; }
+      if (!edit.sel) return;
+      if (k === 'rot') { ME.Exhibitions.rotateVitrine(s, edit.sel.room, edit.sel.index); handlers.onLayout && handlers.onLayout(); editPanel(); }
+      if (k === 'obj') { const oid = s.rooms[edit.sel.room].vitrines[edit.sel.index]; if (oid) handlers.onObject(oid); else handlers.onEmptySlot(edit.sel.room, edit.sel.index); }
+    });
+    ebtn.addEventListener('click', () => {
+      edit.on = !edit.on; edit.sel = null; edit.msg = '';
+      ebtn.classList.toggle('on', edit.on);
+      if (edit.on && cam.pitch < 0.8) { cam.goalPitch = 0.95; }
+      editPanel();
+    });
+    function hitVitrine(px, py) {
+      const s = getState(), ray = R.ray(px, py);
+      let best = null;
+      Object.keys(D.ROOMS).forEach((id) => {
+        const room = s.rooms[id];
+        if (!room.unlocked || !room.vitrines.length || !['expo', 'temp', 'hall'].includes(D.ROOMS[id].kind)) return;
+        positions(s, id).forEach(([vx, vz], i) => {
+          const t = GL3D.rayBox(ray, [vx - 0.55, 0, vz - 0.55], [vx + 0.55, 2.1, vz + 0.55]);
+          if (t >= 0 && (!best || t < best.t)) best = { t, room: id, index: i };
+        });
+      });
+      return best;
+    }
+    canvas.addEventListener('pointerdown', (e) => {
+      if (!edit.on || e.button === 2) return;
+      const hit = hitVitrine(e.clientX, e.clientY);
+      if (!hit) return;
+      e.stopImmediatePropagation(); e.preventDefault();
+      canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
+      const s = getState();
+      const p = ME.Exhibitions.layout(s, hit.room)[hit.index];
+      const g = R.groundAt(e.clientX, e.clientY) || [0, 0, 0];
+      const rb = roomBox(hit.room);
+      edit.sel = { room: hit.room, index: hit.index };
+      edit.drag = { room: hit.room, index: hit.index, id: e.pointerId, off: [rb.cx + p.x - g[0], rb.cz + p.z - g[2]], start: { x: p.x, z: p.z }, bad: false };
+      edit.msg = '';
+      editPanel();
+    }, true);
+    canvas.addEventListener('pointermove', (e) => {
+      const d = edit.drag; if (!d || e.pointerId !== d.id) return;
+      e.stopImmediatePropagation(); e.preventDefault();
+      const g = R.groundAt(e.clientX, e.clientY); if (!g) return;
+      const s = getState(), rb = roomBox(d.room);
+      const x = Math.round((g[0] + d.off[0] - rb.cx) * 4) / 4, z = Math.round((g[2] + d.off[1] - rb.cz) * 4) / 4;
+      const res = ME.Exhibitions.moveVitrine(s, d.room, d.index, x, z);
+      d.bad = !res.ok;
+      edit.msg = res.ok ? '' : res.error;
+    }, true);
+    const endDrag = (e) => {
+      const d = edit.drag; if (!d || e.pointerId !== d.id) return;
+      e.stopImmediatePropagation();
+      edit.drag = null;
+      handlers.onLayout && handlers.onLayout();
+      editPanel();
+    };
+    canvas.addEventListener('pointerup', endDrag, true);
+    canvas.addEventListener('pointercancel', endDrag, true);
     const fbtn = wrap.querySelector('[data-follow]');
     fbtn.addEventListener('click', () => {
       if (!agents.length) return;
       const idx = follow == null ? 0 : (agents.indexOf(follow) + 1);
       follow = idx >= agents.length ? null : agents[idx];
-      fbtn.textContent = follow ? '👁 Suivant' : '👁 Suivre';
+      fbtn.innerHTML = follow ? '👁<span class="lbl"> Suivant</span>' : '👁<span class="lbl"> Suivre</span>';
       fbtn.classList.toggle('on', !!follow);
       if (!follow) home();
     });
-    canvas.addEventListener('pointerdown', () => { if (follow) { follow = null; fbtn.textContent = '👁 Suivre'; fbtn.classList.remove('on'); } });
+    canvas.addEventListener('pointerdown', () => { if (follow) { follow = null; fbtn.innerHTML = '👁<span class="lbl"> Suivre</span>'; fbtn.classList.remove('on'); } });
     wrap.querySelector('[data-toggle]') && wrap.querySelector('[data-toggle]').addEventListener('click', handlers.toggle);
 
     let rooms = {}, shell = null, ext = R.mesh(buildExterior()), sig = '', sigT = 0, extra = { benches: [] };
@@ -4693,8 +4928,9 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       const filled = room ? room.vitrines.map((v, i) => [v, i]).filter(([v]) => v) : [];
       if (filled.length && a.looked < Math.min(3, filled.length)) {
         const [, i] = filled[Math.floor(Math.random() * filled.length)];
-        const [vx, vz] = slots(a.room, room.vitrines.length)[i];
-        a.queue.push([vx + (Math.random() - 0.5) * 0.8, 0, vz + 1.05 + Math.random() * 0.3]);
+        const [vx, vz, vr] = positions(s, a.room)[i];
+        const fx = Math.sin(vr), fz = Math.cos(vr);
+        a.queue.push([vx + fx * 1.1 + (Math.random() - 0.5) * 0.6, 0, vz + fz * 1.1 + (Math.random() - 0.5) * 0.3]);
         a.lookAt = [vx, vz]; a.looked++;
         return;
       }
@@ -4742,6 +4978,7 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
     }
 
     function pick(px, py) {
+      if (edit.on) return;
       const s = getState();
       const ray = R.ray(px, py);
       let best = null;
@@ -4750,7 +4987,7 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
         const r = roomBox(id);
         consider(GL3D.rayBox(ray, [r.x0, 0, r.z0], [r.x1, 0.12, r.z1]), { room: id });
         const room = s.rooms[id];
-        if (room.unlocked && room.vitrines.length) slots(id, room.vitrines.length).forEach(([vx, vz], i) => {
+        if (room.unlocked && room.vitrines.length) positions(s, id).forEach(([vx, vz], i) => {
           consider(GL3D.rayBox(ray, [vx - 0.5, 0, vz - 0.5], [vx + 0.5, 2.1, vz + 0.5]), { room: id, obj: room.vitrines[i], slot: i });
         });
       });
@@ -4798,15 +5035,24 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
         if (!room.unlocked || !room.vitrines.length) return;
         const big = id === 'hall' ? 1.25 : 1;
         const alpha = { tamise: 0.07, standard: 0.12, vif: 0.2 }[room.lighting];
-        slots(id, room.vitrines.length).forEach(([vx, vz], i) => {
+        positions(s, id).forEach(([vx, vz, vr], i) => {
           const oid = room.vitrines[i];
+          const dragged = edit.drag && edit.drag.room === id && edit.drag.index === i;
+          opaque.push({ mesh: oid ? U.vitrine : U.vitrineEmpty, m: M.chain(M.T(vx, dragged ? 0.12 : 0, vz), M.RY(vr), M.S(big, big, big)) });
+          if (id !== 'hall') opaque.push({ mesh: U.lamp, m: M.T(vx, 3.0, vz), shadow: false });
+          if (edit.on) {
+            const sel = edit.sel && edit.sel.room === id && edit.sel.index === i;
+            const col = dragged && edit.drag.bad ? '#b23a2a' : sel || dragged ? '#d39b2a' : '#2f6f73';
+            transparent.push({ mesh: U.ring, m: M.chain(M.T(vx, 0.1, vz), M.S(1.5 * big, 0.02, 1.5 * big)), tint: tint(col), alpha: sel || dragged ? 0.55 : 0.28, c: [vx, 0.1, vz], outline: false });
+          }
           if (oid) {
             const o = s.objects[oid];
             const flat = ME.Models3D.build && objCache.get(o).panel;
             const spin = flat ? Math.sin(time * 0.5 + i) * 0.35 : time * 0.45 + (o.seed % 628) / 100;
             const sc = (flat ? 0.78 : 0.72) * big;
-            opaque.push({ mesh: U.cyl, m: M.chain(M.T(vx, 1.06, vz), M.RY(spin), M.S(0.6 * big, 0.05, 0.6 * big)), tint: tint('#7a5a3a') });
-            ME.Models3D.draw(R, objCache, o, M.chain(M.T(vx, 1.085, vz), M.RY(spin), M.S(sc)), { opaque, sprites }, { bright: room.lighting === 'tamise' ? 0.9 : room.lighting === 'vif' ? 1.08 : 1 });
+            const lift = dragged ? 0.12 : 0;
+            opaque.push({ mesh: U.cyl, m: M.chain(M.T(vx, 1.06 + lift, vz), M.RY(spin), M.S(0.6 * big, 0.05, 0.6 * big)), tint: tint('#7a5a3a') });
+            ME.Models3D.draw(R, objCache, o, M.chain(M.T(vx, 1.085 + lift, vz), M.RY(spin), M.S(sc)), { opaque, sprites }, { bright: room.lighting === 'tamise' ? 0.9 : room.lighting === 'vif' ? 1.08 : 1 });
           }
           transparent.push({ mesh: U.glass, m: M.chain(M.T(vx, 1.03 + 0.475 * big, vz), M.S(0.86 * big, 0.95 * big, 0.86 * big)), tint: tint('#d8f2f4'), alpha: 0.13, c: [vx, 1.5, vz], outline: false });
           if (id !== 'hall') transparent.push({ mesh: U.beam, m: M.chain(M.T(vx, 2.45, vz), M.S(1.1, 1.0, 1.1)), tint: tint('#ffe9a8'), alpha, c: [vx, 2.4, vz], outline: false });
@@ -4837,6 +5083,13 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
         ov.label(R, [r.cx, 3.3, r.z0 + 0.6], h, 'room');
       });
       ov.label(R, [-1.1, 4.9, 4], '<b>MUSÉE &amp; EXPÉDITIONS</b>', 'sign');
+      if (edit.on && edit.sel) {
+        const [vx, vz] = positions(s, edit.sel.room)[edit.sel.index];
+        const p = ME.Exhibitions.layout(s, edit.sel.room)[edit.sel.index];
+        const chk = ME.Exhibitions.checkSpot(s, edit.sel.room, edit.sel.index, p.x, p.z);
+        const txt = edit.drag && edit.drag.bad ? edit.msg : chk.warn && chk.warn.length ? '⚠ ' + chk.warn.join(', ') : '✔ Bonne place';
+        ov.label(R, [vx, 2.4, vz], txt, 'room tip' + (edit.drag && edit.drag.bad || (chk.warn && chk.warn.length) ? ' warn' : ''));
+      }
       if (follow && agents.includes(follow)) {
         const vt = D.VISITOR_TYPES[follow.type];
         const room = D.ROOMS[follow.room] ? D.ROOMS[follow.room].name : '';
@@ -4852,7 +5105,7 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
     }
     function stop() { if (raf) G.cancelAnimationFrame(raf); raf = null; R.destroy(); }
     raf = G.requestAnimationFrame(frame);
-    return { stop, cam, R, agents, follow: (i) => { follow = agents[i] || null; } };
+    return { stop, cam, R, agents, edit, follow: (i) => { follow = agents[i] || null; } };
   };
 
   /* =========================================================
@@ -5229,7 +5482,7 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
     if (key.indexOf('musee') === 0) {
       if (want3d) {
         slot.innerHTML = '<div class="museum-wrap gl-wrap"></div>';
-        const sc = ME.Scene3D.museum($('.gl-wrap', slot), () => S, { onRoom: (r) => UI.openRoom(r), onObject: (id) => UI.openObj(id), onEmptySlot: (r, i) => { UI.openRoom(r); if (S.rooms[r].unlocked) { view.pick = { room: r, slot: i }; renderModal(); } }, toggle: () => setView('2d') });
+        const sc = ME.Scene3D.museum($('.gl-wrap', slot), () => S, { onRoom: (r) => UI.openRoom(r), onObject: (id) => UI.openObj(id), onEmptySlot: (r, i) => { UI.openRoom(r); if (S.rooms[r].unlocked) { view.pick = { room: r, slot: i }; renderModal(); } }, onLayout: () => { ME.State.save(S); UI.render(); }, toggle: () => setView('2d') });
         if (sc) { view.scenes.push(sc); return; }
         S.settings.view = '2d';
       }
@@ -5594,6 +5847,10 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
     html += '</div><div>';
     if (def.kind !== 'hall') {
       html += '<h3>Thème</h3><select data-action="roomTheme" data-room="' + id + '" aria-label="Thème de la salle"><option value="">Aucun thème</option>' + Object.keys(D.PERIODS).map((p) => '<option value="' + p + '"' + (room.theme === p ? ' selected' : '') + '>' + D.PERIODS[p].long + '</option>').join('') + '</select><p><small>Avec 3 objets ou plus de la période choisie, la salle gagne +25 % d\'attrait ; chaque objet hors thème coûte 15 %.</small></p>';
+    }
+    if (def.kind !== 'hall') {
+      html += '<h3>Disposition des vitrines</h3><div class="chips">' + Object.keys(E.PRESETS).map((k) => '<button class="chip filter" data-action="roomPreset" data-room="' + id + '" data-k="' + k + '" title="' + esc(E.PRESETS[k].desc) + '">' + E.PRESETS[k].label + '</button>').join('') + '</div>' +
+        '<p><small>' + (use3d() ? 'Ou placez chaque vitrine à la main dans la vue 3D avec <b>✥ Aménager</b>. ' : '') + 'Espacez les vitrines, laissez les portes libres et isolez votre plus belle pièce : les effets s\'affichent ci-dessous.</small></p>';
     }
     html += '<h3>Éclairage</h3><div class="grid">' + Object.keys(D.LIGHTING).map((l) => '<label class="staff-card' + (room.lighting === l ? ' on' : '') + '"><input type="radio" name="light" data-action="roomLight" data-room="' + id + '" value="' + l + '"' + (room.lighting === l ? ' checked' : '') + '><span><b>' + D.LIGHTING[l].label + '</b><br><small>' + esc(D.LIGHTING[l].desc) + '</small></span></label>').join('') + '</div>';
     html += '<h3 style="margin-top:12px">Effets sur le public</h3><p>Attrait de la salle : <b>' + an.score.toFixed(1) + '</b>' + (lv && lv.rooms[id] != null ? ' · plaisir moyen mesuré la semaine passée : <b>' + lv.rooms[id] + '</b>' : '') + '</p><ul class="reasons">' + an.notes.map((n) => '<li><span class="' + (n.s > 0 ? 'plus">＋' : n.s < 0 ? 'minus">－' : 'muted">•') + '</span> ' + esc(n.t) + '</li>').join('') + '</ul>';
@@ -5963,6 +6220,7 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       else toast('Semaine ' + rep.week + ' : ' + int(rep.visit.total) + ' visiteurs, résultat ' + money(rep.finance.net) + '.', rep.finance.net >= 0 ? 'success' : 'warning');
     },
     viewMode: (d) => { closeModal(); setView(d.v); },
+    roomPreset: (d) => { E.applyPreset(S, d.room, d.k); UI.commit(); },
     ficheView: () => { view.fiche2d = !view.fiche2d; renderModal(); },
     install: () => {
       const ins = ME.install || {};

@@ -309,7 +309,54 @@ test('un fichier étranger est refusé proprement', () => {
 });
 
 /* ------------------------------------------------------------------ */
-console.log('7. Endurance');
+console.log('7. Disposition des vitrines');
+test('déplacer une vitrine : aimantation, limites des murs et chevauchement refusés', () => {
+  const s = State.newGame(40);
+  const L = E.layout(s, 'salle1');
+  eq(L.length, 4);
+  const r = E.moveVitrine(s, 'salle1', 0, -3.13, 2.02);
+  assert(r.ok, r.error);
+  eq(L[0].x, -3.25); eq(L[0].z, 2);
+  assert(!E.moveVitrine(s, 'salle1', 0, -4.9, 0).ok, 'contre le mur');
+  assert(!E.moveVitrine(s, 'salle1', 0, L[1].x + 0.5, L[1].z).ok, 'chevauchement');
+  eq(L[0].x, -3.25, 'un déplacement refusé ne change rien');
+});
+test('effets lisibles : serré, porte encombrée, pièce maîtresse mise en valeur', () => {
+  const s = State.newGame(41);
+  const o = Obj.create(s, 'torque', { location: 'reserve', condition: 90, studied: 90 });
+  assert(E.place(s, o.id, 'salle2', 0).ok);
+  const base = E.analyzeRoom(s, 'salle2').mult;
+  E.moveVitrine(s, 'salle2', 1, E.layout(s, 'salle2')[0].x + 1.25, E.layout(s, 'salle2')[0].z);
+  let a = E.analyzeRoom(s, 'salle2');
+  assert(a.notes.some((n) => /serrées/.test(n.t)) && a.mult < base, 'circulation gênée');
+  E.applyPreset(s, 'salle2', 'ligne');
+  E.moveVitrine(s, 'salle2', 3, 3.75, 0); // près de la porte de droite
+  a = E.analyzeRoom(s, 'salle2');
+  assert(a.notes.some((n) => /passage/.test(n.t)), 'passage encombré');
+  E.applyPreset(s, 'salle2', 'maitresse');
+  a = E.analyzeRoom(s, 'salle2');
+  assert(a.notes.some((n) => /maîtresse mise en valeur/.test(n.t)), 'pièce maîtresse isolée : ' + JSON.stringify(a.notes));
+});
+test('la disposition change la satisfaction mesurée et survit à la sauvegarde', () => {
+  const s = State.newGame(42);
+  ['torque', 'statere', 'fibule', 'epee'].forEach((t, i) => { const o = Obj.create(s, t, { location: 'reserve', condition: 90, studied: 90 }); E.place(s, o.id, 'salle1', i); });
+  E.setTheme(s, 'salle1', 'gaule');
+  E.applyPreset(s, 'salle1', 'maitresse');
+  const good = ME.Visitors.attraction(s).rooms.salle1.score;
+  E.layout(s, 'salle1').forEach((p, i) => { p.x = -1.2 + i * 1.2; p.z = 0; });
+  const bad = ME.Visitors.attraction(s).rooms.salle1.score;
+  assert(good > bad, good + ' > ' + bad);
+  const back = State.deserialize(State.serialize(s));
+  eq(JSON.stringify(back.rooms.salle1.layout), JSON.stringify(s.rooms.salle1.layout));
+});
+test('ouvrir une nouvelle salle lui donne une disposition par défaut', () => {
+  const s = State.newGame(43); s.money = 50000;
+  assert(F.buyUpgrade(s, 'salle3').ok);
+  eq(E.layout(s, 'salle3').length, 6);
+});
+
+/* ------------------------------------------------------------------ */
+console.log('8. Endurance');
 test('100 semaines automatiques sans incohérence', () => {
   const s = State.newGame(77);
   s.money = 40000;

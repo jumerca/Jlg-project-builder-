@@ -334,3 +334,25 @@ textarea { width: 100%; min-height: 90px; font-family: ui-monospace, Menlo, mono
 .dig .obj.gl-wrap .gl-canvas { width: 100% !important; height: 100% !important; }
 .plate .gl-tools, .dig .gl-tools { display: none; }
 .fiche .plate .tag { z-index: 3; }
+
+/* ---------- Aménagement des vitrines (3D) ---------- */
+.gl-edit { position: absolute; left: 10px; top: 10px; z-index: 3; width: min(320px, calc(100% - 20px)); background: rgba(255,250,240,.96); border: 2px solid var(--ink); border-radius: 8px; padding: 8px 10px; box-shadow: 3px 3px 0 var(--ink); font-size: .9rem; }
+.gl-edit[hidden] { display: none; }
+.gl-edit b { font-family: var(--title); font-size: 1.05rem; display: block; }
+.gl-edit small { display: block; margin: 2px 0; }
+.gl-edit ul { margin: 4px 0; padding-left: 16px; }
+.gl-edit-sel { font-weight: 700; margin-top: 6px; }
+.gl-edit-btns { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.gl-edit-btns button { border: 2px solid var(--ink); background: var(--card); border-radius: 6px; padding: 4px 10px; font: 700 .85rem var(--body); cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+.gl-edit-btns button.ok { background: var(--green); color: #fff; }
+.gl-label.room.tip { font-size: 12px; background: #eef7ec; border-color: var(--green); }
+.gl-label.room.tip.warn { background: #fff0e8; border-color: var(--red); color: var(--red); }
+@media (max-width: 720px) { .gl-edit { font-size: .8rem; } .gl-edit small:first-of-type { display: none; } }
+
+@media (max-width: 720px) {
+  .gl-tools { right: 6px; bottom: 6px; gap: 4px; }
+  .gl-tools button, .gl-tools button.wide { width: 34px; height: 34px; padding: 0; border-radius: 50%; font-size: 15px; }
+  .gl-tools .lbl { display: none; }
+  .gl-edit { padding: 6px 8px; }
+  .gl-edit-btns button { padding: 3px 8px; }
+}

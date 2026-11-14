@@ -61,6 +61,126 @@
     [r[i], r[j]] = [r[j], r[i]];
   };
 
+  /* ---------------- Disposition des vitrines ----------------
+   * Positions relatives au centre de la salle (10 × 8 unités), en unités de jeu.
+   * Effets : vitrines trop serrées (circulation), vitrine devant une porte (passage encombré),
+   * pièce maîtresse isolée (mise en valeur). */
+  E.ROOM_W = 10; E.ROOM_D = 8;
+  E.MIN_GAP = 1.15;   // en dessous, deux vitrines se chevauchent : interdit
+  E.CROWD = 1.7;      // en dessous, la circulation est gênée
+  E.DOOR_CLEAR = 1.7; // une vitrine plus proche d'une porte encombre le passage
+  E.SOLO = 2.6;       // espace libre autour d'une pièce maîtresse mise en valeur
+  const MARGIN = 0.75;
+
+  E.defaultLayout = function (roomId, n) {
+    if (roomId === 'hall') return [{ x: 1.2, z: -1.2, r: 0 }];
+    if (n === 6) return [-3, 0, 3].map((x) => ({ x, z: -2, r: 0 })).concat([-3, 0, 3].map((x) => ({ x, z: 1.3, r: 0 })));
+    const step = n >= 5 ? 1.85 : 2.3;
+    return Array.from({ length: n }, (_, i) => ({ x: (i - (n - 1) / 2) * step, z: -1.4, r: 0 }));
+  };
+
+  E.PRESETS = {
+    ligne: { label: 'Alignée', desc: 'Une rangée face au public, le long du mur du fond.' },
+    ilots: { label: 'En îlots', desc: 'Petits groupes répartis : on circule autour.' },
+    galerie: { label: 'Allée centrale', desc: 'Deux rangées qui encadrent une allée.' },
+    maitresse: { label: 'Pièce maîtresse au centre', desc: 'La vitrine 1 trône au milieu, les autres en couronne.' },
+  };
+  E.presetLayout = function (roomId, n, key) {
+    if (roomId === 'hall' || n <= 1) return E.defaultLayout(roomId, n);
+    const out = [];
+    if (key === 'ligne') {
+      const step = Math.min(2.2, 8 / Math.max(1, n - 1));
+      for (let i = 0; i < n; i++) out.push({ x: (i - (n - 1) / 2) * step, z: -2.4, r: 0 });
+    } else if (key === 'ilots') {
+      const spots = [[-2.8, -1.8], [2.8, -1.8], [-2.8, 1.2], [2.8, 1.2], [0, -0.3], [0, 2.2]];
+      for (let i = 0; i < n; i++) out.push({ x: spots[i][0], z: spots[i][1], r: 0 });
+    } else if (key === 'galerie') {
+      const per = Math.ceil(n / 2);
+      for (let i = 0; i < n; i++) { const row = i < per ? 0 : 1, k = row ? i - per : i, m = row ? n - per : per; out.push({ x: (k - (m - 1) / 2) * 2.4, z: row ? 1.6 : -2.4, r: row ? Math.PI : 0 }); }
+    } else { // pièce maîtresse
+      out.push({ x: 0, z: -0.2, r: 0 });
+      const ring = [[-3.4, -2.4], [3.4, -2.4], [-3.4, 2.0], [3.4, 2.0], [0, -2.9]];
+      for (let i = 1; i < n; i++) out.push({ x: ring[i - 1][0], z: ring[i - 1][1], r: 0 });
+    }
+    return out;
+  };
+  E.applyPreset = function (state, roomId, key) {
+    const room = state.rooms[roomId];
+    room.layout = E.presetLayout(roomId, room.vitrines.length, key);
+    return room.layout;
+  };
+
+  /** Positions des vitrines (créées par défaut si absentes ou si le nombre de vitrines a changé). */
+  E.layout = function (state, roomId) {
+    const room = state.rooms[roomId];
+    if (!room.layout || room.layout.length !== room.vitrines.length) room.layout = E.defaultLayout(roomId, room.vitrines.length);
+    return room.layout;
+  };
+
+  /** Portes d'une salle (centres, coordonnées relatives). */
+  E.doors = function (roomId) {
+    const d = D.ROOMS[roomId], out = [];
+    const has = (c, r) => Object.values(D.ROOMS).some((x) => x.col === c && x.row === r);
+    if (has(d.col - 1, d.row) || roomId === 'hall') out.push({ x: -E.ROOM_W / 2, z: 0 });
+    if (has(d.col + 1, d.row)) out.push({ x: E.ROOM_W / 2, z: 0 });
+    if (has(d.col, d.row - 1)) out.push({ x: 0, z: -E.ROOM_D / 2 });
+    if (has(d.col, d.row + 1)) out.push({ x: 0, z: E.ROOM_D / 2 });
+    return out;
+  };
+
+  /** Vérifie un emplacement : hors limites ou chevauchement = refusé ; avertissements sinon. */
+  E.checkSpot = function (state, roomId, index, x, z) {
+    const lim = { x: E.ROOM_W / 2 - MARGIN, z: E.ROOM_D / 2 - MARGIN };
+    if (Math.abs(x) > lim.x || Math.abs(z) > lim.z) return { ok: false, reason: 'Trop près du mur.' };
+    const L = E.layout(state, roomId);
+    for (let i = 0; i < L.length; i++) {
+      if (i === index) continue;
+      if (Math.hypot(L[i].x - x, L[i].z - z) < E.MIN_GAP) return { ok: false, reason: 'Une autre vitrine occupe déjà cette place.' };
+    }
+    const warn = [];
+    if (E.doors(roomId).some((d) => Math.hypot(d.x - x, d.z - z) < E.DOOR_CLEAR)) warn.push('encombre un passage');
+    if (L.some((p, i) => i !== index && Math.hypot(p.x - x, p.z - z) < E.CROWD)) warn.push('trop serrée');
+    return { ok: true, warn };
+  };
+
+  E.moveVitrine = function (state, roomId, index, x, z, r) {
+    const snap = (v) => Math.round(v * 4) / 4;
+    x = snap(x); z = snap(z);
+    const chk = E.checkSpot(state, roomId, index, x, z);
+    if (!chk.ok) return { ok: false, error: chk.reason };
+    const L = E.layout(state, roomId);
+    L[index] = { x, z, r: r != null ? r : L[index].r || 0 };
+    return { ok: true, warn: chk.warn };
+  };
+  E.rotateVitrine = function (state, roomId, index) {
+    const L = E.layout(state, roomId);
+    L[index].r = ((L[index].r || 0) + Math.PI / 2) % (Math.PI * 2);
+  };
+
+  /** Effets de la disposition sur l'attrait d'une salle. */
+  E.layoutEffects = function (state, roomId) {
+    const room = state.rooms[roomId];
+    const L = E.layout(state, roomId);
+    const notes = [];
+    let mult = 1;
+    if (L.length < 2 && roomId !== 'hall') return { mult, notes };
+    let crowded = 0;
+    for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) if (Math.hypot(L[i].x - L[j].x, L[i].z - L[j].z) < E.CROWD) crowded++;
+    if (crowded) { const m = Math.max(0.8, 1 - 0.05 * crowded); mult *= m; notes.push({ t: 'Vitrines trop serrées : circulation difficile (−' + Math.round((1 - m) * 100) + ' %)', s: -1, layout: true }); }
+    const doors = E.doors(roomId);
+    const blocking = L.filter((p) => doors.some((d) => Math.hypot(d.x - p.x, d.z - p.z) < E.DOOR_CLEAR)).length;
+    if (blocking) { mult *= 0.9; notes.push({ t: blocking + ' vitrine(s) encombrent un passage : −10 %', s: -1, layout: true }); }
+    // pièce maîtresse isolée
+    let best = -1, bestScore = 0;
+    room.vitrines.forEach((id, i) => { if (id) { const sc = D.RARITY[state.objects[id].rarity].score; if (sc > bestScore) { bestScore = sc; best = i; } } });
+    if (best >= 0 && bestScore >= 3.5 && L.length > 1) {
+      const free = L.every((p, i) => i === best || Math.hypot(p.x - L[best].x, p.z - L[best].z) >= E.SOLO);
+      if (free) { mult *= 1.1; notes.push({ t: 'Pièce maîtresse mise en valeur, avec de l\'espace autour : +10 %', s: 1, layout: true }); }
+      else notes.push({ t: 'Astuce : isolez votre plus belle pièce (≥ ' + E.SOLO + ' m des autres) pour la mettre en valeur', s: 0, layout: true });
+    }
+    return { mult, notes };
+  };
+
   /** Analyse d'une salle : score d'attrait et explications lisibles. */
   E.analyzeRoom = function (state, roomId) {
     const room = state.rooms[roomId];
@@ -91,6 +211,9 @@
     if (unstudied) notes.push({ t: unstudied + ' cartel(s) pauvre(s) : objets peu étudiés', s: -1 });
     const stars = objs.filter((o) => D.RARITY[o.rarity].score >= 3.5).length;
     if (stars) notes.push({ t: stars + ' chef(s)-d\'œuvre exposé(s)', s: 1 });
+    const lay = E.layoutEffects(state, roomId);
+    mult *= lay.mult;
+    notes.push(...lay.notes);
     const base = objs.reduce((a, o) => a + Obj.appeal(o), 0);
     return { score: base * mult, base, mult, objs, notes, periods };
   };

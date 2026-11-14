@@ -125,7 +125,7 @@
     if (key.indexOf('musee') === 0) {
       if (want3d) {
         slot.innerHTML = '<div class="museum-wrap gl-wrap"></div>';
-        const sc = ME.Scene3D.museum($('.gl-wrap', slot), () => S, { onRoom: (r) => UI.openRoom(r), onObject: (id) => UI.openObj(id), onEmptySlot: (r, i) => { UI.openRoom(r); if (S.rooms[r].unlocked) { view.pick = { room: r, slot: i }; renderModal(); } }, toggle: () => setView('2d') });
+        const sc = ME.Scene3D.museum($('.gl-wrap', slot), () => S, { onRoom: (r) => UI.openRoom(r), onObject: (id) => UI.openObj(id), onEmptySlot: (r, i) => { UI.openRoom(r); if (S.rooms[r].unlocked) { view.pick = { room: r, slot: i }; renderModal(); } }, onLayout: () => { ME.State.save(S); UI.render(); }, toggle: () => setView('2d') });
         if (sc) { view.scenes.push(sc); return; }
         S.settings.view = '2d';
       }
@@ -490,6 +490,10 @@
     html += '</div><div>';
     if (def.kind !== 'hall') {
       html += '<h3>Thème</h3><select data-action="roomTheme" data-room="' + id + '" aria-label="Thème de la salle"><option value="">Aucun thème</option>' + Object.keys(D.PERIODS).map((p) => '<option value="' + p + '"' + (room.theme === p ? ' selected' : '') + '>' + D.PERIODS[p].long + '</option>').join('') + '</select><p><small>Avec 3 objets ou plus de la période choisie, la salle gagne +25 % d\'attrait ; chaque objet hors thème coûte 15 %.</small></p>';
+    }
+    if (def.kind !== 'hall') {
+      html += '<h3>Disposition des vitrines</h3><div class="chips">' + Object.keys(E.PRESETS).map((k) => '<button class="chip filter" data-action="roomPreset" data-room="' + id + '" data-k="' + k + '" title="' + esc(E.PRESETS[k].desc) + '">' + E.PRESETS[k].label + '</button>').join('') + '</div>' +
+        '<p><small>' + (use3d() ? 'Ou placez chaque vitrine à la main dans la vue 3D avec <b>✥ Aménager</b>. ' : '') + 'Espacez les vitrines, laissez les portes libres et isolez votre plus belle pièce : les effets s\'affichent ci-dessous.</small></p>';
     }
     html += '<h3>Éclairage</h3><div class="grid">' + Object.keys(D.LIGHTING).map((l) => '<label class="staff-card' + (room.lighting === l ? ' on' : '') + '"><input type="radio" name="light" data-action="roomLight" data-room="' + id + '" value="' + l + '"' + (room.lighting === l ? ' checked' : '') + '><span><b>' + D.LIGHTING[l].label + '</b><br><small>' + esc(D.LIGHTING[l].desc) + '</small></span></label>').join('') + '</div>';
     html += '<h3 style="margin-top:12px">Effets sur le public</h3><p>Attrait de la salle : <b>' + an.score.toFixed(1) + '</b>' + (lv && lv.rooms[id] != null ? ' · plaisir moyen mesuré la semaine passée : <b>' + lv.rooms[id] + '</b>' : '') + '</p><ul class="reasons">' + an.notes.map((n) => '<li><span class="' + (n.s > 0 ? 'plus">＋' : n.s < 0 ? 'minus">－' : 'muted">•') + '</span> ' + esc(n.t) + '</li>').join('') + '</ul>';
@@ -859,6 +863,7 @@
       else toast('Semaine ' + rep.week + ' : ' + int(rep.visit.total) + ' visiteurs, résultat ' + money(rep.finance.net) + '.', rep.finance.net >= 0 ? 'success' : 'warning');
     },
     viewMode: (d) => { closeModal(); setView(d.v); },
+    roomPreset: (d) => { E.applyPreset(S, d.room, d.k); UI.commit(); },
     ficheView: () => { view.fiche2d = !view.fiche2d; renderModal(); },
     install: () => {
       const ins = ME.install || {};

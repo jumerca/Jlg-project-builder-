@@ -34,6 +34,7 @@ L'aperçu intégré à claude.ai reste jouable en HTTPS mais n'autorise pas l'in
 - Boutons ⟲ ⟳ ＋ － ⌂ en bas à droite ; touchez une vitrine pour ouvrir la fiche de son objet, une salle pour la gérer.
 - **Objets en 3D** : chaque pièce exposée tourne sur son socle ; la fiche et le déballage la présentent en 3D (glisser pour la tourner). Sur le chantier, les trouvailles apparaissent encore couvertes de terre.
 - **👁 Suivre** : la caméra accompagne un visiteur et affiche son humeur, ses goûts et ce qu'il pense ; un nouvel appui passe au visiteur suivant.
+- **✥ Aménager** : déplacez librement chaque vitrine dans sa salle (glisser à la souris ou au doigt, aimantation tous les 25 cm, ↻ pour pivoter). Les effets sont immédiats et expliqués : vitrines trop serrées (circulation difficile), vitrine devant une porte (passage encombré, −10 %), pièce maîtresse isolée (mise en valeur, +10 %). Des dispositions toutes prêtes existent aussi dans la fiche de chaque salle (alignée, en îlots, allée centrale, pièce maîtresse au centre), y compris en vue 2D.
 - Toucher une **vitrine vide** ouvre directement le choix de l'objet à y exposer.
 - Bouton **2D** pour revenir à la vue en coupe façon BD (aussi dans ⚙). Si l'appareil n'a pas WebGL, le jeu passe automatiquement en 2D.
 
@@ -79,7 +80,7 @@ Couverture : mission complète jusqu'à l'exposition, stabilité des identifiant
 ## Limites de cette première version
 - Un seul musée, six sites, 36 types d'objets ; pas encore de deuxième spécialité (beaux-arts, histoire naturelle).
 - Les visiteurs sont simulés par échantillon (60 profils par semaine), puis extrapolés ; leurs déplacements à l'écran sont illustratifs.
-- En 3D, l'agencement des salles et la place des vitrines sont fixes : on choisit ce qu'on expose, pas où poser chaque meuble.
+- Seules les vitrines se déplacent : murs, portes, bancs et mobilier de l'atelier, des réserves et de la boutique restent fixes. La vue BD 2D affiche les vitrines en rangée quelle que soit la disposition.
 - Les modèles 3D des objets sont stylisés (volumes simples) ; papyrus, portrait, vitrail, carreau et feuillet sont présentés sur des panneaux illustrés.
 - Le moteur 3D est fait maison (Three.js n'était pas téléchargeable dans l'environnement de construction) : sobre mais sans dépendance.
 - Pas de son ni de musique.

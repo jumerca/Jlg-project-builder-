@@ -33,7 +33,13 @@
     return [A.cx, 0, 0];
   }
 
-  /** Emplacements des vitrines d'une salle. */
+  /** Positions absolues des vitrines d'après la disposition enregistrée : [[x, z, rotation], ...] */
+  function positions(state, id) {
+    const r = roomBox(id);
+    return ME.Exhibitions.layout(state, id).map((p) => [r.cx + p.x, r.cz + p.z, p.r || 0]);
+  }
+  S3.positions = positions;
+  /** Emplacements par défaut des vitrines d'une salle. */
   function slots(id, n) {
     const r = roomBox(id);
     if (id === 'hall') return [[r.cx + 1.2, r.cz - 1.2]];
@@ -56,11 +62,26 @@
       glass: b((B) => B.box(M.ident(), '#ffffff', { outline: false })),
       beam: b((B) => B.cyl(M.ident(), '#ffffff', 14, 0.12, 0.5, { outline: false })),
       water: b((B) => B.box(M.ident(), '#ffffff', { outline: false })),
+      vitrine: b((B) => vitrineGeom(B, '#fffaf0')),
+      vitrineEmpty: b((B) => vitrineGeom(B, '#d9cfb4')),
+      lamp: b((B) => { B.cyl(M.chain(M.T(0, 0.45, 0), M.S(0.035, 0.9, 0.035)), '#2b2118', 5); B.cyl(M.chain(M.T(0, 0, 0), M.S(0.26, 0.24, 0.26)), '#2b2118', 8, 0.35, 0.5); }),
+      ring: b((B) => B.cyl(M.ident(), '#ffffff', 24, null, null, { outline: false })),
     };
   }
   const c3 = (h) => new Float32Array(GL3D.hex(h));
   const tintCache = {};
   const tint = (h) => tintCache[h] || (tintCache[h] = c3(h));
+
+  /** Vitrine centrée à l'origine, posée au sol (socle, cartel vers +z, montants de la cloche). */
+  function vitrineGeom(B, cartel) {
+    B.block(0, 0.08, 0, 0.92, 0.95, 0.92, '#efe2c2');
+    B.block(0, 0.08, 0, 0.98, 0.12, 0.98, '#7a5a3a');
+    B.box(M.chain(M.T(0, 0.75, 0.47), M.RX(-0.5), M.S(0.34, 0.2, 0.03)), cartel);
+    const h = 0.95, g = 0.43;
+    for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) B.block(sx * g, 1.03, sz * g, 0.04, h, 0.04, '#5a4a3a', { outline: false });
+    for (const sg of [-1, 1]) { B.block(sg * g, 1.03 + h, 0, 0.04, 0.04, 0.9, '#5a4a3a', { outline: false }); B.block(0, 1.03 + h, sg * g, 0.9, 0.04, 0.04, '#5a4a3a', { outline: false }); }
+    return B;
+  }
 
   /** Ajoute un personnage à la liste de dessin. pose : walk | stand | work | kneel | dive */
   function person(list, U, x, y, z, yaw, look, o) {
@@ -216,25 +237,9 @@
       B.box(M.chain(M.T(r.cx + 2, 0.3, r.cz), M.S(1, 0.5, 0.8)), '#d39b2a');
       return B;
     }
-    if (kind === 'expo' || kind === 'temp' || kind === 'hall') {
-      const n = room.vitrines.length;
-      slots(id, n).forEach(([vx, vz], i) => {
-        const big = id === 'hall' ? 1.25 : 1;
-        B.block(vx, 0.08, vz, 0.92 * big, 0.95, 0.92 * big, '#efe2c2');
-        B.block(vx, 0.08, vz, 0.98 * big, 0.12, 0.98 * big, '#7a5a3a');
-        B.box(M.chain(M.T(vx, 0.75, vz + 0.47 * big), M.RX(-0.5), M.S(0.34, 0.2, 0.03)), room.vitrines[i] ? '#fffaf0' : '#d9cfb4');
-        // montants de la cloche de verre
-        const h = 0.95 * big, g = 0.43 * big;
-        for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) B.block(vx + sx * g, 1.03, vz + sz * g, 0.04, h, 0.04, '#5a4a3a', { outline: false });
-        for (const sg of [-1, 1]) { B.block(vx + sg * g, 1.03 + h, vz, 0.04, 0.04, 0.9 * big, '#5a4a3a', { outline: false }); B.block(vx, 1.03 + h, vz + sg * g, 0.9 * big, 0.04, 0.04, '#5a4a3a', { outline: false }); }
-      });
-      if (kind !== 'hall') {
-        // rail d'éclairage et projecteurs
-        B.block(r.cx, 3.05, r.cz - 1.4, RW - 0.6, 0.08, 0.08, '#2b2118');
-        slots(id, n).forEach(([vx, vz]) => { B.cyl(M.chain(M.T(vx, 2.98, vz), M.S(0.24, 0.22, 0.24)), '#2b2118', 8); });
-        B.block(r.cx, 0.08, r.z1 - 1.6, 2.2, 0.42, 0.6, '#7a5a3a'); // banc
-        B.block(r.cx, 0.5, r.z1 - 1.6, 2.4, 0.08, 0.7, '#b98a55');
-      }
+    if (kind === 'expo' || kind === 'temp') {
+      B.block(r.cx, 0.08, r.z1 - 1.0, 2.2, 0.42, 0.6, '#7a5a3a'); // banc
+      B.block(r.cx, 0.5, r.z1 - 1.0, 2.4, 0.08, 0.7, '#b98a55');
     }
     if (kind === 'hall') {
       B.block(r.x0 + 7.2, 0.08, r.z0 + 6.2, 2.6, 1.0, 0.7, '#8a5a34'); B.block(r.x0 + 7.2, 1.08, r.z0 + 6.2, 2.8, 0.1, 0.9, '#efe2c2');
@@ -386,18 +391,103 @@
     const home = () => { cam.goalTarget = [19, 0, mobile() ? 0.5 : 0]; cam.goalYaw = 0.42; cam.goalPitch = 0.92; cam.goalDist = mobile() ? 62 : 38; };
     if (mobile()) { cam.dist = 62; }
     GL3D.orbit(canvas, cam, (x, y) => pick(x, y), { groundAt: (x, y) => R.groundAt(x, y) });
-    toolbar(wrap, cam, () => { follow = null; home(); }, '<button type="button" class="wide" data-follow="1" title="Suivre un visiteur" aria-label="Suivre un visiteur">👁 Suivre</button>' + (handlers.toggle ? '<button type="button" class="wide" data-toggle="1" title="Revenir à la vue BD 2D">2D</button>' : ''));
+    toolbar(wrap, cam, () => { follow = null; home(); }, '<button type="button" class="wide" data-follow="1" title="Suivre un visiteur" aria-label="Suivre un visiteur">👁<span class="lbl"> Suivre</span></button>' + (handlers.toggle ? '<button type="button" class="wide" data-toggle="1" title="Revenir à la vue BD 2D">2D</button>' : ''));
     let follow = null;
+    // ---- mode « Aménager » : déplacer les vitrines à la main
+    const edit = { on: false, sel: null, drag: null };
+    const tools = wrap.querySelector('.gl-tools');
+    const ebtn = doc.createElement('button');
+    ebtn.type = 'button'; ebtn.className = 'wide'; ebtn.dataset.edit = '1'; ebtn.innerHTML = '✥<span class="lbl"> Aménager</span>'; ebtn.setAttribute('aria-label', 'Aménager les vitrines'); ebtn.title = 'Déplacer les vitrines';
+    tools.insertBefore(ebtn, tools.firstChild);
+    const panel = doc.createElement('div'); panel.className = 'gl-edit'; panel.hidden = true; wrap.appendChild(panel);
+    function editPanel() {
+      if (!edit.on) { panel.hidden = true; return; }
+      panel.hidden = false;
+      const s = getState();
+      let h = '<b>Aménagement</b><small>Glissez une vitrine pour la déplacer. Laissez les portes libres, espacez les vitrines, isolez votre plus belle pièce.</small>';
+      if (edit.sel) {
+        const room = s.rooms[edit.sel.room];
+        const oid = room.vitrines[edit.sel.index];
+        const fx = ME.Exhibitions.layoutEffects(s, edit.sel.room).notes;
+        h += '<div class="gl-edit-sel">' + D.ROOMS[edit.sel.room].name + ' · vitrine ' + (edit.sel.index + 1) + (oid ? ' — ' + s.objects[oid].name : ' — vide') + '</div>';
+        h += fx.length ? '<ul>' + fx.map((n) => '<li class="' + (n.s > 0 ? 'plus' : n.s < 0 ? 'minus' : 'muted') + '">' + n.t + '</li>').join('') + '</ul>' : '<small class="plus">Disposition sans défaut.</small>';
+        h += '<div class="gl-edit-btns"><button type="button" data-ed="rot">↻ Pivoter</button><button type="button" data-ed="obj">' + (oid ? 'Fiche' : 'Placer un objet') + '</button></div>';
+      }
+      if (edit.msg) h += '<small class="minus">' + edit.msg + '</small>';
+      h += '<div class="gl-edit-btns"><button type="button" data-ed="done" class="ok">✔ Terminer</button></div>';
+      panel.innerHTML = h;
+    }
+    panel.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-ed]'); if (!b) return;
+      const k = b.dataset.ed, s = getState();
+      if (k === 'done') { edit.on = false; edit.sel = null; ebtn.classList.remove('on'); editPanel(); return; }
+      if (!edit.sel) return;
+      if (k === 'rot') { ME.Exhibitions.rotateVitrine(s, edit.sel.room, edit.sel.index); handlers.onLayout && handlers.onLayout(); editPanel(); }
+      if (k === 'obj') { const oid = s.rooms[edit.sel.room].vitrines[edit.sel.index]; if (oid) handlers.onObject(oid); else handlers.onEmptySlot(edit.sel.room, edit.sel.index); }
+    });
+    ebtn.addEventListener('click', () => {
+      edit.on = !edit.on; edit.sel = null; edit.msg = '';
+      ebtn.classList.toggle('on', edit.on);
+      if (edit.on && cam.pitch < 0.8) { cam.goalPitch = 0.95; }
+      editPanel();
+    });
+    function hitVitrine(px, py) {
+      const s = getState(), ray = R.ray(px, py);
+      let best = null;
+      Object.keys(D.ROOMS).forEach((id) => {
+        const room = s.rooms[id];
+        if (!room.unlocked || !room.vitrines.length || !['expo', 'temp', 'hall'].includes(D.ROOMS[id].kind)) return;
+        positions(s, id).forEach(([vx, vz], i) => {
+          const t = GL3D.rayBox(ray, [vx - 0.55, 0, vz - 0.55], [vx + 0.55, 2.1, vz + 0.55]);
+          if (t >= 0 && (!best || t < best.t)) best = { t, room: id, index: i };
+        });
+      });
+      return best;
+    }
+    canvas.addEventListener('pointerdown', (e) => {
+      if (!edit.on || e.button === 2) return;
+      const hit = hitVitrine(e.clientX, e.clientY);
+      if (!hit) return;
+      e.stopImmediatePropagation(); e.preventDefault();
+      canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
+      const s = getState();
+      const p = ME.Exhibitions.layout(s, hit.room)[hit.index];
+      const g = R.groundAt(e.clientX, e.clientY) || [0, 0, 0];
+      const rb = roomBox(hit.room);
+      edit.sel = { room: hit.room, index: hit.index };
+      edit.drag = { room: hit.room, index: hit.index, id: e.pointerId, off: [rb.cx + p.x - g[0], rb.cz + p.z - g[2]], start: { x: p.x, z: p.z }, bad: false };
+      edit.msg = '';
+      editPanel();
+    }, true);
+    canvas.addEventListener('pointermove', (e) => {
+      const d = edit.drag; if (!d || e.pointerId !== d.id) return;
+      e.stopImmediatePropagation(); e.preventDefault();
+      const g = R.groundAt(e.clientX, e.clientY); if (!g) return;
+      const s = getState(), rb = roomBox(d.room);
+      const x = Math.round((g[0] + d.off[0] - rb.cx) * 4) / 4, z = Math.round((g[2] + d.off[1] - rb.cz) * 4) / 4;
+      const res = ME.Exhibitions.moveVitrine(s, d.room, d.index, x, z);
+      d.bad = !res.ok;
+      edit.msg = res.ok ? '' : res.error;
+    }, true);
+    const endDrag = (e) => {
+      const d = edit.drag; if (!d || e.pointerId !== d.id) return;
+      e.stopImmediatePropagation();
+      edit.drag = null;
+      handlers.onLayout && handlers.onLayout();
+      editPanel();
+    };
+    canvas.addEventListener('pointerup', endDrag, true);
+    canvas.addEventListener('pointercancel', endDrag, true);
     const fbtn = wrap.querySelector('[data-follow]');
     fbtn.addEventListener('click', () => {
       if (!agents.length) return;
       const idx = follow == null ? 0 : (agents.indexOf(follow) + 1);
       follow = idx >= agents.length ? null : agents[idx];
-      fbtn.textContent = follow ? '👁 Suivant' : '👁 Suivre';
+      fbtn.innerHTML = follow ? '👁<span class="lbl"> Suivant</span>' : '👁<span class="lbl"> Suivre</span>';
       fbtn.classList.toggle('on', !!follow);
       if (!follow) home();
     });
-    canvas.addEventListener('pointerdown', () => { if (follow) { follow = null; fbtn.textContent = '👁 Suivre'; fbtn.classList.remove('on'); } });
+    canvas.addEventListener('pointerdown', () => { if (follow) { follow = null; fbtn.innerHTML = '👁<span class="lbl"> Suivre</span>'; fbtn.classList.remove('on'); } });
     wrap.querySelector('[data-toggle]') && wrap.querySelector('[data-toggle]').addEventListener('click', handlers.toggle);
 
     let rooms = {}, shell = null, ext = R.mesh(buildExterior()), sig = '', sigT = 0, extra = { benches: [] };
@@ -440,8 +530,9 @@
       const filled = room ? room.vitrines.map((v, i) => [v, i]).filter(([v]) => v) : [];
       if (filled.length && a.looked < Math.min(3, filled.length)) {
         const [, i] = filled[Math.floor(Math.random() * filled.length)];
-        const [vx, vz] = slots(a.room, room.vitrines.length)[i];
-        a.queue.push([vx + (Math.random() - 0.5) * 0.8, 0, vz + 1.05 + Math.random() * 0.3]);
+        const [vx, vz, vr] = positions(s, a.room)[i];
+        const fx = Math.sin(vr), fz = Math.cos(vr);
+        a.queue.push([vx + fx * 1.1 + (Math.random() - 0.5) * 0.6, 0, vz + fz * 1.1 + (Math.random() - 0.5) * 0.3]);
         a.lookAt = [vx, vz]; a.looked++;
         return;
       }
@@ -489,6 +580,7 @@
     }
 
     function pick(px, py) {
+      if (edit.on) return;
       const s = getState();
       const ray = R.ray(px, py);
       let best = null;
@@ -497,7 +589,7 @@
         const r = roomBox(id);
         consider(GL3D.rayBox(ray, [r.x0, 0, r.z0], [r.x1, 0.12, r.z1]), { room: id });
         const room = s.rooms[id];
-        if (room.unlocked && room.vitrines.length) slots(id, room.vitrines.length).forEach(([vx, vz], i) => {
+        if (room.unlocked && room.vitrines.length) positions(s, id).forEach(([vx, vz], i) => {
           consider(GL3D.rayBox(ray, [vx - 0.5, 0, vz - 0.5], [vx + 0.5, 2.1, vz + 0.5]), { room: id, obj: room.vitrines[i], slot: i });
         });
       });
@@ -545,15 +637,24 @@
         if (!room.unlocked || !room.vitrines.length) return;
         const big = id === 'hall' ? 1.25 : 1;
         const alpha = { tamise: 0.07, standard: 0.12, vif: 0.2 }[room.lighting];
-        slots(id, room.vitrines.length).forEach(([vx, vz], i) => {
+        positions(s, id).forEach(([vx, vz, vr], i) => {
           const oid = room.vitrines[i];
+          const dragged = edit.drag && edit.drag.room === id && edit.drag.index === i;
+          opaque.push({ mesh: oid ? U.vitrine : U.vitrineEmpty, m: M.chain(M.T(vx, dragged ? 0.12 : 0, vz), M.RY(vr), M.S(big, big, big)) });
+          if (id !== 'hall') opaque.push({ mesh: U.lamp, m: M.T(vx, 3.0, vz), shadow: false });
+          if (edit.on) {
+            const sel = edit.sel && edit.sel.room === id && edit.sel.index === i;
+            const col = dragged && edit.drag.bad ? '#b23a2a' : sel || dragged ? '#d39b2a' : '#2f6f73';
+            transparent.push({ mesh: U.ring, m: M.chain(M.T(vx, 0.1, vz), M.S(1.5 * big, 0.02, 1.5 * big)), tint: tint(col), alpha: sel || dragged ? 0.55 : 0.28, c: [vx, 0.1, vz], outline: false });
+          }
           if (oid) {
             const o = s.objects[oid];
             const flat = ME.Models3D.build && objCache.get(o).panel;
             const spin = flat ? Math.sin(time * 0.5 + i) * 0.35 : time * 0.45 + (o.seed % 628) / 100;
             const sc = (flat ? 0.78 : 0.72) * big;
-            opaque.push({ mesh: U.cyl, m: M.chain(M.T(vx, 1.06, vz), M.RY(spin), M.S(0.6 * big, 0.05, 0.6 * big)), tint: tint('#7a5a3a') });
-            ME.Models3D.draw(R, objCache, o, M.chain(M.T(vx, 1.085, vz), M.RY(spin), M.S(sc)), { opaque, sprites }, { bright: room.lighting === 'tamise' ? 0.9 : room.lighting === 'vif' ? 1.08 : 1 });
+            const lift = dragged ? 0.12 : 0;
+            opaque.push({ mesh: U.cyl, m: M.chain(M.T(vx, 1.06 + lift, vz), M.RY(spin), M.S(0.6 * big, 0.05, 0.6 * big)), tint: tint('#7a5a3a') });
+            ME.Models3D.draw(R, objCache, o, M.chain(M.T(vx, 1.085 + lift, vz), M.RY(spin), M.S(sc)), { opaque, sprites }, { bright: room.lighting === 'tamise' ? 0.9 : room.lighting === 'vif' ? 1.08 : 1 });
           }
           transparent.push({ mesh: U.glass, m: M.chain(M.T(vx, 1.03 + 0.475 * big, vz), M.S(0.86 * big, 0.95 * big, 0.86 * big)), tint: tint('#d8f2f4'), alpha: 0.13, c: [vx, 1.5, vz], outline: false });
           if (id !== 'hall') transparent.push({ mesh: U.beam, m: M.chain(M.T(vx, 2.45, vz), M.S(1.1, 1.0, 1.1)), tint: tint('#ffe9a8'), alpha, c: [vx, 2.4, vz], outline: false });
@@ -584,6 +685,13 @@
         ov.label(R, [r.cx, 3.3, r.z0 + 0.6], h, 'room');
       });
       ov.label(R, [-1.1, 4.9, 4], '<b>MUSÉE &amp; EXPÉDITIONS</b>', 'sign');
+      if (edit.on && edit.sel) {
+        const [vx, vz] = positions(s, edit.sel.room)[edit.sel.index];
+        const p = ME.Exhibitions.layout(s, edit.sel.room)[edit.sel.index];
+        const chk = ME.Exhibitions.checkSpot(s, edit.sel.room, edit.sel.index, p.x, p.z);
+        const txt = edit.drag && edit.drag.bad ? edit.msg : chk.warn && chk.warn.length ? '⚠ ' + chk.warn.join(', ') : '✔ Bonne place';
+        ov.label(R, [vx, 2.4, vz], txt, 'room tip' + (edit.drag && edit.drag.bad || (chk.warn && chk.warn.length) ? ' warn' : ''));
+      }
       if (follow && agents.includes(follow)) {
         const vt = D.VISITOR_TYPES[follow.type];
         const room = D.ROOMS[follow.room] ? D.ROOMS[follow.room].name : '';
@@ -599,7 +707,7 @@
     }
     function stop() { if (raf) G.cancelAnimationFrame(raf); raf = null; R.destroy(); }
     raf = G.requestAnimationFrame(frame);
-    return { stop, cam, R, agents, follow: (i) => { follow = agents[i] || null; } };
+    return { stop, cam, R, agents, edit, follow: (i) => { follow = agents[i] || null; } };
   };
 
   /* =========================================================
