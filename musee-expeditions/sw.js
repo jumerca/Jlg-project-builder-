@@ -1,5 +1,5 @@
 /* Musée & Expéditions — service worker : le jeu fonctionne hors ligne une fois installé. */
-const CACHE = 'musee-expeditions-v5';
+const CACHE = 'musee-expeditions-v6';
 const FILES = [
   "./",
   "index.html",

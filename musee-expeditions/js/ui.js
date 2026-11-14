@@ -170,7 +170,7 @@
   VIEWS.musee = function () {
     const lv = S.lastVisit;
     const rooms = Object.keys(D.ROOMS).filter((k) => ['expo', 'temp', 'hall'].includes(D.ROOMS[k].kind));
-    let html = '<div id="scene-slot" data-key="musee"></div>';
+    let html = installCard() + '<div id="scene-slot" data-key="musee"></div>';
     html += '<p class="hint">✎ ' + (use3d() ? 'Faites glisser pour vous déplacer dans le musée · deux doigts (ou clic droit) pour pivoter · pincez ou molette pour zoomer · flèches/ZQSD au clavier. Touchez une salle ou une vitrine.' : 'Touchez une salle pour gérer ses vitrines, son thème et son éclairage.') + '</p><div class="cols"><div>';
     if (S.pendingReveals.length) html += '<div class="panel paper"><div class="panel-head"><h3>📦 ' + S.pendingReveals.length + ' caisse(s) à déballer</h3><button class="btn gold" data-action="openReveal">Déballer au pinceau</button></div><small>Vos découvertes sont arrivées : dégagez-les délicatement pour révéler leur histoire.</small></div>';
     html += '<div class="panel"><div class="panel-head"><h3>Salles d\'exposition</h3><small>Parcours : ' + ['hall'].concat(E.normalizeRoute(S)).map((r) => esc(D.ROOMS[r].name)).join(' → ') + '</small></div><div class="room-list">';
@@ -782,6 +782,7 @@
       '<div class="carnet"><p>« Cher ami,</p><p>Le docteur Aubertin nous a légué sa maison, quelques vitrines et une poignée d\'objets. Le reste dépend de vous : partez sur le terrain, rapportez des découvertes, étudiez-les, restaurez-les et faites-les aimer du public.</p><p>L\'atelier est petit, les finances sont modestes, mais les falaises de la Vézère n\'attendent que vous. »</p><p style="text-align:right">— La Fondation du musée</p></div>' +
       '<h3 style="margin-top:12px">La boucle de jeu</h3><ol style="padding-left:20px"><li><b>Carte</b> : demandez une autorisation, puis préparez une mission (équipe, matériel, budget).</li><li><b>Expéditions</b> : suivez le chantier semaine après semaine ; chaque découverte reçoit un numéro d\'inventaire.</li><li><b>Déballage</b> : dégagez vos trouvailles au pinceau à leur arrivée.</li><li><b>Atelier</b> : restaurez et étudiez (postes et personnel limités).</li><li><b>Musée</b> : exposez, choisissez thèmes, éclairage et parcours.</li><li><b>Visiteurs & finances</b> : billetterie, boutique, dons et subventions financent la mission suivante.</li></ol>' +
       '<p class="hint">✎ Le bouton « Semaine suivante ▶ » fait avancer le temps. La partie est sauvegardée automatiquement.</p>' +
+      (installInfo().standalone ? '' : '<div class="install-box" style="margin:10px 0"><img src="icons/icon-192.png" alt=""><div><b>Astuce :</b> installez le jeu sur votre écran d\'accueil.<br><button class="btn gold small" data-action="install" style="margin-top:6px">📲 Installer le jeu</button></div></div>') +
       '<div class="btn-row"><button class="btn primary" data-action="closeModal">Ouvrir le musée</button><button class="btn" data-action="tab" data-tab="carte" data-close="1">Aller directement à la carte</button></div>', 'narrow');
   };
 
@@ -815,15 +816,51 @@
       '<p style="margin-top:14px"><small>Musée & Expéditions · version ' + ME.VERSION + ' · JLG Creative. Les institutions, sites et musées cités sont fictifs.</small></p>';
   }
 
-  function installHTML() {
+  /* ---------- Installation comme application ---------- */
+  const PUBLIC_URL = 'https://jumerca.github.io/Jlg-project-builder-/musee-expeditions/';
+  function installInfo() {
     const ins = ME.install || {};
-    const ios = /iPhone|iPad|iPod/.test(G.navigator.userAgent);
-    let how;
-    if (ins.standalone) how = '✔ Le jeu est déjà installé et s\'ouvre comme une application.';
-    else if (ins.prompt) how = '<button class="btn gold" data-action="install">⤓ Installer sur cet appareil</button>';
-    else if (ios) how = 'Sur iPhone ou iPad, dans Safari : bouton <b>Partager</b> puis <b>Sur l\'écran d\'accueil</b>.';
-    else how = 'Ouvrez le jeu à son adresse publique dans Chrome, Edge ou Safari, puis utilisez « Installer l\'application » (menu du navigateur). <small>L\'aperçu intégré à claude.ai ne permet pas l\'installation.</small>';
-    return '<h3 style="margin-top:12px">Installer le jeu</h3><div class="install-box"><img src="icons/icon-192.png" alt="Logo Musée & Expéditions"><p>' + how + '</p></div>';
+    const ua = G.navigator.userAgent || '';
+    const platform = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in doc) ? 'ios' : /Android/.test(ua) ? 'android' : 'desktop';
+    const publicHost = /github\.io$/.test(G.location.hostname) || /^localhost$|^127\./.test(G.location.hostname);
+    return { standalone: !!ins.standalone, prompt: ins.prompt || null, platform, embedded: !publicHost };
+  }
+  UI.installInfo = installInfo;
+  UI.refreshInstall = function () {
+    const b = $('#installBtn');
+    if (b) b.hidden = installInfo().standalone;
+    if (S && view.tab === 'musee' && $('#installCard')) $('#installCard').outerHTML = installCard();
+    if (modal && modal.isInstall) renderModal();
+  };
+  function installCard() {
+    const i = installInfo();
+    if (i.standalone || (S.settings && S.settings.hideInstall)) return '<div id="installCard" hidden></div>';
+    return '<div class="panel install-card" id="installCard"><div class="install-box"><img src="icons/icon-192.png" alt=""><div><b>Jouez comme une vraie application</b><br><small>Icône sur l\'écran d\'accueil, plein écran, fonctionne hors ligne.</small></div></div>' +
+      '<div class="btn-row"><button class="btn gold" data-action="install">📲 Installer le jeu</button><button class="btn small" data-action="hideInstall">Plus tard</button></div></div>';
+  }
+  function installHTML() {
+    const i = installInfo();
+    return '<h3 style="margin-top:12px">Installer le jeu</h3><div class="install-box"><img src="icons/icon-192.png" alt="Logo Musée & Expéditions"><div>' +
+      (i.standalone ? '<p>✔ Le jeu est déjà installé et s\'ouvre comme une application.</p>' : '<button class="btn gold" data-action="install">📲 Installer sur cet appareil</button>') + '</div></div>';
+  }
+  function installHelpHTML() {
+    const i = installInfo();
+    const url = i.embedded ? PUBLIC_URL : G.location.href.split('#')[0];
+    let h = '<div class="install-box" style="margin-bottom:8px"><img src="icons/icon-192.png" alt=""><div><h2 style="margin:0">Installer Musée & Expéditions</h2><small>Le jeu s\'ouvrira depuis une icône, en plein écran, même sans connexion.</small></div></div>';
+    if (i.standalone) return h + '<p class="ok-msg">✔ Le jeu est déjà installé sur cet appareil.</p>';
+    if (i.prompt) return h + '<button class="btn gold" data-action="install">📲 Installer maintenant</button>';
+    if (i.embedded) h += '<p class="minus">Cette page (aperçu claude.ai ou fichier local) ne permet pas l\'installation : ouvrez l\'adresse publique du jeu ci-dessous, puis suivez ces étapes.</p>';
+    if (i.platform === 'android') {
+      const intent = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end';
+      h += '<ol class="steps"><li><b>Ouvrez le jeu dans Chrome.</b> Si vous êtes dans l\'appli Claude, Gmail, Facebook… (onglet avec une croix ✕ en haut), l\'installation y est impossible.<div class="btn-row"><a class="btn primary" href="' + intent + '">Ouvrir dans Chrome</a></div></li>' +
+        '<li>Dans Chrome, touchez <b>⋮</b> en haut à droite.</li><li>Choisissez <b>« Installer l\'application »</b> ou <b>« Ajouter à l\'écran d\'accueil »</b>, puis <b>Installer</b>.</li><li>L\'icône du musée apparaît sur votre écran d\'accueil. 🎉</li></ol>';
+    } else if (i.platform === 'ios') {
+      h += '<ol class="steps"><li><b>Ouvrez le jeu dans Safari</b> (depuis une autre appli : bouton <b>⋯</b> ou <b>Safari</b> → « Ouvrir dans Safari »).</li><li>Touchez <b>Partager</b> (carré avec une flèche ↑) en bas de l\'écran.</li><li>Choisissez <b>« Sur l\'écran d\'accueil »</b>, puis <b>Ajouter</b>.</li><li>L\'icône du musée apparaît sur votre écran d\'accueil. 🎉</li></ol>';
+    } else {
+      h += '<ol class="steps"><li>Ouvrez le jeu dans <b>Chrome</b> ou <b>Edge</b>.</li><li>Cliquez sur l\'icône <b>⊕ Installer</b> à droite de la barre d\'adresse, ou menu <b>⋮</b> → <b>« Installer Musée & Expéditions… »</b>.</li><li>Le jeu s\'ouvre dans sa propre fenêtre et apparaît parmi vos applications.</li></ol>';
+    }
+    h += '<p><small>Adresse du jeu :</small><br><a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(url) + '</a></p><div class="btn-row"><button class="btn" data-action="copyLink">📋 Copier le lien</button></div>';
+    return h;
   }
 
   /* ================= ACTIONS ================= */
@@ -867,9 +904,19 @@
     ficheView: () => { view.fiche2d = !view.fiche2d; renderModal(); },
     install: () => {
       const ins = ME.install || {};
-      if (!ins.prompt) { A.openSettings(); return; }
-      ins.prompt.prompt();
-      ins.prompt.userChoice.then(() => { ins.prompt = null; const b = $('#installBtn'); if (b) b.hidden = true; if (modal) renderModal(); });
+      if (ins.prompt) {
+        const p = ins.prompt;
+        p.prompt();
+        p.userChoice.then((c) => { ins.prompt = null; if (c && c.outcome === 'accepted') { ins.standalone = true; toast('Installation en cours : l\'icône arrive sur votre écran d\'accueil.', 'success'); } UI.refreshInstall(); }).catch(() => {});
+        return;
+      }
+      openModal(installHelpHTML, 'narrow'); modal.isInstall = true;
+    },
+    hideInstall: () => { S.settings.hideInstall = true; ME.State.save(S); UI.render(); },
+    copyLink: () => {
+      const url = installInfo().embedded ? PUBLIC_URL : G.location.href.split('#')[0];
+      const ok = () => toast('Lien copié.', 'success');
+      try { navigator.clipboard.writeText(url).then(ok, () => toast(url, 'info')); } catch (e) { toast(url, 'info'); }
     },
     openSettings: () => { view.confirmReset = false; view.importMsg = null; openModal(settingsHTML, 'narrow'); },
     openRoom: (d) => UI.openRoom(d.room),
