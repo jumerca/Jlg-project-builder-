@@ -428,10 +428,11 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
         gl.uniform1i(progSpr.u.uTex, 1);
         for (const s of scene.sprites) {
           if (!s.tex) continue;
-          const yaw = Math.atan2(scene.eye[0] - s.pos[0], scene.eye[2] - s.pos[2]);
           gl.bindTexture(gl.TEXTURE_2D, s.tex);
           gl.uniform1f(progSpr.u.uBright, s.bright || 1);
-          gl.uniformMatrix4fv(progSpr.u.uModel, false, M.chain(M.T(s.pos[0], s.pos[1], s.pos[2]), M.RY(yaw), M.S(s.w, s.h, 1)));
+          let sm = s.m;
+          if (!sm) { const yaw = Math.atan2(scene.eye[0] - s.pos[0], scene.eye[2] - s.pos[2]); sm = M.chain(M.T(s.pos[0], s.pos[1], s.pos[2]), M.RY(yaw), M.S(s.w, s.h, 1)); }
+          gl.uniformMatrix4fv(progSpr.u.uModel, false, sm);
           gl.drawArrays(gl.TRIANGLES, 0, 6);
         }
         gl.enable(gl.CULL_FACE);
@@ -541,7 +542,7 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       moved = 0;
       stopTweens();
       // clic gauche : déplacer · clic droit, Ctrl ou Maj : pivoter / incliner
-      mode = e.button === 2 || e.ctrlKey || e.shiftKey || e.altKey ? 'rotate' : 'pan';
+      mode = opts.dragRotate || e.button === 2 || e.ctrlKey || e.shiftKey || e.altKey ? 'rotate' : 'pan';
       if (pts.size === 2) gesture = twoInfo();
     });
     canvas.addEventListener('pointermove', (e) => {

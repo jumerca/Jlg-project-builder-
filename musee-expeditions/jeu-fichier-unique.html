@@ -257,8 +257,9 @@ textarea { width: 100%; min-height: 90px; font-family: ui-monospace, Menlo, mono
 .dig { position: relative; aspect-ratio: 1; border: 3px solid var(--ink); border-radius: 8px; overflow: hidden; background: radial-gradient(circle, #fffdf6, #e6d4ab); touch-action: none; user-select: none; }
 .dig .obj { position: absolute; inset: 6%; }
 .dig .obj svg { width: 100%; height: 100%; }
-.dig canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; transition: opacity .6s; }
-.dig.done canvas { opacity: 0; pointer-events: none; }
+.dig > canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; transition: opacity .6s; }
+.dig.done > canvas { opacity: 0; pointer-events: none; }
+.dig .obj.gl-wrap { position: absolute; z-index: 2; }
 .dig .shine { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle, rgba(255,236,170,.75), transparent 60%); }
 .dig.done.rare .shine { animation: shine 1.6s ease-out; }
 @keyframes shine { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
@@ -342,6 +343,16 @@ textarea { width: 100%; min-height: 90px; font-family: ui-monospace, Menlo, mono
 .welcome-logo { display: block; width: 100%; max-width: 460px; margin: 0 auto 10px; border-radius: 8px; }
 .install-box { display: flex; gap: 12px; align-items: center; }
 .install-box img { width: 64px; height: 64px; border-radius: 14px; flex: none; }
+
+.gl-tools button.on { background: var(--red); color: #fff; }
+.gl-label.room.think { background: #fffaf0; border-color: var(--blue); max-width: 260px; white-space: normal; }
+.gl-label.room.think small { display: block !important; font-style: italic; }
+.fiche .plate.gl-wrap { padding: 0; overflow: hidden; background: #faf3e0; }
+.fiche .plate.gl-wrap .gl-canvas { width: 100% !important; height: 100% !important; }
+.dig .obj.gl-wrap { background: #faf3e0; }
+.dig .obj.gl-wrap .gl-canvas { width: 100% !important; height: 100% !important; }
+.plate .gl-tools, .dig .gl-tools { display: none; }
+.fiche .plate .tag { z-index: 3; }
 
 </style>
 </head>
@@ -3784,10 +3795,11 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
         gl.uniform1i(progSpr.u.uTex, 1);
         for (const s of scene.sprites) {
           if (!s.tex) continue;
-          const yaw = Math.atan2(scene.eye[0] - s.pos[0], scene.eye[2] - s.pos[2]);
           gl.bindTexture(gl.TEXTURE_2D, s.tex);
           gl.uniform1f(progSpr.u.uBright, s.bright || 1);
-          gl.uniformMatrix4fv(progSpr.u.uModel, false, M.chain(M.T(s.pos[0], s.pos[1], s.pos[2]), M.RY(yaw), M.S(s.w, s.h, 1)));
+          let sm = s.m;
+          if (!sm) { const yaw = Math.atan2(scene.eye[0] - s.pos[0], scene.eye[2] - s.pos[2]); sm = M.chain(M.T(s.pos[0], s.pos[1], s.pos[2]), M.RY(yaw), M.S(s.w, s.h, 1)); }
+          gl.uniformMatrix4fv(progSpr.u.uModel, false, sm);
           gl.drawArrays(gl.TRIANGLES, 0, 6);
         }
         gl.enable(gl.CULL_FACE);
@@ -3897,7 +3909,7 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       moved = 0;
       stopTweens();
       // clic gauche : déplacer · clic droit, Ctrl ou Maj : pivoter / incliner
-      mode = e.button === 2 || e.ctrlKey || e.shiftKey || e.altKey ? 'rotate' : 'pan';
+      mode = opts.dragRotate || e.button === 2 || e.ctrlKey || e.shiftKey || e.altKey ? 'rotate' : 'pan';
       if (pts.size === 2) gesture = twoInfo();
     });
     canvas.addEventListener('pointermove', (e) => {
@@ -3954,6 +3966,286 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
     };
     cam.clamp();
     return cam;
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* Musée & Expéditions — models3d.js
+ * Modèles 3D procéduraux des 36 types d'objets (volumes simples façon BD).
+ * Chaque modèle est ajusté automatiquement dans un cube unité, posé sur y = 0.
+ * Les objets plats et peints (papyrus, portrait, vitrail, carreau, feuillet) sont
+ * présentés sur un panneau texturé avec leur illustration, dans un cadre en volume.
+ */
+(function (G) {
+  'use strict';
+  const ME = G.ME;
+  const GL3D = ME.GL3D, M = GL3D.M4;
+  const MOD = (ME.Models3D = {});
+  const { T, S, RX, RY, RZ, chain } = M;
+
+  /** Couleurs du matériau, assombries et ternies selon l'état de l'objet. */
+  function palette(o) {
+    const p = ME.Art.PAL[o.mat] || ME.Art.PAL.pierre;
+    const wear = (1 - (o.condition == null ? 80 : o.condition) / 100) * 0.4;
+    return p.map((c) => GL3D.mix(c, '#6b5a45', wear));
+  }
+
+  /** Ramène le maillage dans un cube unité, posé au sol et centré. */
+  function fit(B, maxH, maxW) {
+    const d = B.data;
+    const mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < d.length; i += 12) for (let k = 0; k < 3; k++) { mn[k] = Math.min(mn[k], d[i + k]); mx[k] = Math.max(mx[k], d[i + k]); }
+    const h = mx[1] - mn[1] || 1, w = Math.max(mx[0] - mn[0], mx[2] - mn[2]) || 1;
+    const s = Math.min((maxH || 1) / h, (maxW || 1) / w);
+    const cx = (mn[0] + mx[0]) / 2, cz = (mn[2] + mx[2]) / 2;
+    for (let i = 0; i < d.length; i += 12) { d[i] = (d[i] - cx) * s; d[i + 1] = (d[i + 1] - mn[1]) * s; d[i + 2] = (d[i + 2] - cz) * s; }
+    return B;
+  }
+
+  const F = {}; // constructeurs : (B, pal, o, rnd) => éventuellement { panel }
+
+  F.biface = (B, p) => { B.lathe(S(1, 1, 0.38), p[0], [[0, 0], [0.2, 0.08], [0.3, 0.35], [0.24, 0.7], [0.1, 0.95], [0, 1]], 7); };
+  F.blade = (B, p) => { B.lathe(S(1, 1, 0.32), p[0], [[0, 0], [0.07, 0.06], [0.1, 0.5], [0.08, 0.92], [0, 1]], 6); };
+  F.point = (B, p) => {
+    B.cyl(chain(T(0, 0.45, 0), S(0.1, 0.8, 0.1)), p[0], 7);
+    B.cyl(chain(T(0, 0.95, 0), S(0.1, 0.2, 0.1)), p[0], 7, 0, 0.5);
+    B.box(chain(T(0, 0.03, 0), RZ(0.5), S(0.08, 0.1, 0.1)), p[1]);
+  };
+  F.propulseur = (B, p) => {
+    B.box(chain(T(0, 0.45, 0), RZ(0.35), S(0.08, 0.95, 0.08)), p[0]);
+    B.sphere(chain(T(0.2, 0.95, 0), S(0.32, 0.18, 0.16)), p[0], 5, 8);
+    B.sphere(chain(T(0.38, 1.05, 0), S(0.13)), p[0], 5, 8);
+    for (const z of [-0.03, 0.03]) B.cyl(chain(T(0.36, 1.18, z), RZ(0.6), S(0.03, 0.22, 0.03)), p[1], 5);
+    for (const x of [0.1, 0.28]) B.box(chain(T(x, 0.82, 0), S(0.04, 0.12, 0.05)), p[0]);
+  };
+  F.stoneLamp = (B, p) => {
+    B.sphere(chain(T(0, 0.12, 0), S(0.62, 0.26, 0.5)), p[0], 5, 10);
+    B.box(chain(T(0.42, 0.12, 0), S(0.36, 0.12, 0.16)), p[0]);
+    B.cyl(chain(T(-0.04, 0.24, 0), S(0.34, 0.03, 0.26)), '#2b2118', 10);
+  };
+  F.venus = (B, p) => {
+    B.sphere(chain(T(0, 1.0, 0), S(0.16, 0.2, 0.16)), p[0], 5, 8);
+    B.sphere(chain(T(0, 0.72, 0), S(0.32, 0.36, 0.26)), p[0], 5, 8);
+    for (const x of [-0.08, 0.08]) B.sphere(chain(T(x, 0.74, 0.1), S(0.14)), p[0], 4, 7);
+    B.sphere(chain(T(0, 0.45, 0), S(0.46, 0.34, 0.34)), p[0], 5, 9);
+    B.cyl(chain(T(0, 0.15, 0), S(0.26, 0.34, 0.2)), p[0], 8, 0.6, 0.15);
+  };
+  F.beads = (B, p) => {
+    for (let i = 0; i < 9; i++) {
+      const a = Math.PI * (0.1 + 0.8 * i / 8);
+      B.sphere(chain(T(Math.cos(a) * 0.5, 0.55 - Math.sin(a) * 0.45, 0), RZ(a), S(0.1, 0.16, 0.08)), p[i % 2 ? 0 : 2], 4, 7);
+    }
+    B.cyl(chain(T(-0.5, 0.6, 0), S(0.02, 0.2, 0.02)), '#6b4a2b', 4); B.cyl(chain(T(0.5, 0.6, 0), S(0.02, 0.2, 0.02)), '#6b4a2b', 4);
+  };
+  F.sherd = (B, p, o, r) => {
+    B.box(chain(T(0, 0.4, 0), RZ(0.15), RY(0.2), S(0.8, 0.6, 0.05)), '#d98a5a');
+    B.box(chain(T(0, 0.42, 0.03), RZ(0.15), RY(0.2), S(0.78, 0.08, 0.02)), '#7a2f1a', { outline: false });
+    B.box(chain(T(0, 0.26, 0.03), RZ(0.15), RY(0.2), S(0.7, 0.04, 0.02)), '#f2e2c4', { outline: false });
+  };
+  F.fibula = (B, p) => {
+    for (let i = 0; i <= 8; i++) { const a = Math.PI * i / 8; B.sphere(chain(T(-Math.cos(a) * 0.4, 0.15 + Math.sin(a) * 0.45, 0), S(0.11)), p[0], 4, 7); }
+    for (let i = 0; i < 4; i++) B.cyl(chain(T(-0.45, 0.15, -0.06 + i * 0.04), RX(Math.PI / 2), S(0.1, 0.03, 0.1)), p[1], 8);
+    B.cyl(chain(T(0, 0.08, 0), RZ(Math.PI / 2), S(0.03, 0.85, 0.03)), p[1], 5);
+    B.box(chain(T(0.42, 0.12, 0), S(0.1, 0.12, 0.08)), p[0]);
+  };
+  F.coin = (B, p, o) => {
+    B.cyl(chain(T(0, 0.5, 0), RX(Math.PI / 2), S(1, 0.08, 1)), p[0], 18);
+    B.cyl(chain(T(0, 0.5, 0.045), RX(Math.PI / 2), S(0.84, 0.02, 0.84)), p[2], 18, null, null, { outline: false });
+    if (o.type === 'denier') { B.box(chain(T(0, 0.5, 0.06), S(0.08, 0.5, 0.02)), p[1]); B.box(chain(T(0, 0.5, 0.06), S(0.5, 0.08, 0.02)), p[1]); }
+    else { B.sphere(chain(T(0.02, 0.55, 0.06), S(0.34, 0.42, 0.06)), p[1], 4, 9); B.sphere(chain(T(0.14, 0.52, 0.07), S(0.1, 0.08, 0.04)), p[1], 3, 6); }
+  };
+  MOD.amphoraProfile = (rom) => rom
+    ? [[0, 0], [0.04, 0.02], [0.08, 0.12], [0.2, 0.32], [0.24, 0.5], [0.18, 0.68], [0.08, 0.76], [0.07, 0.94], [0.09, 0.96], [0.06, 1], [0, 1]]
+    : [[0, 0], [0.04, 0.03], [0.07, 0.16], [0.17, 0.32], [0.2, 0.46], [0.15, 0.6], [0.07, 0.66], [0.065, 0.94], [0.085, 0.96], [0.06, 1], [0, 1]];
+  F.amphora = (B, p, o) => {
+    const rom = o.type === 'amphore';
+    B.lathe(M.ident(), p[0], MOD.amphoraProfile(rom), 12);
+    const y0 = rom ? 0.72 : 0.64, y1 = rom ? 0.9 : 0.86;
+    for (const sg of [-1, 1]) {
+      B.box(chain(T(sg * 0.15, (y0 + y1) / 2, 0), RZ(sg * 0.25), S(0.04, y1 - y0, 0.05)), p[0]);
+      B.box(chain(T(sg * 0.105, y1, 0), S(0.1, 0.035, 0.05)), p[0]);
+    }
+    if (rom) for (let i = 0; i < 6; i++) B.sphere(chain(T(Math.cos(i * 1.7) * 0.2, 0.3 + (i % 3) * 0.12, Math.sin(i * 1.7) * 0.2), S(0.06)), '#efe8d8', 3, 6);
+  };
+  F.torc = (B, p) => {
+    for (let i = 0; i < 16; i++) {
+      const a = Math.PI * 0.3 + (Math.PI * 1.4) * i / 15;
+      B.cyl(chain(T(Math.cos(a) * 0.45, 0.5 + Math.sin(a) * 0.45, 0), RZ(a), S(0.08, 0.2, 0.08)), p[0], 7);
+    }
+    for (const sg of [-1, 1]) B.sphere(chain(T(sg * 0.25, 0.9, 0), S(0.16)), p[0], 5, 8);
+  };
+  F.sword = (B, p, o) => {
+    B.box(chain(T(0, 0.45, 0), S(0.1, 0.85, 0.035)), '#4a3328');
+    B.box(chain(T(0, 0.45, 0.02), S(0.07, 0.8, 0.02)), p[0]);
+    B.box(chain(T(0, 0.04, 0), S(0.12, 0.08, 0.05)), p[1]);
+    B.box(chain(T(0, 0.88, 0), S(0.26, 0.05, 0.06)), '#4a3328');
+    B.cyl(chain(T(0, 0.96, 0), S(0.05, 0.14, 0.05)), '#5a3d2c', 6);
+    B.sphere(chain(T(0, 1.05, 0), S(0.09)), p[1], 4, 7);
+  };
+  F.scarab = (B, p) => {
+    B.sphere(chain(T(0, 0.12, 0.05), S(0.5, 0.3, 0.62)), p[0], 5, 10);
+    B.box(chain(T(0, 0.14, -0.3), S(0.32, 0.14, 0.16)), p[0]);
+    B.box(chain(T(0, 0.12, -0.42), S(0.22, 0.1, 0.1)), p[1]);
+    B.box(chain(T(0, 0.27, 0.08), S(0.02, 0.03, 0.5)), p[1], { outline: false });
+    for (const sg of [-1, 1]) for (let i = 0; i < 3; i++) B.box(chain(T(sg * 0.28, 0.04, -0.15 + i * 0.18), RY(sg * (i - 1) * 0.4), S(0.14, 0.03, 0.03)), p[1]);
+  };
+  F.ushabti = (B, p) => {
+    B.cyl(chain(T(0, 0.4, 0), S(0.36, 0.8, 0.26)), p[0], 10, 0.62, 0.45);
+    B.sphere(chain(T(0, 0.86, 0), S(0.24, 0.26, 0.22)), p[2], 5, 8);
+    B.cyl(chain(T(0, 0.82, -0.02), S(0.34, 0.3, 0.26)), '#1d5f6e', 10, 0.5, 0.6);
+    B.box(chain(T(0, 0.58, 0.12), S(0.28, 0.06, 0.04)), p[1]);
+    for (let i = 0; i < 4; i++) B.box(chain(T(0, 0.12 + i * 0.09, 0.11), S(0.08, 0.04, 0.02)), '#2b2118', { outline: false });
+  };
+  F.amulet = (B, p) => {
+    B.sphere(chain(T(0, 0.55, 0), S(0.8, 0.36, 0.12)), p[0], 4, 12);
+    B.sphere(chain(T(0, 0.55, 0.05), S(0.22, 0.22, 0.08)), '#13353d', 4, 8);
+    B.box(chain(T(0, 0.86, 0), S(0.8, 0.07, 0.08)), p[0]);
+    B.box(chain(T(-0.1, 0.25, 0), RZ(-0.2), S(0.07, 0.36, 0.08)), p[0]);
+    B.box(chain(T(0.22, 0.24, 0), RZ(0.6), S(0.07, 0.3, 0.08)), p[0]);
+    B.sphere(chain(T(0.32, 0.1, 0), S(0.12, 0.12, 0.08)), p[0], 4, 7);
+  };
+  F.oilLamp = (B, p, o) => {
+    B.lathe(chain(T(0, 0, 0), S(1, 0.6, 1)), p[0], [[0, 0], [0.3, 0.02], [0.4, 0.15], [0.36, 0.3], [0.12, 0.34], [0.1, 0.3], [0, 0.3]], 12);
+    B.box(chain(T(0.42, 0.1, 0), S(0.36, 0.12, 0.18)), p[0]);
+    B.cyl(chain(T(0.56, 0.17, 0), S(0.06, 0.02, 0.06)), '#2b2118', 8);
+    B.cyl(chain(T(-0.42, 0.16, 0), RZ(Math.PI / 2), S(0.14, 0.05, 0.14)), p[0], 8);
+    if (o.type === 'lampeRom') for (const z of [-0.12, 0.12]) B.sphere(chain(T(0.3, 0.17, z), S(0.08)), p[0], 4, 6);
+  };
+  F.cat = (B, p) => {
+    B.cyl(chain(T(0, 0.3, 0), S(0.36, 0.6, 0.32)), p[0], 10, 0.55, 0.5);
+    B.sphere(chain(T(0, 0.08, 0.05), S(0.4, 0.18, 0.45)), p[0], 4, 8);
+    B.sphere(chain(T(0, 0.72, 0.03), S(0.24, 0.22, 0.24)), p[0], 5, 8);
+    for (const sg of [-1, 1]) B.cyl(chain(T(sg * 0.07, 0.88, 0.02), S(0.07, 0.12, 0.05)), p[0], 4, 0, 0.5);
+    B.cyl(chain(T(0.18, 0.08, -0.14), RZ(-1.2), S(0.05, 0.4, 0.05)), p[0], 6);
+    B.sphere(chain(T(-0.1, 0.84, 0.02), S(0.04)), '#e3b33a', 3, 6);
+    for (const sg of [-1, 1]) B.sphere(chain(T(sg * 0.05, 0.75, 0.13), S(0.03)), '#2b2118', 3, 6, { outline: false });
+  };
+  F.bowl = (B, p) => {
+    B.lathe(M.ident(), '#b6452a', [[0, 0], [0.12, 0], [0.13, 0.06], [0.2, 0.08], [0.38, 0.22], [0.46, 0.42], [0.47, 0.46], [0.42, 0.46], [0, 0.46]], 16);
+    B.cyl(chain(T(0, 0.32, 0), S(0.86, 0.04, 0.86)), '#7a2f1a', 16, null, null, { outline: false });
+  };
+  F.ingot = (B, p) => {
+    B.box(chain(T(0, 0.15, 0), S(1, 0.3, 0.32)), p[0]);
+    B.cyl(chain(T(0, 0.3, 0), RZ(Math.PI / 2), S(0.3, 0.9, 0.3)), p[2], 10);
+    B.box(chain(T(0, 0.2, 0.165), S(0.4, 0.1, 0.02)), p[1]);
+  };
+  F.figurine = (B, p) => {
+    for (const sg of [-1, 1]) B.box(chain(T(sg * 0.06, 0.2, 0), RZ(sg * 0.06), S(0.08, 0.4, 0.09)), p[0]);
+    B.cyl(chain(T(0, 0.55, 0), S(0.26, 0.34, 0.18)), p[0], 8, 0.42, 0.5);
+    B.sphere(chain(T(0, 0.82, 0), S(0.16)), p[0], 5, 8);
+    B.cyl(chain(T(0, 0.9, 0), S(0.26, 0.03, 0.26)), p[1], 10);
+    for (const sg of [-1, 1]) B.box(chain(T(sg * 0.13, 0.94, 0), RZ(sg * 0.6), S(0.12, 0.03, 0.03)), p[2]);
+    B.box(chain(T(0.17, 0.62, 0), RZ(-0.4), S(0.06, 0.26, 0.06)), p[0]);
+    B.cyl(chain(T(-0.2, 0.5, 0.04), S(0.025, 0.8, 0.025)), p[1], 5);
+    B.sphere(chain(T(-0.2, 0.92, 0.04), S(0.06)), p[1], 4, 6);
+  };
+  F.flask = (B, p) => {
+    B.lathe(M.ident(), p[0], [[0, 0], [0.18, 0.01], [0.32, 0.14], [0.33, 0.3], [0.22, 0.44], [0.07, 0.5], [0.06, 0.92], [0.09, 0.95], [0.06, 1], [0, 1]], 12);
+    B.sphere(chain(T(-0.12, 0.27, 0.22), S(0.08, 0.14, 0.04)), p[2], 3, 6, { outline: false });
+  };
+  F.anchorStock = (B, p) => {
+    B.box(chain(T(0, 0.12, 0), S(0.4, 0.24, 0.2)), p[1]);
+    for (const sg of [-1, 1]) B.cyl(chain(T(sg * 0.5, 0.12, 0), RZ(sg * Math.PI / 2), S(0.18, 0.62, 0.14)), p[0], 6, 0.45, 0.65);
+  };
+  F.capital = (B, p) => {
+    B.box(chain(T(0, 0.92, 0), S(1, 0.16, 1)), p[0]);
+    B.cyl(chain(T(0, 0.48, 0), S(0.78, 0.72, 0.78)), p[0], 8, 0.62, 0.42);
+    B.cyl(chain(T(0, 0.06, 0), S(0.5, 0.12, 0.5)), p[1], 10);
+    for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; B.sphere(chain(T(Math.cos(a) * 0.4, 0.78, Math.sin(a) * 0.4), S(0.16)), p[2], 4, 7); }
+    for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; B.box(chain(T(Math.cos(a) * 0.27, 0.4, Math.sin(a) * 0.27), RY(-a), S(0.04, 0.4, 0.12)), p[1]); }
+  };
+  F.seal = (B, p) => {
+    B.sphere(chain(T(0, 0.45, 0), S(0.5, 0.9, 0.1)), p[0], 4, 12);
+    B.cyl(chain(T(0, 0.95, 0), RX(Math.PI / 2), S(0.16, 0.06, 0.16)), p[0], 10);
+    B.sphere(chain(T(0, 0.58, 0.05), S(0.1)), p[1], 4, 6);
+    B.box(chain(T(0, 0.38, 0.05), S(0.16, 0.26, 0.03)), p[1]);
+  };
+  F.cross = (B, p) => {
+    B.box(chain(T(0, 0.5, 0), S(0.14, 1, 0.08)), p[0]);
+    B.box(chain(T(0, 0.68, 0), S(0.66, 0.14, 0.08)), p[0]);
+    B.box(chain(T(0, 0.5, 0.045), S(0.08, 0.9, 0.02)), '#2b4f9e', { outline: false });
+    B.box(chain(T(0, 0.68, 0.045), S(0.58, 0.08, 0.02)), '#2b4f9e', { outline: false });
+    B.sphere(chain(T(0, 0.68, 0.06), S(0.13)), '#b2302a', 4, 8);
+    for (const [x, y] of [[0, 0.95], [0, 0.2], [-0.28, 0.68], [0.28, 0.68]]) B.sphere(chain(T(x, y, 0.05), S(0.07)), '#3b7d4a', 3, 6);
+    B.cyl(chain(T(0, 0.02, 0), S(0.3, 0.04, 0.2)), p[1], 10);
+  };
+  F.cycladic = (B, p) => {
+    B.box(chain(T(0, 0.93, 0), RX(-0.25), S(0.2, 0.18, 0.05)), p[0]);
+    B.cyl(chain(T(0, 0.82, 0), S(0.06, 0.1, 0.05)), p[0], 6);
+    B.box(chain(T(0, 0.64, 0), S(0.3, 0.28, 0.08)), p[0]);
+    B.box(chain(T(0, 0.6, 0.045), S(0.26, 0.05, 0.02)), p[1], { outline: false });
+    for (const sg of [-1, 1]) B.box(chain(T(sg * 0.06, 0.25, 0), RZ(sg * 0.04), S(0.11, 0.5, 0.07)), p[0]);
+  };
+  F.jug = (B, p) => {
+    B.lathe(M.ident(), p[0], [[0, 0], [0.18, 0.01], [0.32, 0.18], [0.3, 0.42], [0.12, 0.6], [0.09, 0.62], [0, 0.62]], 12);
+    B.cyl(chain(T(-0.14, 0.76, 0), RZ(0.6), S(0.13, 0.36, 0.13)), p[0], 8, 0.35, 0.6);
+    B.box(chain(T(0.3, 0.42, 0), RZ(-0.3), S(0.05, 0.32, 0.06)), p[0]);
+  };
+  F.dagger = (B, p) => {
+    B.prism(chain(T(0, 0.5, 0), RZ(Math.PI), S(0.36, 0.8, 0.04)), p[0]);
+    B.box(chain(T(0, 0.5, 0.02), S(0.04, 0.6, 0.02)), p[1], { outline: false });
+    B.box(chain(T(0, 0.95, 0), S(0.38, 0.1, 0.06)), p[1]);
+    for (const x of [-0.1, 0, 0.1]) B.sphere(chain(T(x, 0.95, 0.04), S(0.04)), p[2], 3, 6);
+  };
+  F.pan = (B, p) => {
+    B.cyl(chain(T(0, 0.55, 0), RX(Math.PI / 2), S(0.9, 0.08, 0.9)), p[0], 18);
+    for (let r = 0; r < 3; r++) for (let i = 0; i < 10 + r * 4; i++) { const a = i / (10 + r * 4) * Math.PI * 2; B.sphere(chain(T(Math.cos(a) * (0.12 + r * 0.11), 0.55 + Math.sin(a) * (0.12 + r * 0.11), 0.045), S(0.03)), p[1], 2, 4, { outline: false }); }
+    for (const sg of [-1, 1]) B.box(chain(T(sg * 0.08, 0.06, 0), RZ(sg * 0.15), S(0.08, 0.18, 0.07)), p[0]);
+  };
+
+  /** Objets plats et peints : cadre en volume + panneau illustré. */
+  const PANELS = {
+    papyrus: { frame: '#6b4524', w: 0.9, h: 0.8 },
+    manuscript: { frame: '#8a5a34', w: 0.72, h: 0.9 },
+    portrait: { frame: '#6b4524', w: 0.62, h: 0.92 },
+    stainedGlass: { frame: '#2b2118', w: 0.8, h: 0.9 },
+    tile: { frame: '#7a5a3a', w: 0.8, h: 0.8 },
+  };
+
+  /** Construit le modèle d'un objet. Renvoie { builder, panel } ; panel = {w, h, y, z} ou null. */
+  MOD.build = function (o) {
+    const t = ME.DATA.TYPES[o.type];
+    const B = new GL3D.Builder();
+    const pal = palette(o);
+    const pan = PANELS[t.shape];
+    if (pan) {
+      const fw = pan.w + 0.08, fh = pan.h + 0.08;
+      B.box(chain(T(0, 0.04 + fh / 2, 0), S(fw, fh, 0.05)), pan.frame);
+      B.box(chain(T(0, 0.08, -0.12), RX(0.35), S(0.3, 0.2, 0.05)), pan.frame);
+      B.box(chain(T(0, 0.02, 0), S(fw * 0.9, 0.04, 0.24)), pan.frame);
+      return { builder: B, panel: { w: pan.w, h: pan.h, y: 0.08, z: 0.028 } };
+    }
+    const f = F[t.shape] || F.sherd;
+    f(B, pal, o, ME.seeded(o.seed || 1));
+    fit(B, 1, 1);
+    return { builder: B, panel: null };
+  };
+
+  /** Cache de maillages par contexte WebGL. */
+  MOD.cache = function (R) {
+    const map = new Map();
+    return {
+      get(o) {
+        const key = o.type + ':' + o.id + ':' + Math.round(o.condition / 10);
+        let e = map.get(key);
+        if (!e) { const b = MOD.build(o); e = { mesh: R.mesh(b.builder), panel: b.panel }; map.set(key, e); }
+        return e;
+      },
+      clear() { map.forEach((e) => R.free(e.mesh)); map.clear(); },
+    };
+  };
+
+  /** Ajoute l'objet (maillage + éventuel panneau illustré) aux listes de dessin. */
+  MOD.draw = function (R, cache, o, m, lists, opt) {
+    opt = opt || {};
+    const e = cache.get(o);
+    lists.opaque.push({ mesh: e.mesh, m, tint: opt.tint, bright: opt.bright, outlineW: opt.outlineW || 0.0018, shadow: opt.shadow });
+    if (e.panel && lists.sprites) {
+      const tex = R.texture(o.id + ':' + Math.round(o.condition / 10), ME.Art.image(o));
+      const p = e.panel;
+      lists.sprites.push({ tex, m: M.chain(m, M.T(0, p.y, p.z), M.S(p.w, p.h, 1)), bright: opt.bright });
+    }
   };
 })(typeof window !== 'undefined' ? window : globalThis);
 
@@ -4340,13 +4632,25 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
     try { R = GL3D.create(canvas, { shadowSize: G.innerWidth < 720 ? 1024 : 2048, preserve: handlers.preserve }); } catch (e) { R = null; }
     if (!R) { canvas.remove(); return null; }
     const U = unitMeshes(R);
+    const objCache = ME.Models3D.cache(R);
     const ov = overlay(wrap);
     const mobile = () => wrap.clientWidth < 720;
     const cam = { target: [19, 0, 0], yaw: 0.42, pitch: 0.92, dist: 38, minDist: 6, maxDist: 95, minPitch: 0.3, maxPitch: 1.42, bounds: [-14, 52, -18, 20] };
     const home = () => { cam.goalTarget = [19, 0, mobile() ? 0.5 : 0]; cam.goalYaw = 0.42; cam.goalPitch = 0.92; cam.goalDist = mobile() ? 62 : 38; };
     if (mobile()) { cam.dist = 62; }
     GL3D.orbit(canvas, cam, (x, y) => pick(x, y), { groundAt: (x, y) => R.groundAt(x, y) });
-    toolbar(wrap, cam, home, handlers.toggle ? '<button type="button" class="wide" data-toggle="1" title="Revenir à la vue BD 2D">2D</button>' : '');
+    toolbar(wrap, cam, () => { follow = null; home(); }, '<button type="button" class="wide" data-follow="1" title="Suivre un visiteur" aria-label="Suivre un visiteur">👁 Suivre</button>' + (handlers.toggle ? '<button type="button" class="wide" data-toggle="1" title="Revenir à la vue BD 2D">2D</button>' : ''));
+    let follow = null;
+    const fbtn = wrap.querySelector('[data-follow]');
+    fbtn.addEventListener('click', () => {
+      if (!agents.length) return;
+      const idx = follow == null ? 0 : (agents.indexOf(follow) + 1);
+      follow = idx >= agents.length ? null : agents[idx];
+      fbtn.textContent = follow ? '👁 Suivant' : '👁 Suivre';
+      fbtn.classList.toggle('on', !!follow);
+      if (!follow) home();
+    });
+    canvas.addEventListener('pointerdown', () => { if (follow) { follow = null; fbtn.textContent = '👁 Suivre'; fbtn.classList.remove('on'); } });
     wrap.querySelector('[data-toggle]') && wrap.querySelector('[data-toggle]').addEventListener('click', handlers.toggle);
 
     let rooms = {}, shell = null, ext = R.mesh(buildExterior()), sig = '', sigT = 0, extra = { benches: [] };
@@ -4370,7 +4674,7 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       const lv = s.lastVisit;
       const sample = lv && lv.sample.length ? lv.sample[i % lv.sample.length] : { type: Object.keys(VLOOKS)[i % 4], sat: 60 };
       const looks = VLOOKS[sample.type];
-      const a = { type: sample.type, sat: sample.sat, look: looks[i % looks.length], pos: [-9 - Math.random() * 6, 0, 3.4 + Math.random() * 1.2], yaw: Math.PI / 2, queue: [[-0.5, 0, 4], [3, 0, 4]], room: 'hall', step: 0, wait: Math.random() * 6, looked: 0, child: sample.type === 'famille' && i % 2 === 0, bubble: 0, done: false };
+      const a = { type: sample.type, interest: sample.interest || D.VISITOR_TYPES[sample.type].interests[0], sat: sample.sat, look: looks[i % looks.length], pos: [-9 - Math.random() * 6, 0, 3.4 + Math.random() * 1.2], yaw: Math.PI / 2, queue: [[-0.5, 0, 4], [3, 0, 4]], room: 'hall', step: 0, wait: Math.random() * 6, looked: 0, child: sample.type === 'famille' && i % 2 === 0, bubble: 0, done: false };
       if (inside) {
         // à l'ouverture de la vue, le musée est déjà fréquenté
         const route = ['hall'].concat(ME.Exhibitions.normalizeRoute(s));
@@ -4447,11 +4751,12 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
         consider(GL3D.rayBox(ray, [r.x0, 0, r.z0], [r.x1, 0.12, r.z1]), { room: id });
         const room = s.rooms[id];
         if (room.unlocked && room.vitrines.length) slots(id, room.vitrines.length).forEach(([vx, vz], i) => {
-          consider(GL3D.rayBox(ray, [vx - 0.5, 0, vz - 0.5], [vx + 0.5, 2.1, vz + 0.5]), { room: id, obj: room.vitrines[i] });
+          consider(GL3D.rayBox(ray, [vx - 0.5, 0, vz - 0.5], [vx + 0.5, 2.1, vz + 0.5]), { room: id, obj: room.vitrines[i], slot: i });
         });
       });
       if (!best) return;
       if (best.obj && handlers.onObject) handlers.onObject(best.obj);
+      else if (best.slot != null && handlers.onEmptySlot) handlers.onEmptySlot(best.room, best.slot);
       else if (handlers.onRoom) handlers.onRoom(best.room);
     }
 
@@ -4462,6 +4767,13 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       if (!size || size.w !== wrap.clientWidth) size = sizeCanvas(canvas, wrap, mobile() ? 1.05 : 0.56, G.innerHeight * 0.78);
       sigT -= dt;
       if (sigT <= 0) { const sg = signature(s); if (sg !== sig) { sig = sg; rebuild(s); } sigT = 0.4; }
+      if (follow && agents.includes(follow)) {
+        const behind = follow.yaw + Math.PI;
+        cam.goalTarget = [follow.pos[0], 0.6, follow.pos[2]];
+        let dy = (behind - cam.yaw) % (Math.PI * 2); if (dy > Math.PI) dy -= Math.PI * 2; if (dy < -Math.PI) dy += Math.PI * 2;
+        cam.yaw += dy * Math.min(1, dt * 1.5);
+        cam.goalDist = 9; cam.goalPitch = 0.5;
+      }
       ease(cam, dt);
       cam.keyTick && cam.keyTick(dt);
       const eye = cam.eye();
@@ -4490,8 +4802,11 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
           const oid = room.vitrines[i];
           if (oid) {
             const o = s.objects[oid];
-            const tex = R.texture(o.id + ':' + Math.round(o.condition / 10), ME.Art.image(o));
-            sprites.push({ tex, pos: [vx, 1.06, vz], w: 0.88 * big, h: 0.88 * big, bright: room.lighting === 'tamise' ? 0.88 : 1 });
+            const flat = ME.Models3D.build && objCache.get(o).panel;
+            const spin = flat ? Math.sin(time * 0.5 + i) * 0.35 : time * 0.45 + (o.seed % 628) / 100;
+            const sc = (flat ? 0.78 : 0.72) * big;
+            opaque.push({ mesh: U.cyl, m: M.chain(M.T(vx, 1.06, vz), M.RY(spin), M.S(0.6 * big, 0.05, 0.6 * big)), tint: tint('#7a5a3a') });
+            ME.Models3D.draw(R, objCache, o, M.chain(M.T(vx, 1.085, vz), M.RY(spin), M.S(sc)), { opaque, sprites }, { bright: room.lighting === 'tamise' ? 0.9 : room.lighting === 'vif' ? 1.08 : 1 });
           }
           transparent.push({ mesh: U.glass, m: M.chain(M.T(vx, 1.03 + 0.475 * big, vz), M.S(0.86 * big, 0.95 * big, 0.86 * big)), tint: tint('#d8f2f4'), alpha: 0.13, c: [vx, 1.5, vz], outline: false });
           if (id !== 'hall') transparent.push({ mesh: U.beam, m: M.chain(M.T(vx, 2.45, vz), M.S(1.1, 1.0, 1.1)), tint: tint('#ffe9a8'), alpha, c: [vx, 2.4, vz], outline: false });
@@ -4501,7 +4816,7 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       s.jobs.forEach((j, i) => {
         const b = extra.benches[i]; if (!b) return;
         const o = s.objects[j.objId];
-        sprites.push({ tex: R.texture(o.id + ':' + Math.round(o.condition / 10), ME.Art.image(o)), pos: [b[0] - 0.2, 0.93, b[1]], w: 0.6, h: 0.6 });
+        ME.Models3D.draw(R, objCache, o, M.chain(M.T(b[0] - 0.2, 0.9, b[1]), M.RY(time * 0.2), M.S(0.5)), { opaque, sprites });
         const p = s.staff.find((x) => x.id === j.staffId);
         if (p) person(opaque, U, b[0], 0.08, b[1] + 0.95, Math.PI, p.look, { pose: 'work', t: time + i, tool: true });
       });
@@ -4522,6 +4837,13 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
         ov.label(R, [r.cx, 3.3, r.z0 + 0.6], h, 'room');
       });
       ov.label(R, [-1.1, 4.9, 4], '<b>MUSÉE &amp; EXPÉDITIONS</b>', 'sign');
+      if (follow && agents.includes(follow)) {
+        const vt = D.VISITOR_TYPES[follow.type];
+        const room = D.ROOMS[follow.room] ? D.ROOMS[follow.room].name : '';
+        const mood = follow.sat >= 80 ? 'Enchanté·e' : follow.sat >= 60 ? 'Content·e' : follow.sat >= 40 ? 'Mitigé·e' : 'Déçu·e';
+        const reason = s.lastVisit && s.lastVisit.reasons.length ? s.lastVisit.reasons[agents.indexOf(follow) % s.lastVisit.reasons.length] : null;
+        ov.label(R, [follow.pos[0], 2.5, follow.pos[2]], '<b>' + vt.label.replace(/s$/, '') + ' · ' + mood + ' (' + follow.sat + ' %)</b><small>Aime : ' + D.PERIODS[follow.interest].label + ' · ' + room + '</small>' + (reason ? '<small>« ' + reason.text + ' »</small>' : ''), 'room think');
+      }
       agents.forEach((a) => {
         if (a.bubble > 0 && a.lookAt) ov.label(R, [a.pos[0], 2.05, a.pos[2]], a.sat >= 80 ? '★' : a.sat >= 60 ? '♥' : a.sat < 40 ? 'zz' : '?', 'bubble ' + (a.sat >= 80 ? 'wow' : a.sat >= 60 ? 'love' : a.sat < 40 ? 'tired' : 'hmm'));
       });
@@ -4530,7 +4852,7 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
     }
     function stop() { if (raf) G.cancelAnimationFrame(raf); raf = null; R.destroy(); }
     raf = G.requestAnimationFrame(frame);
-    return { stop, cam, R };
+    return { stop, cam, R, agents, follow: (i) => { follow = agents[i] || null; } };
   };
 
   /* =========================================================
@@ -4671,15 +4993,16 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
     try { R = GL3D.create(canvas, { shadowSize: 1024 }); } catch (e) { R = null; }
     if (!R) { canvas.remove(); return null; }
     const U = unitMeshes(R);
+    const objCache = ME.Models3D.cache(R);
     const ov = overlay(wrap);
     const exp0 = getExp();
     const dest = D.DESTINATIONS[exp0.dest];
     const biome = dest.biome;
     const sea = biome === 'sea';
     const rnd = ME.seeded(exp0.id.length * 7919 + exp0.startWeek);
-    const cam = { target: [0, sea ? 1.5 : 0.5, 1], yaw: 0.55, pitch: sea ? 0.32 : 0.6, dist: sea ? 17 : 21, minDist: 8, maxDist: 40, minPitch: 0.15, maxPitch: 1.35, bounds: [-12, 12, -10, 10] };
+    const cam = { target: [0, sea ? 1.5 : 0.5, 1.2], yaw: 0.55, pitch: sea ? 0.32 : 0.62, dist: sea ? 15 : 15.5, minDist: 8, maxDist: 40, minPitch: 0.15, maxPitch: 1.35, bounds: [-12, 12, -10, 10] };
     GL3D.orbit(canvas, cam, null, { groundAt: (x, y) => R.groundAt(x, y) });
-    toolbar(wrap, cam, () => { cam.goalYaw = 0.55; cam.goalDist = 21; cam.goalTarget = [0, sea ? 1.5 : 0.5, 1]; cam.goalPitch = sea ? 0.32 : 0.6; });
+    toolbar(wrap, cam, () => { cam.goalYaw = 0.55; cam.goalDist = sea ? 15 : 15.5; cam.goalTarget = [0, sea ? 1.5 : 0.5, 1]; cam.goalPitch = sea ? 0.32 : 0.6; });
     const back = R.mesh(buildBackdrop(biome, rnd));
     const boat = sea ? R.mesh(buildBoat()) : null;
     let dig = null, sig = '';
@@ -4695,7 +5018,13 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       ease(cam, dt);
       cam.keyTick && cam.keyTick(dt);
       const opaque = [{ mesh: back }, { mesh: dig }];
-      const transparent = [];
+      const transparent = [], sprites = [];
+      exp.finds.forEach((id, k) => {
+        const o = state.objects[id];
+        if (!o || exp.phase !== 'terrain') return;
+        const x = -4.5 + (k % 6) * 1.5 + 0.95 - (k * 0.37) % 0.6 * 0.3, z = (Math.floor(k / 6) % 2) * 1.5 + 0.9;
+        ME.Models3D.draw(R, objCache, o, M.chain(M.T(x + 0.25, 0.05, z), M.RY(o.seed % 6), M.RX(sea ? 1.3 : 1.2), M.S(0.62)), { opaque, sprites: null }, { tint: tint(o.revealed ? '#ffffff' : '#9c8460') });
+      });
       const team = exp.team.map((id) => state.staff.find((p) => p.id === id)).filter(Boolean);
       if (exp.phase === 'terrain') {
         team.forEach((p, i) => {
@@ -4721,7 +5050,7 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
         transparent.push({ mesh: U.water, m: M.chain(M.T(0, 2.8, 0), M.S(70, 5.6, 56)), tint: tint('#2f7fa0'), alpha: 0.2, c: [0, 2.8, 60] });
         transparent.push({ mesh: U.water, m: M.chain(M.T(0, 5.6 + Math.sin(time) * 0.05, 0), M.S(70, 0.05, 56)), tint: tint('#7fc0d8'), alpha: 0.4, c: [0, 5.6, 0] });
       }
-      R.frame({ eye: cam.eye(), target: cam.target, fov: 0.7, light: { dir: [-0.5, -1, -0.35], center: [0, 0, 0], radius: 18 }, bg: BIOME[biome].bg, opaque, transparent, sprites: [], outline: 0.0026 });
+      R.frame({ eye: cam.eye(), target: cam.target, fov: 0.7, light: { dir: [-0.5, -1, -0.35], center: [0, 0, 0], radius: 18 }, bg: BIOME[biome].bg, opaque, transparent, sprites, outline: 0.0026 });
       ov.begin();
       const phase = exp.phase === 'terrain' ? 'Semaine ' + Math.min(exp.weeks, exp.weekDone + 1) + ' / ' + exp.weeks + ' sur le terrain' : exp.phase === 'transport' ? 'Caisses en route vers le musée' : 'Campagne terminée';
       ov.label(R, [cam.target[0], cam.target[1], cam.target[2]], '', 'hidden');
@@ -4730,6 +5059,41 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       raf = G.requestAnimationFrame(frame);
     }
     const banner = doc.createElement('div'); banner.className = 'gl-banner'; wrap.appendChild(banner);
+    function stop() { if (raf) G.cancelAnimationFrame(raf); raf = null; R.destroy(); }
+    raf = G.requestAnimationFrame(frame);
+    return { stop, cam };
+  };
+  /* =========================================================
+   *  VISIONNEUSE D'OBJET (fiche, déballage)
+   * ========================================================= */
+  S3.viewer = function (wrap, obj, opts) {
+    opts = opts || {};
+    const canvas = doc.createElement('canvas');
+    canvas.className = 'gl-canvas';
+    canvas.setAttribute('aria-label', 'Objet en 3D : faites glisser pour le tourner');
+    wrap.appendChild(canvas);
+    let R;
+    try { R = GL3D.create(canvas, { shadowSize: 512 }); } catch (e) { R = null; }
+    if (!R) { canvas.remove(); return null; }
+    const U = unitMeshes(R);
+    const cache = ME.Models3D.cache(R);
+    const plinth = (() => { const B = new GL3D.Builder(); B.cyl(M.chain(M.T(0, -0.09, 0), M.S(1.5, 0.18, 1.5)), '#efe2c2', 24); B.cyl(M.chain(M.T(0, -0.2, 0), M.S(1.62, 0.06, 1.62)), '#7a5a3a', 24); return R.mesh(B); })();
+    const cam = { target: [0, 0.5, 0], yaw: 0.6, pitch: 0.3, dist: 2.25, minDist: 1.3, maxDist: 5, minPitch: -0.1, maxPitch: 1.3 };
+    GL3D.orbit(canvas, cam, null, { dragRotate: true });
+    let raf = null, last = 0, time = 0, size = null, idle = 0;
+    function frame(ts) {
+      if (!wrap.isConnected) { stop(); return; }
+      const dt = Math.min(0.05, (ts - last) / 1000 || 0.016); last = ts; time += dt;
+      if (!size || size.w !== wrap.clientWidth) size = sizeCanvas(canvas, wrap, 1, 420);
+      if (cam.userMoved) { idle += dt; if (idle > 4) { cam.userMoved = false; } } else { idle = 0; cam.yaw += dt * 0.5; }
+      cam.clamp && cam.clamp();
+      const opaque = [{ mesh: plinth, shadow: false }], sprites = [];
+      const pop = opts.pop ? Math.min(1, time / 0.8) : 1;
+      const s = 0.25 + 0.75 * (1 - Math.pow(1 - pop, 3));
+      ME.Models3D.draw(R, cache, obj, M.chain(M.T(0, 0, 0), M.RY(opts.pop ? (1 - pop) * 3 : 0), M.S(s)), { opaque, sprites }, { outlineW: 0.0024 });
+      R.frame({ eye: cam.eye(), target: cam.target, fov: 0.62, near: 0.1, far: 40, light: { dir: [-0.45, -1, -0.6], center: [0, 0.5, 0], radius: 2 }, bg: [0.98, 0.95, 0.88], opaque, transparent: [], sprites, outline: 0.0024 });
+      raf = G.requestAnimationFrame(frame);
+    }
     function stop() { if (raf) G.cancelAnimationFrame(raf); raf = null; R.destroy(); }
     raf = G.requestAnimationFrame(frame);
     return { stop, cam };
@@ -4865,7 +5229,7 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
     if (key.indexOf('musee') === 0) {
       if (want3d) {
         slot.innerHTML = '<div class="museum-wrap gl-wrap"></div>';
-        const sc = ME.Scene3D.museum($('.gl-wrap', slot), () => S, { onRoom: (r) => UI.openRoom(r), onObject: (id) => UI.openObj(id), toggle: () => setView('2d') });
+        const sc = ME.Scene3D.museum($('.gl-wrap', slot), () => S, { onRoom: (r) => UI.openRoom(r), onObject: (id) => UI.openObj(id), onEmptySlot: (r, i) => { UI.openRoom(r); if (S.rooms[r].unlocked) { view.pick = { room: r, slot: i }; renderModal(); } }, toggle: () => setView('2d') });
         if (sc) { view.scenes.push(sc); return; }
         S.settings.view = '2d';
       }
@@ -5139,7 +5503,9 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
     const t = Obj.type(o), m = Obj.material(o);
     const ctxTxt = o.context ? esc(o.context.site) + ', ' + esc(o.context.layer) + ', carré ' + o.context.square + ', profondeur ' + o.context.depth : '—';
     const modes = { fouille: 'Fouille programmée', prospection: 'Prospection', scientifique: 'Mission scientifique conjointe', achat: 'Acquisition documentée', legs: 'Legs / don', pret: 'Prêt' };
-    let html = '<div class="fiche"><div><div class="plate">' + svg(o) + '<span class="tag">' + o.id + '</span></div>';
+    const v3 = use3d() && !view.fiche2d;
+    let html = '<div class="fiche"><div><div class="plate' + (v3 ? ' gl-wrap' : '') + '"' + (v3 ? ' data-viewer="' + o.id + '"' : '') + '>' + (v3 ? '' : svg(o)) + '<span class="tag">' + o.id + '</span></div>';
+    if (use3d()) html += '<div class="btn-row" style="justify-content:center"><button class="btn small" data-action="ficheView">' + (v3 ? '🖼 Voir l\'illustration' : '🏺 Voir en 3D') + '</button>' + (v3 ? '<small class="muted">Glissez pour tourner l\'objet</small>' : '') + '</div>';
     html += '<div class="chips" style="margin-top:8px">' + periodChip(o.period) + rarChip(o.rarity) + locChip(o) + '</div></div><div>';
     html += '<h2>' + esc(o.name) + '</h2>';
     html += '<dl class="kv"><dt>N° d\'inventaire</dt><dd>' + o.id + '</dd><dt>Datation</dt><dd>' + esc(o.dating) + '</dd><dt>Matériau</dt><dd>' + esc(m.label) + '</dd><dt>Provenance</dt><dd>' + esc(o.provenance) + '</dd><dt>Contexte</dt><dd>' + ctxTxt + '</dd><dt>Acquisition</dt><dd>' + (modes[o.acquisition.mode] || o.acquisition.mode) + (o.acquisition.expId ? ' (' + o.acquisition.expId + ')' : '') + (o.acquisition.price ? ' · ' + money(o.acquisition.price) : '') + '</dd><dt>Propriété</dt><dd>' + esc(Obj.ownerLabel(o)) + (o.returnWeek ? ' · retour S' + o.returnWeek : '') + '</dd>' +
@@ -5415,6 +5781,7 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
     root.innerHTML = '<div class="modal-back" data-action="backdrop"><div class="modal ' + modal.cls + '" role="dialog" aria-modal="true"><button class="btn icon close" data-action="closeModal" aria-label="Fermer">✕</button>' + modal.render() + '</div></div>';
     $('.modal-back', root).scrollTop = scroll;
     paintPortraits(root);
+    $$('[data-viewer]', root).forEach((el) => { const o = S.objects[el.dataset.viewer]; if (o && ME.Scene3D) ME.Scene3D.viewer(el, o); });
     if (modal.after) modal.after(root);
   }
 
@@ -5472,6 +5839,11 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
     const finish = () => {
       if (done) return; done = true;
       dig.classList.add('done');
+      if (use3d()) {
+        const holder = $('.obj', dig);
+        holder.innerHTML = ''; holder.classList.add('gl-wrap'); holder.style.inset = '0';
+        setTimeout(() => { if (holder.isConnected) ME.Scene3D.viewer(holder, o, { pop: true }); }, 350);
+      }
       $('#revealInfo', root).classList.add('on');
       $('#revealNext', root).disabled = false;
       $('#revealFiche', root).disabled = false;
@@ -5591,6 +5963,7 @@ void main(){ vec4 c = texture2D(uTex, vUV); if (c.a < 0.35) discard; gl_FragColo
       else toast('Semaine ' + rep.week + ' : ' + int(rep.visit.total) + ' visiteurs, résultat ' + money(rep.finance.net) + '.', rep.finance.net >= 0 ? 'success' : 'warning');
     },
     viewMode: (d) => { closeModal(); setView(d.v); },
+    ficheView: () => { view.fiche2d = !view.fiche2d; renderModal(); },
     install: () => {
       const ins = ME.install || {};
       if (!ins.prompt) { A.openSettings(); return; }

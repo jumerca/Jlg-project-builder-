@@ -125,7 +125,7 @@
     if (key.indexOf('musee') === 0) {
       if (want3d) {
         slot.innerHTML = '<div class="museum-wrap gl-wrap"></div>';
-        const sc = ME.Scene3D.museum($('.gl-wrap', slot), () => S, { onRoom: (r) => UI.openRoom(r), onObject: (id) => UI.openObj(id), toggle: () => setView('2d') });
+        const sc = ME.Scene3D.museum($('.gl-wrap', slot), () => S, { onRoom: (r) => UI.openRoom(r), onObject: (id) => UI.openObj(id), onEmptySlot: (r, i) => { UI.openRoom(r); if (S.rooms[r].unlocked) { view.pick = { room: r, slot: i }; renderModal(); } }, toggle: () => setView('2d') });
         if (sc) { view.scenes.push(sc); return; }
         S.settings.view = '2d';
       }
@@ -399,7 +399,9 @@
     const t = Obj.type(o), m = Obj.material(o);
     const ctxTxt = o.context ? esc(o.context.site) + ', ' + esc(o.context.layer) + ', carré ' + o.context.square + ', profondeur ' + o.context.depth : '—';
     const modes = { fouille: 'Fouille programmée', prospection: 'Prospection', scientifique: 'Mission scientifique conjointe', achat: 'Acquisition documentée', legs: 'Legs / don', pret: 'Prêt' };
-    let html = '<div class="fiche"><div><div class="plate">' + svg(o) + '<span class="tag">' + o.id + '</span></div>';
+    const v3 = use3d() && !view.fiche2d;
+    let html = '<div class="fiche"><div><div class="plate' + (v3 ? ' gl-wrap' : '') + '"' + (v3 ? ' data-viewer="' + o.id + '"' : '') + '>' + (v3 ? '' : svg(o)) + '<span class="tag">' + o.id + '</span></div>';
+    if (use3d()) html += '<div class="btn-row" style="justify-content:center"><button class="btn small" data-action="ficheView">' + (v3 ? '🖼 Voir l\'illustration' : '🏺 Voir en 3D') + '</button>' + (v3 ? '<small class="muted">Glissez pour tourner l\'objet</small>' : '') + '</div>';
     html += '<div class="chips" style="margin-top:8px">' + periodChip(o.period) + rarChip(o.rarity) + locChip(o) + '</div></div><div>';
     html += '<h2>' + esc(o.name) + '</h2>';
     html += '<dl class="kv"><dt>N° d\'inventaire</dt><dd>' + o.id + '</dd><dt>Datation</dt><dd>' + esc(o.dating) + '</dd><dt>Matériau</dt><dd>' + esc(m.label) + '</dd><dt>Provenance</dt><dd>' + esc(o.provenance) + '</dd><dt>Contexte</dt><dd>' + ctxTxt + '</dd><dt>Acquisition</dt><dd>' + (modes[o.acquisition.mode] || o.acquisition.mode) + (o.acquisition.expId ? ' (' + o.acquisition.expId + ')' : '') + (o.acquisition.price ? ' · ' + money(o.acquisition.price) : '') + '</dd><dt>Propriété</dt><dd>' + esc(Obj.ownerLabel(o)) + (o.returnWeek ? ' · retour S' + o.returnWeek : '') + '</dd>' +
@@ -675,6 +677,7 @@
     root.innerHTML = '<div class="modal-back" data-action="backdrop"><div class="modal ' + modal.cls + '" role="dialog" aria-modal="true"><button class="btn icon close" data-action="closeModal" aria-label="Fermer">✕</button>' + modal.render() + '</div></div>';
     $('.modal-back', root).scrollTop = scroll;
     paintPortraits(root);
+    $$('[data-viewer]', root).forEach((el) => { const o = S.objects[el.dataset.viewer]; if (o && ME.Scene3D) ME.Scene3D.viewer(el, o); });
     if (modal.after) modal.after(root);
   }
 
@@ -732,6 +735,11 @@
     const finish = () => {
       if (done) return; done = true;
       dig.classList.add('done');
+      if (use3d()) {
+        const holder = $('.obj', dig);
+        holder.innerHTML = ''; holder.classList.add('gl-wrap'); holder.style.inset = '0';
+        setTimeout(() => { if (holder.isConnected) ME.Scene3D.viewer(holder, o, { pop: true }); }, 350);
+      }
       $('#revealInfo', root).classList.add('on');
       $('#revealNext', root).disabled = false;
       $('#revealFiche', root).disabled = false;
@@ -851,6 +859,7 @@
       else toast('Semaine ' + rep.week + ' : ' + int(rep.visit.total) + ' visiteurs, résultat ' + money(rep.finance.net) + '.', rep.finance.net >= 0 ? 'success' : 'warning');
     },
     viewMode: (d) => { closeModal(); setView(d.v); },
+    ficheView: () => { view.fiche2d = !view.fiche2d; renderModal(); },
     install: () => {
       const ins = ME.install || {};
       if (!ins.prompt) { A.openSettings(); return; }

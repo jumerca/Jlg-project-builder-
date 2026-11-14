@@ -45,7 +45,16 @@ function check(c, m) { if (!c) throw new Error('ÉCHEC : ' + m); log('✔ ' + m)
   await page.mouse.click(hallTap.x, hallTap.y);
   await page.waitForSelector('.modal');
   check(await page.$eval('.modal h2', (h) => /Scarabée/.test(h.textContent)), 'toucher une vitrine 3D ouvre la fiche de son objet');
+  check(!!(await page.$('.modal .plate.gl-wrap canvas')), 'la fiche présente l\'objet en 3D');
+  await page.waitForTimeout(1200);
+  await shot('02c-fiche-objet-3d');
   await page.click('.modal [data-action="closeModal"]');
+  await page.click('.gl-tools [data-follow]');
+  await page.waitForTimeout(2500);
+  check(!!(await page.$('.gl-label.think')), 'mode « Suivre un visiteur » : pensée affichée');
+  await shot('02d-suivre-visiteur');
+  await page.click('.gl-tools [data-k="home"]');
+  await page.waitForTimeout(800);
   await page.click('.gl-tools [data-toggle]');
   await page.waitForTimeout(500);
   check(!!(await page.$('.museum-wrap.two-d canvas')), 'bascule vers la vue BD 2D');
@@ -100,7 +109,9 @@ function check(c, m) { if (!c) throw new Error('ÉCHEC : ' + m); log('✔ ' + m)
   }
   await page.mouse.up();
   await page.waitForSelector('#dig.done', { timeout: 4000 });
-  await shot('07-decouverte-revelee');
+  await page.waitForTimeout(1500);
+  check(!!(await page.$('#dig .obj.gl-wrap canvas')), 'présentation 3D de la découverte après le pinceau');
+  await shot('07-decouverte-revelee-3d');
   check((await S()).objects[firstId].revealed, 'découverte ' + firstId + ' dégagée au pinceau');
   while (await page.$('[data-action="revealNext"]')) {
     if (await page.$('#revealNext[disabled]')) await page.click('[data-action="revealAll"]');

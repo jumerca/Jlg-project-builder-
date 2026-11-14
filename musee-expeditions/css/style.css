@@ -238,8 +238,9 @@ textarea { width: 100%; min-height: 90px; font-family: ui-monospace, Menlo, mono
 .dig { position: relative; aspect-ratio: 1; border: 3px solid var(--ink); border-radius: 8px; overflow: hidden; background: radial-gradient(circle, #fffdf6, #e6d4ab); touch-action: none; user-select: none; }
 .dig .obj { position: absolute; inset: 6%; }
 .dig .obj svg { width: 100%; height: 100%; }
-.dig canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; transition: opacity .6s; }
-.dig.done canvas { opacity: 0; pointer-events: none; }
+.dig > canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; transition: opacity .6s; }
+.dig.done > canvas { opacity: 0; pointer-events: none; }
+.dig .obj.gl-wrap { position: absolute; z-index: 2; }
 .dig .shine { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle, rgba(255,236,170,.75), transparent 60%); }
 .dig.done.rare .shine { animation: shine 1.6s ease-out; }
 @keyframes shine { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
@@ -323,3 +324,13 @@ textarea { width: 100%; min-height: 90px; font-family: ui-monospace, Menlo, mono
 .welcome-logo { display: block; width: 100%; max-width: 460px; margin: 0 auto 10px; border-radius: 8px; }
 .install-box { display: flex; gap: 12px; align-items: center; }
 .install-box img { width: 64px; height: 64px; border-radius: 14px; flex: none; }
+
+.gl-tools button.on { background: var(--red); color: #fff; }
+.gl-label.room.think { background: #fffaf0; border-color: var(--blue); max-width: 260px; white-space: normal; }
+.gl-label.room.think small { display: block !important; font-style: italic; }
+.fiche .plate.gl-wrap { padding: 0; overflow: hidden; background: #faf3e0; }
+.fiche .plate.gl-wrap .gl-canvas { width: 100% !important; height: 100% !important; }
+.dig .obj.gl-wrap { background: #faf3e0; }
+.dig .obj.gl-wrap .gl-canvas { width: 100% !important; height: 100% !important; }
+.plate .gl-tools, .dig .gl-tools { display: none; }
+.fiche .plate .tag { z-index: 3; }

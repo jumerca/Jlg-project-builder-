@@ -1,5 +1,5 @@
 /* Musée & Expéditions — service worker : le jeu fonctionne hors ligne une fois installé. */
-const CACHE = 'musee-expeditions-v3';
+const CACHE = 'musee-expeditions-v4';
 const FILES = [
   "./",
   "index.html",
@@ -18,6 +18,7 @@ const FILES = [
   "js/art.js",
   "js/render.js",
   "js/gl3d.js",
+  "js/models3d.js",
   "js/scene3d.js",
   "js/ui.js",
   "js/main.js",

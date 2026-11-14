@@ -32,6 +32,9 @@ L'aperçu intégré à claude.ai reste jouable en HTTPS mais n'autorise pas l'in
 - **Zoom** : molette (vers l'endroit pointé) ou pincement à deux doigts.
 - **Clavier** : flèches ou ZQSD pour se déplacer, A / E pour pivoter, + / − pour zoomer.
 - Boutons ⟲ ⟳ ＋ － ⌂ en bas à droite ; touchez une vitrine pour ouvrir la fiche de son objet, une salle pour la gérer.
+- **Objets en 3D** : chaque pièce exposée tourne sur son socle ; la fiche et le déballage la présentent en 3D (glisser pour la tourner). Sur le chantier, les trouvailles apparaissent encore couvertes de terre.
+- **👁 Suivre** : la caméra accompagne un visiteur et affiche son humeur, ses goûts et ce qu'il pense ; un nouvel appui passe au visiteur suivant.
+- Toucher une **vitrine vide** ouvre directement le choix de l'objet à y exposer.
 - Bouton **2D** pour revenir à la vue en coupe façon BD (aussi dans ⚙). Si l'appareil n'a pas WebGL, le jeu passe automatiquement en 2D.
 
 ### Sauvegarde
@@ -56,6 +59,7 @@ L'aperçu intégré à claude.ai reste jouable en HTTPS mais n'autorise pas l'in
 | `js/art.js` | Illustrations vectorielles des objets (style ligne claire, usure visible) |
 | `js/render.js` | Vue BD 2D (musée en coupe, chantiers) et carte |
 | `js/gl3d.js` | Moteur WebGL maison sans dépendance : maillages, ombrage « BD », ombres, contours, transparence, sprites, caméra orbitale, sélection |
+| `js/models3d.js` | Modèles 3D procéduraux des 36 types d'objets (tour de potier, volumes, panneaux illustrés pour les objets peints), ternis selon leur état |
 | `js/scene3d.js` | Musée 3D (salles, vitrines, éclairage, atelier, réserves, boutique, visiteurs animés) et dioramas des six chantiers |
 | `js/ui.js`, `js/main.js` | Interface responsive (téléphone et ordinateur) |
 
@@ -76,7 +80,7 @@ Couverture : mission complète jusqu'à l'exposition, stabilité des identifiant
 - Un seul musée, six sites, 36 types d'objets ; pas encore de deuxième spécialité (beaux-arts, histoire naturelle).
 - Les visiteurs sont simulés par échantillon (60 profils par semaine), puis extrapolés ; leurs déplacements à l'écran sont illustratifs.
 - En 3D, l'agencement des salles et la place des vitrines sont fixes : on choisit ce qu'on expose, pas où poser chaque meuble.
-- Les objets exposés sont des illustrations dressées dans les vitrines (toujours tournées vers la caméra), pas des modèles 3D sculptés.
+- Les modèles 3D des objets sont stylisés (volumes simples) ; papyrus, portrait, vitrail, carreau et feuillet sont présentés sur des panneaux illustrés.
 - Le moteur 3D est fait maison (Three.js n'était pas téléchargeable dans l'environnement de construction) : sobre mais sans dépendance.
 - Pas de son ni de musique.
 - Équilibrage réglé pour une première campagne d'environ 30 à 60 semaines ; il demandera des retours de joueurs.

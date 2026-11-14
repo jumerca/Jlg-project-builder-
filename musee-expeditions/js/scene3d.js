@@ -379,13 +379,25 @@
     try { R = GL3D.create(canvas, { shadowSize: G.innerWidth < 720 ? 1024 : 2048, preserve: handlers.preserve }); } catch (e) { R = null; }
     if (!R) { canvas.remove(); return null; }
     const U = unitMeshes(R);
+    const objCache = ME.Models3D.cache(R);
     const ov = overlay(wrap);
     const mobile = () => wrap.clientWidth < 720;
     const cam = { target: [19, 0, 0], yaw: 0.42, pitch: 0.92, dist: 38, minDist: 6, maxDist: 95, minPitch: 0.3, maxPitch: 1.42, bounds: [-14, 52, -18, 20] };
     const home = () => { cam.goalTarget = [19, 0, mobile() ? 0.5 : 0]; cam.goalYaw = 0.42; cam.goalPitch = 0.92; cam.goalDist = mobile() ? 62 : 38; };
     if (mobile()) { cam.dist = 62; }
     GL3D.orbit(canvas, cam, (x, y) => pick(x, y), { groundAt: (x, y) => R.groundAt(x, y) });
-    toolbar(wrap, cam, home, handlers.toggle ? '<button type="button" class="wide" data-toggle="1" title="Revenir à la vue BD 2D">2D</button>' : '');
+    toolbar(wrap, cam, () => { follow = null; home(); }, '<button type="button" class="wide" data-follow="1" title="Suivre un visiteur" aria-label="Suivre un visiteur">👁 Suivre</button>' + (handlers.toggle ? '<button type="button" class="wide" data-toggle="1" title="Revenir à la vue BD 2D">2D</button>' : ''));
+    let follow = null;
+    const fbtn = wrap.querySelector('[data-follow]');
+    fbtn.addEventListener('click', () => {
+      if (!agents.length) return;
+      const idx = follow == null ? 0 : (agents.indexOf(follow) + 1);
+      follow = idx >= agents.length ? null : agents[idx];
+      fbtn.textContent = follow ? '👁 Suivant' : '👁 Suivre';
+      fbtn.classList.toggle('on', !!follow);
+      if (!follow) home();
+    });
+    canvas.addEventListener('pointerdown', () => { if (follow) { follow = null; fbtn.textContent = '👁 Suivre'; fbtn.classList.remove('on'); } });
     wrap.querySelector('[data-toggle]') && wrap.querySelector('[data-toggle]').addEventListener('click', handlers.toggle);
 
     let rooms = {}, shell = null, ext = R.mesh(buildExterior()), sig = '', sigT = 0, extra = { benches: [] };
@@ -409,7 +421,7 @@
       const lv = s.lastVisit;
       const sample = lv && lv.sample.length ? lv.sample[i % lv.sample.length] : { type: Object.keys(VLOOKS)[i % 4], sat: 60 };
       const looks = VLOOKS[sample.type];
-      const a = { type: sample.type, sat: sample.sat, look: looks[i % looks.length], pos: [-9 - Math.random() * 6, 0, 3.4 + Math.random() * 1.2], yaw: Math.PI / 2, queue: [[-0.5, 0, 4], [3, 0, 4]], room: 'hall', step: 0, wait: Math.random() * 6, looked: 0, child: sample.type === 'famille' && i % 2 === 0, bubble: 0, done: false };
+      const a = { type: sample.type, interest: sample.interest || D.VISITOR_TYPES[sample.type].interests[0], sat: sample.sat, look: looks[i % looks.length], pos: [-9 - Math.random() * 6, 0, 3.4 + Math.random() * 1.2], yaw: Math.PI / 2, queue: [[-0.5, 0, 4], [3, 0, 4]], room: 'hall', step: 0, wait: Math.random() * 6, looked: 0, child: sample.type === 'famille' && i % 2 === 0, bubble: 0, done: false };
       if (inside) {
         // à l'ouverture de la vue, le musée est déjà fréquenté
         const route = ['hall'].concat(ME.Exhibitions.normalizeRoute(s));
@@ -486,11 +498,12 @@
         consider(GL3D.rayBox(ray, [r.x0, 0, r.z0], [r.x1, 0.12, r.z1]), { room: id });
         const room = s.rooms[id];
         if (room.unlocked && room.vitrines.length) slots(id, room.vitrines.length).forEach(([vx, vz], i) => {
-          consider(GL3D.rayBox(ray, [vx - 0.5, 0, vz - 0.5], [vx + 0.5, 2.1, vz + 0.5]), { room: id, obj: room.vitrines[i] });
+          consider(GL3D.rayBox(ray, [vx - 0.5, 0, vz - 0.5], [vx + 0.5, 2.1, vz + 0.5]), { room: id, obj: room.vitrines[i], slot: i });
         });
       });
       if (!best) return;
       if (best.obj && handlers.onObject) handlers.onObject(best.obj);
+      else if (best.slot != null && handlers.onEmptySlot) handlers.onEmptySlot(best.room, best.slot);
       else if (handlers.onRoom) handlers.onRoom(best.room);
     }
 
@@ -501,6 +514,13 @@
       if (!size || size.w !== wrap.clientWidth) size = sizeCanvas(canvas, wrap, mobile() ? 1.05 : 0.56, G.innerHeight * 0.78);
       sigT -= dt;
       if (sigT <= 0) { const sg = signature(s); if (sg !== sig) { sig = sg; rebuild(s); } sigT = 0.4; }
+      if (follow && agents.includes(follow)) {
+        const behind = follow.yaw + Math.PI;
+        cam.goalTarget = [follow.pos[0], 0.6, follow.pos[2]];
+        let dy = (behind - cam.yaw) % (Math.PI * 2); if (dy > Math.PI) dy -= Math.PI * 2; if (dy < -Math.PI) dy += Math.PI * 2;
+        cam.yaw += dy * Math.min(1, dt * 1.5);
+        cam.goalDist = 9; cam.goalPitch = 0.5;
+      }
       ease(cam, dt);
       cam.keyTick && cam.keyTick(dt);
       const eye = cam.eye();
@@ -529,8 +549,11 @@
           const oid = room.vitrines[i];
           if (oid) {
             const o = s.objects[oid];
-            const tex = R.texture(o.id + ':' + Math.round(o.condition / 10), ME.Art.image(o));
-            sprites.push({ tex, pos: [vx, 1.06, vz], w: 0.88 * big, h: 0.88 * big, bright: room.lighting === 'tamise' ? 0.88 : 1 });
+            const flat = ME.Models3D.build && objCache.get(o).panel;
+            const spin = flat ? Math.sin(time * 0.5 + i) * 0.35 : time * 0.45 + (o.seed % 628) / 100;
+            const sc = (flat ? 0.78 : 0.72) * big;
+            opaque.push({ mesh: U.cyl, m: M.chain(M.T(vx, 1.06, vz), M.RY(spin), M.S(0.6 * big, 0.05, 0.6 * big)), tint: tint('#7a5a3a') });
+            ME.Models3D.draw(R, objCache, o, M.chain(M.T(vx, 1.085, vz), M.RY(spin), M.S(sc)), { opaque, sprites }, { bright: room.lighting === 'tamise' ? 0.9 : room.lighting === 'vif' ? 1.08 : 1 });
           }
           transparent.push({ mesh: U.glass, m: M.chain(M.T(vx, 1.03 + 0.475 * big, vz), M.S(0.86 * big, 0.95 * big, 0.86 * big)), tint: tint('#d8f2f4'), alpha: 0.13, c: [vx, 1.5, vz], outline: false });
           if (id !== 'hall') transparent.push({ mesh: U.beam, m: M.chain(M.T(vx, 2.45, vz), M.S(1.1, 1.0, 1.1)), tint: tint('#ffe9a8'), alpha, c: [vx, 2.4, vz], outline: false });
@@ -540,7 +563,7 @@
       s.jobs.forEach((j, i) => {
         const b = extra.benches[i]; if (!b) return;
         const o = s.objects[j.objId];
-        sprites.push({ tex: R.texture(o.id + ':' + Math.round(o.condition / 10), ME.Art.image(o)), pos: [b[0] - 0.2, 0.93, b[1]], w: 0.6, h: 0.6 });
+        ME.Models3D.draw(R, objCache, o, M.chain(M.T(b[0] - 0.2, 0.9, b[1]), M.RY(time * 0.2), M.S(0.5)), { opaque, sprites });
         const p = s.staff.find((x) => x.id === j.staffId);
         if (p) person(opaque, U, b[0], 0.08, b[1] + 0.95, Math.PI, p.look, { pose: 'work', t: time + i, tool: true });
       });
@@ -561,6 +584,13 @@
         ov.label(R, [r.cx, 3.3, r.z0 + 0.6], h, 'room');
       });
       ov.label(R, [-1.1, 4.9, 4], '<b>MUSÉE &amp; EXPÉDITIONS</b>', 'sign');
+      if (follow && agents.includes(follow)) {
+        const vt = D.VISITOR_TYPES[follow.type];
+        const room = D.ROOMS[follow.room] ? D.ROOMS[follow.room].name : '';
+        const mood = follow.sat >= 80 ? 'Enchanté·e' : follow.sat >= 60 ? 'Content·e' : follow.sat >= 40 ? 'Mitigé·e' : 'Déçu·e';
+        const reason = s.lastVisit && s.lastVisit.reasons.length ? s.lastVisit.reasons[agents.indexOf(follow) % s.lastVisit.reasons.length] : null;
+        ov.label(R, [follow.pos[0], 2.5, follow.pos[2]], '<b>' + vt.label.replace(/s$/, '') + ' · ' + mood + ' (' + follow.sat + ' %)</b><small>Aime : ' + D.PERIODS[follow.interest].label + ' · ' + room + '</small>' + (reason ? '<small>« ' + reason.text + ' »</small>' : ''), 'room think');
+      }
       agents.forEach((a) => {
         if (a.bubble > 0 && a.lookAt) ov.label(R, [a.pos[0], 2.05, a.pos[2]], a.sat >= 80 ? '★' : a.sat >= 60 ? '♥' : a.sat < 40 ? 'zz' : '?', 'bubble ' + (a.sat >= 80 ? 'wow' : a.sat >= 60 ? 'love' : a.sat < 40 ? 'tired' : 'hmm'));
       });
@@ -569,7 +599,7 @@
     }
     function stop() { if (raf) G.cancelAnimationFrame(raf); raf = null; R.destroy(); }
     raf = G.requestAnimationFrame(frame);
-    return { stop, cam, R };
+    return { stop, cam, R, agents, follow: (i) => { follow = agents[i] || null; } };
   };
 
   /* =========================================================
@@ -710,15 +740,16 @@
     try { R = GL3D.create(canvas, { shadowSize: 1024 }); } catch (e) { R = null; }
     if (!R) { canvas.remove(); return null; }
     const U = unitMeshes(R);
+    const objCache = ME.Models3D.cache(R);
     const ov = overlay(wrap);
     const exp0 = getExp();
     const dest = D.DESTINATIONS[exp0.dest];
     const biome = dest.biome;
     const sea = biome === 'sea';
     const rnd = ME.seeded(exp0.id.length * 7919 + exp0.startWeek);
-    const cam = { target: [0, sea ? 1.5 : 0.5, 1], yaw: 0.55, pitch: sea ? 0.32 : 0.6, dist: sea ? 17 : 21, minDist: 8, maxDist: 40, minPitch: 0.15, maxPitch: 1.35, bounds: [-12, 12, -10, 10] };
+    const cam = { target: [0, sea ? 1.5 : 0.5, 1.2], yaw: 0.55, pitch: sea ? 0.32 : 0.62, dist: sea ? 15 : 15.5, minDist: 8, maxDist: 40, minPitch: 0.15, maxPitch: 1.35, bounds: [-12, 12, -10, 10] };
     GL3D.orbit(canvas, cam, null, { groundAt: (x, y) => R.groundAt(x, y) });
-    toolbar(wrap, cam, () => { cam.goalYaw = 0.55; cam.goalDist = 21; cam.goalTarget = [0, sea ? 1.5 : 0.5, 1]; cam.goalPitch = sea ? 0.32 : 0.6; });
+    toolbar(wrap, cam, () => { cam.goalYaw = 0.55; cam.goalDist = sea ? 15 : 15.5; cam.goalTarget = [0, sea ? 1.5 : 0.5, 1]; cam.goalPitch = sea ? 0.32 : 0.6; });
     const back = R.mesh(buildBackdrop(biome, rnd));
     const boat = sea ? R.mesh(buildBoat()) : null;
     let dig = null, sig = '';
@@ -734,7 +765,13 @@
       ease(cam, dt);
       cam.keyTick && cam.keyTick(dt);
       const opaque = [{ mesh: back }, { mesh: dig }];
-      const transparent = [];
+      const transparent = [], sprites = [];
+      exp.finds.forEach((id, k) => {
+        const o = state.objects[id];
+        if (!o || exp.phase !== 'terrain') return;
+        const x = -4.5 + (k % 6) * 1.5 + 0.95 - (k * 0.37) % 0.6 * 0.3, z = (Math.floor(k / 6) % 2) * 1.5 + 0.9;
+        ME.Models3D.draw(R, objCache, o, M.chain(M.T(x + 0.25, 0.05, z), M.RY(o.seed % 6), M.RX(sea ? 1.3 : 1.2), M.S(0.62)), { opaque, sprites: null }, { tint: tint(o.revealed ? '#ffffff' : '#9c8460') });
+      });
       const team = exp.team.map((id) => state.staff.find((p) => p.id === id)).filter(Boolean);
       if (exp.phase === 'terrain') {
         team.forEach((p, i) => {
@@ -760,7 +797,7 @@
         transparent.push({ mesh: U.water, m: M.chain(M.T(0, 2.8, 0), M.S(70, 5.6, 56)), tint: tint('#2f7fa0'), alpha: 0.2, c: [0, 2.8, 60] });
         transparent.push({ mesh: U.water, m: M.chain(M.T(0, 5.6 + Math.sin(time) * 0.05, 0), M.S(70, 0.05, 56)), tint: tint('#7fc0d8'), alpha: 0.4, c: [0, 5.6, 0] });
       }
-      R.frame({ eye: cam.eye(), target: cam.target, fov: 0.7, light: { dir: [-0.5, -1, -0.35], center: [0, 0, 0], radius: 18 }, bg: BIOME[biome].bg, opaque, transparent, sprites: [], outline: 0.0026 });
+      R.frame({ eye: cam.eye(), target: cam.target, fov: 0.7, light: { dir: [-0.5, -1, -0.35], center: [0, 0, 0], radius: 18 }, bg: BIOME[biome].bg, opaque, transparent, sprites, outline: 0.0026 });
       ov.begin();
       const phase = exp.phase === 'terrain' ? 'Semaine ' + Math.min(exp.weeks, exp.weekDone + 1) + ' / ' + exp.weeks + ' sur le terrain' : exp.phase === 'transport' ? 'Caisses en route vers le musée' : 'Campagne terminée';
       ov.label(R, [cam.target[0], cam.target[1], cam.target[2]], '', 'hidden');
@@ -769,6 +806,41 @@
       raf = G.requestAnimationFrame(frame);
     }
     const banner = doc.createElement('div'); banner.className = 'gl-banner'; wrap.appendChild(banner);
+    function stop() { if (raf) G.cancelAnimationFrame(raf); raf = null; R.destroy(); }
+    raf = G.requestAnimationFrame(frame);
+    return { stop, cam };
+  };
+  /* =========================================================
+   *  VISIONNEUSE D'OBJET (fiche, déballage)
+   * ========================================================= */
+  S3.viewer = function (wrap, obj, opts) {
+    opts = opts || {};
+    const canvas = doc.createElement('canvas');
+    canvas.className = 'gl-canvas';
+    canvas.setAttribute('aria-label', 'Objet en 3D : faites glisser pour le tourner');
+    wrap.appendChild(canvas);
+    let R;
+    try { R = GL3D.create(canvas, { shadowSize: 512 }); } catch (e) { R = null; }
+    if (!R) { canvas.remove(); return null; }
+    const U = unitMeshes(R);
+    const cache = ME.Models3D.cache(R);
+    const plinth = (() => { const B = new GL3D.Builder(); B.cyl(M.chain(M.T(0, -0.09, 0), M.S(1.5, 0.18, 1.5)), '#efe2c2', 24); B.cyl(M.chain(M.T(0, -0.2, 0), M.S(1.62, 0.06, 1.62)), '#7a5a3a', 24); return R.mesh(B); })();
+    const cam = { target: [0, 0.5, 0], yaw: 0.6, pitch: 0.3, dist: 2.25, minDist: 1.3, maxDist: 5, minPitch: -0.1, maxPitch: 1.3 };
+    GL3D.orbit(canvas, cam, null, { dragRotate: true });
+    let raf = null, last = 0, time = 0, size = null, idle = 0;
+    function frame(ts) {
+      if (!wrap.isConnected) { stop(); return; }
+      const dt = Math.min(0.05, (ts - last) / 1000 || 0.016); last = ts; time += dt;
+      if (!size || size.w !== wrap.clientWidth) size = sizeCanvas(canvas, wrap, 1, 420);
+      if (cam.userMoved) { idle += dt; if (idle > 4) { cam.userMoved = false; } } else { idle = 0; cam.yaw += dt * 0.5; }
+      cam.clamp && cam.clamp();
+      const opaque = [{ mesh: plinth, shadow: false }], sprites = [];
+      const pop = opts.pop ? Math.min(1, time / 0.8) : 1;
+      const s = 0.25 + 0.75 * (1 - Math.pow(1 - pop, 3));
+      ME.Models3D.draw(R, cache, obj, M.chain(M.T(0, 0, 0), M.RY(opts.pop ? (1 - pop) * 3 : 0), M.S(s)), { opaque, sprites }, { outlineW: 0.0024 });
+      R.frame({ eye: cam.eye(), target: cam.target, fov: 0.62, near: 0.1, far: 40, light: { dir: [-0.45, -1, -0.6], center: [0, 0.5, 0], radius: 2 }, bg: [0.98, 0.95, 0.88], opaque, transparent: [], sprites, outline: 0.0024 });
+      raf = G.requestAnimationFrame(frame);
+    }
     function stop() { if (raf) G.cancelAnimationFrame(raf); raf = null; R.destroy(); }
     raf = G.requestAnimationFrame(frame);
     return { stop, cam };
