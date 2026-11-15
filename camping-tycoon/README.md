@@ -123,3 +123,7 @@ Limites : les prestataires interviennent instantanément, sans animation de véh
 - **53 tests** : les 44 tests de régression précédents plus 9 nouveaux sur l'accès, l'économie, les interactions, les conditions météo, les sauvegardes et les saisons.
 
 **Important :** les animations restent de la 2,5D Canvas et non un moteur isométrique 3D. Le rendu, la fluidité et la lisibilité sur l'appareil Android doivent encore être vérifiés en conditions réelles.
+
+### Correctif V1.7.1 (15 novembre 2026)
+
+L’état des recherches de mises à jour (version à jour / vérification indisponible) est désormais affiché directement dans l’accueil, l’historique et le menu, via un message ARIA live. L’ancienne implémentation affichait uniquement un toast masqué par la fenêtre modale. Aucun changement destructif des sauvegardes ; cache PWA version 1.7.1.

@@ -43,3 +43,6 @@ Cache PWA `camping-tycoon-v1.7.0`. Garder le domaine `https://camping-tycoon-jlg
 
 Bundle statique : `index.html`, `version.json`, `src/*.js`, `style.css`, `sw.js`, `manifest.webmanifest`, `assets/*` et `camping-tycoon-autonome.html`.
 `node --test tests/sim.test.js` : 53 tests de non-régression. Le mode découverte est facultatif et n'est utilisé que pour une **nouvelle** partie.
+
+### Patch V1.7.1
+L’endpoint de version annonce 1.7.1 et le cache PWA utilise `camping-tycoon-v1.7.1`. La fonction de vérification doit écrire son statut dans le modal courant (ARIA live), pas dans un toast caché derrière lui.

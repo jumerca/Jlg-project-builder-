@@ -16,7 +16,7 @@
 
   /* Version visible et historique : même source de vérité pour l'accueil et les menus. */
   const RELEASE = {
-    version: '1.7.0', date: '15 novembre 2026',
+    version: '1.7.1', date: '15 novembre 2026',
     headline: 'Le camping prend vie !',
     highlights: [
       ['minigolf','Mini-golf','6 pistes animées · 8 € la partie'],
@@ -25,6 +25,7 @@
       ['laundry','Laverie','Confort longue durée · 6 € le cycle']
     ],
     history: [
+      ['1.7.1','15 novembre 2026','Correctif : résultat des recherches de mises à jour désormais visible sur l’accueil et dans le menu.'],
       ['1.7.0','15 novembre 2026','Quatre nouveaux bâtiments dessinés, activités et revenus réels, animations sur la carte, panneau Vie du camping et nouvel écran d’accueil avec historique.'],
       ['1.6.0','15 novembre 2026','Interventions d’exploitation, dépannage ciblé, détails animés, végétation et météo.'],
       ['1.5.0','15 novembre 2026','Scènes de vie, tarifs saisonniers, marge par emplacement, priorités du personnel.'],
@@ -44,10 +45,15 @@
       <div class="release-history">${RELEASE.history.map(([v,d,desc])=>
         `<div class="release-history-entry"><b>Version ${v}</b><small>${d}</small><p>${desc}</p></div>`).join('')}</div>
       <div class="acts"><button class="btn primary" data-act="back">← Retour</button>
-      <button class="btn" data-act="check">🔄 Vérifier en ligne</button></div>`,{
+      <button class="btn" data-act="check">🔄 Vérifier en ligne</button></div><div id="updateStatus" class="update-status" role="status" aria-live="polite"></div>`,{
         back: back || (()=>titleScreen(SV.hasAuto())),
         check: ()=>checkOnlineVersion()
       });
+  }
+  function updateStatus(message, good) {
+    const el=$('updateStatus');
+    if(el){el.textContent=message;el.classList.add('visible');el.classList.toggle('good',!!good);}
+    else toast(message, good?'good':'warn',8000);
   }
   async function checkOnlineVersion() {
     try {
@@ -70,9 +76,9 @@
           <button class="btn" data-act="later">Plus tard</button></div>`,{
             install: ()=>{SV.autosave(s);location.reload();},later: ()=>releaseHistory(()=>titleScreen(SV.hasAuto()))
           });
-      } else toast(`✓ Version ${RELEASE.version} à jour. Aucune version plus récente détectée.`,'good',8000);
+      } else updateStatus(`✓ Version ${RELEASE.version} à jour. Aucune version plus récente détectée.`,true);
     } catch(err) {
-      toast('Vérification des versions indisponible : '+err.message,'warn',8000);
+      updateStatus('Vérification des versions indisponible : '+err.message,false);
     }
   }
 
@@ -113,7 +119,7 @@
         <button class="btn blue" data-act="history">🗞️ Historique des versions</button>
         <button class="btn" data-act="check">🔄 Vérifier les mises à jour</button>
         <button class="btn" data-act="help">❓ Aide</button>
-      </div>`,{
+      </div><div id="updateStatus" class="update-status" role="status" aria-live="polite"></div>`,{
       continue: ()=>{closeModal();setSpeed(1);},
       new: ()=>newGameDialog(),
       import: ()=>importDialog(),
@@ -482,7 +488,8 @@
         <button class="btn" data-act="updates">🔄 Rechercher une mise à jour</button>
         <button class="btn red" data-act="new">⛺ Nouvelle partie</button>
       </div>
-      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v${RELEASE.version} · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
+      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v${RELEASE.version} · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>
+      <div id="updateStatus" class="update-status" role="status" aria-live="polite"></div>`, {
       resume: () => { closeModal(); setSpeed(1); },
       save: () => { toast(SV.autosave(s) ? 'Partie sauvegardée.' : 'Stockage local indisponible : utilisez l’export.', SV.hasAuto() ? 'good' : 'warn'); closeModal(); },
       export: exportDialog,

@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="Camping Tycoon">
 <meta name="application-name" content="Camping Tycoon">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Camping Tycoon V1.7 — JLG Creative</title>
+<title>Camping Tycoon V1.7.1 — JLG Creative</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -268,6 +268,12 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
   .start-modes{grid-template-columns:1fr;}
 }
 
+/* V1.7.1 — retour lisible de recherche de mises à jour dans les fenêtres */
+.update-status { display:none; font-size:12.5px; margin:9px 0 0; padding:9px 11px;
+  border:2px solid #a65438; border-radius:9px; background:#ffefde; color:#7b3722; font-weight:700; }
+.update-status.visible { display:block; }
+.update-status.visible.good { border-color:#328156; background:#dff6e6; color:#185e3e; }
+
 </style>
 </head>
 <body>
@@ -501,7 +507,6 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
   root.CT.data = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
-
 </script>
 <script>
 /* Camping Tycoon — moteur de simulation (JLG Creative)
@@ -2541,7 +2546,6 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
   root.CT.sim = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
-
 </script>
 <script>
 /* Camping Tycoon — sauvegardes (sérialisation, migration, stockage local, export/import) */
@@ -2625,7 +2629,6 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
   root.CT.save = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
-
 </script>
 <script>
 /* Camping Tycoon — sons synthétisés (Web Audio, aucun fichier externe) */
@@ -2727,7 +2730,6 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
   root.CT = root.CT || {};
   root.CT.sfx = { play, init, ambience, setEnabled, get enabled() { return enabled; } };
 })(typeof window !== 'undefined' ? window : globalThis);
-
 </script>
 <script>
 /* Camping Tycoon — rendu Canvas 2,5D, style BD franco-belge (ligne claire, aplats vifs) */
@@ -3798,7 +3800,6 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
     return c;
   };
 })(typeof window !== 'undefined' ? window : globalThis);
-
 </script>
 <script>
 /* Camping Tycoon — interface, boucle de jeu et entrées (souris, tactile, clavier) */
@@ -3819,7 +3820,7 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
 
   /* Version visible et historique : même source de vérité pour l'accueil et les menus. */
   const RELEASE = {
-    version: '1.7.0', date: '15 novembre 2026',
+    version: '1.7.1', date: '15 novembre 2026',
     headline: 'Le camping prend vie !',
     highlights: [
       ['minigolf','Mini-golf','6 pistes animées · 8 € la partie'],
@@ -3828,6 +3829,7 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
       ['laundry','Laverie','Confort longue durée · 6 € le cycle']
     ],
     history: [
+      ['1.7.1','15 novembre 2026','Correctif : résultat des recherches de mises à jour désormais visible sur l’accueil et dans le menu.'],
       ['1.7.0','15 novembre 2026','Quatre nouveaux bâtiments dessinés, activités et revenus réels, animations sur la carte, panneau Vie du camping et nouvel écran d’accueil avec historique.'],
       ['1.6.0','15 novembre 2026','Interventions d’exploitation, dépannage ciblé, détails animés, végétation et météo.'],
       ['1.5.0','15 novembre 2026','Scènes de vie, tarifs saisonniers, marge par emplacement, priorités du personnel.'],
@@ -3847,10 +3849,15 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
       <div class="release-history">${RELEASE.history.map(([v,d,desc])=>
         `<div class="release-history-entry"><b>Version ${v}</b><small>${d}</small><p>${desc}</p></div>`).join('')}</div>
       <div class="acts"><button class="btn primary" data-act="back">← Retour</button>
-      <button class="btn" data-act="check">🔄 Vérifier en ligne</button></div>`,{
+      <button class="btn" data-act="check">🔄 Vérifier en ligne</button></div><div id="updateStatus" class="update-status" role="status" aria-live="polite"></div>`,{
         back: back || (()=>titleScreen(SV.hasAuto())),
         check: ()=>checkOnlineVersion()
       });
+  }
+  function updateStatus(message, good) {
+    const el=$('updateStatus');
+    if(el){el.textContent=message;el.classList.add('visible');el.classList.toggle('good',!!good);}
+    else toast(message, good?'good':'warn',8000);
   }
   async function checkOnlineVersion() {
     try {
@@ -3873,9 +3880,9 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
           <button class="btn" data-act="later">Plus tard</button></div>`,{
             install: ()=>{SV.autosave(s);location.reload();},later: ()=>releaseHistory(()=>titleScreen(SV.hasAuto()))
           });
-      } else toast(`✓ Version ${RELEASE.version} à jour. Aucune version plus récente détectée.`,'good',8000);
+      } else updateStatus(`✓ Version ${RELEASE.version} à jour. Aucune version plus récente détectée.`,true);
     } catch(err) {
-      toast('Vérification des versions indisponible : '+err.message,'warn',8000);
+      updateStatus('Vérification des versions indisponible : '+err.message,false);
     }
   }
 
@@ -3916,7 +3923,7 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
         <button class="btn blue" data-act="history">🗞️ Historique des versions</button>
         <button class="btn" data-act="check">🔄 Vérifier les mises à jour</button>
         <button class="btn" data-act="help">❓ Aide</button>
-      </div>`,{
+      </div><div id="updateStatus" class="update-status" role="status" aria-live="polite"></div>`,{
       continue: ()=>{closeModal();setSpeed(1);},
       new: ()=>newGameDialog(),
       import: ()=>importDialog(),
@@ -4285,7 +4292,8 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
         <button class="btn" data-act="updates">🔄 Rechercher une mise à jour</button>
         <button class="btn red" data-act="new">⛺ Nouvelle partie</button>
       </div>
-      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v${RELEASE.version} · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
+      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v${RELEASE.version} · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>
+      <div id="updateStatus" class="update-status" role="status" aria-live="polite"></div>`, {
       resume: () => { closeModal(); setSpeed(1); },
       save: () => { toast(SV.autosave(s) ? 'Partie sauvegardée.' : 'Stockage local indisponible : utilisez l’export.', SV.hasAuto() ? 'good' : 'warn'); closeModal(); },
       export: exportDialog,
