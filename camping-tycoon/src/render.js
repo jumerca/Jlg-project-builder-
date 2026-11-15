@@ -466,6 +466,44 @@
     g.beginPath(); g.arc(x, y - 3 + bob, 3.5, Math.PI, 0); g.fillStyle = SHIRT[a.id % SHIRT.length]; g.fill();
   }
 
+
+  // Détails de vie près des équipements. Une poignée de formes Canvas par bâtiment visible :
+  // aucune nouvelle texture, pas de changement de caméra.
+  function drawFacilityLife(g, b, t, weather, minute) {
+    if (b.progress > 0) return;
+    const px = b.x * TS, py = b.y * TS, w = b.w * TS, h = b.h * TS;
+    if (b.type === 'snack' && minute >= 11 * 60 && minute < 22 * 60) {
+      // Petit panneau menu et voilage de terrasse animés.
+      const flutter = Math.sin(t * .002 + b.id) * (weather === 'storm' ? 3 : 1);
+      g.save();g.translate(px + w - 22, py + h - 25);
+      g.fillStyle = '#684633'; g.fillRect(-9,-16,18,20);
+      g.strokeStyle = '#33233d';g.lineWidth = 1;g.strokeRect(-9,-16,18,20);
+      g.fillStyle = '#f8ead1';g.fillRect(-7,-14,14,16);
+      g.fillStyle = '#8b5738';g.fillRect(-4,-11,8,1.5);g.fillRect(-5,-7,10,1.5);g.fillRect(-3,-3,6,1.5);
+      g.strokeStyle = '#e9d59d';g.lineWidth=2;
+      g.beginPath();g.moveTo(-20,-22);g.quadraticCurveTo(-10,-30 + flutter,1,-22);g.stroke();
+      g.restore();
+    } else if (b.type === 'pool' && minute >= 9 * 60 && minute < 20 * 60) {
+      g.save();
+      const x = px + 13, y = py + h - 19;
+      const lean = Math.sin(t * .0017 + b.id)*.9;
+      // Ombre, pied et parasol en coupe avec trois panneaux colorés.
+      g.fillStyle='rgba(34,73,90,.2)';g.beginPath();g.ellipse(x+10,y+2,14,4,0,0,7);g.fill();
+      g.strokeStyle='#815b43';g.lineWidth=2;g.beginPath();g.moveTo(x+lean,y);g.lineTo(x+lean,y-24);g.stroke();
+      g.beginPath();g.moveTo(x-16+lean,y-22);g.quadraticCurveTo(x+lean,y-39,x+16+lean,y-22);
+      g.closePath();g.fillStyle='#f8e3a0';g.fill();g.lineWidth=1.1;g.strokeStyle='#6e6259';g.stroke();
+      g.fillStyle='#e96869';g.beginPath();g.moveTo(x-8+lean,y-28);g.quadraticCurveTo(x+lean,y-38,x+lean,y-30);g.lineTo(x+lean,y-22);g.closePath();g.fill();
+      g.restore();
+    } else if (b.type === 'playground' && weather !== 'storm' && weather !== 'rain') {
+      // Deux ballons à proximité des jeux, le rebond n'est visible qu'en journée.
+      if (minute > 9 * 60 && minute < 19 * 60) {
+        const bounce = Math.abs(Math.sin(t * .003 + b.id)) * 4;
+        g.beginPath();g.arc(px+w-11,py+h-10-bounce,3.2,0,7);
+        g.fillStyle='#efbb45';g.strokeStyle='#9a4f2f';g.lineWidth=1.1;g.fill();g.stroke();
+      }
+    }
+  }
+
   /* ---------- Renderer ---------- */
   function Renderer(canvas) {
     this.c = canvas; this.g = canvas.getContext('2d');
@@ -755,11 +793,26 @@
     const lamps = [];
     for (const o of list) {
       if (o.kind === 'deco') {
-        if (o.d === DECO.TREE || o.d === DECO.PINE) g.drawImage(sprite('tree' + o.d + Math.floor(o.v * 3), 52, 64, 10, 28, (gg) => drawTree(gg, o.d, Math.floor(o.v * 3) / 3)), o.x - 10 + (o.v - 0.5) * 8, o.y - 28 + (o.v * 7 % 1 - 0.5) * 6, 52, 64);
-        else g.drawImage(sprite('deco' + o.d + Math.floor(o.v * 5), 36, 44, 2, 10, (gg) => drawDeco(gg, o.d, o.v)), o.x - 2, o.y - 10, 36, 44);
+        if (o.d === DECO.TREE || o.d === DECO.PINE) {
+          const spr = sprite('tree' + o.d + Math.floor(o.v * 3), 52, 64, 10, 28, (gg) => drawTree(gg, o.d, Math.floor(o.v * 3) / 3));
+          const dx=o.x-10+(o.v-.5)*8,dy=o.y-28+(o.v*7%1-.5)*6;
+          const wind=s.weather.type==='storm' ? .036 : s.weather.type==='rain' ? .018 : .008;
+          const angle=Math.sin(now*.0008+o.x*.07+o.y*.09)*wind;
+          const pivotX=o.x+16,pivotY=o.y+28;
+          g.save();g.translate(pivotX,pivotY);g.rotate(angle);
+          g.drawImage(spr,dx-pivotX,dy-pivotY,52,64);g.restore();
+        } else {
+          g.drawImage(sprite('deco' + o.d + Math.floor(o.v * 5), 36, 44, 2, 10, (gg) => drawDeco(gg, o.d, o.v)), o.x - 2, o.y - 10, 36, 44);
+          // Points de lumière subtils dans les fleurs par temps doux au crépuscule.
+          if (o.d===DECO.FLOWERS && s.minute>=20*60 && s.minute<23*60 && !['rain','storm'].includes(s.weather.type)) {
+            g.globalAlpha=.3+.25*Math.sin(now*.003+o.x+o.y);
+            g.fillStyle='#fff0a0';g.beginPath();g.arc(o.x+10,o.y+4,1.8,0,7);g.fill();g.globalAlpha=1;
+          }
+        }
         if (o.lamp) lamps.push([o.x + 16, o.y - 2, 60]);
       } else if (o.kind === 'b') {
         this.drawBuilding(g, s, o.b, occ.get(o.b.id));
+        drawFacilityLife(g, o.b, now, s.weather.type, s.minute);
         const b = o.b, cx = b.x * TS + b.w * TS / 2;
         if (b.progress <= 0) {
           if (BUILDINGS[b.type].unit && occ.get(b.id)) lamps.push([cx, b.y * TS + b.h * TS / 2, 36]);

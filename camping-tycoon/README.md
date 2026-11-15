@@ -96,3 +96,15 @@ Sauvegarde automatique chaque jour de jeu, toutes les 45 s et à la fermeture de
 ### Limites restant à valider
 
 Les animations sont un enrichissement progressif du Canvas 2,5D existant, et non une nouvelle caméra isométrique. Les tests fonctionnels automatisés ne remplacent pas une vérification visuelle et une mesure de FPS sur téléphone physique. Le rendement par hébergement est analytique et indicatif, pas un compte de résultat comptable complet.
+
+## Nouveautés V1.6 — Exploitation & Ambiances
+
+- **Interventions concrètes** : dépannage express, nettoyage sanitaire, ménage des hébergements avant arrivée, traitement piscine et révision préventive. Coûts vérifiés avant débit ; actions inutiles, inaccessibles ou déjà prises en charge refusées.
+- **Tableau d'exploitation dans Équipe** : urgences classées par priorité, bloc repliable qui préserve l'ergonomie mobile, coût et action ciblée (huit principales interventions).
+- **Fiche bâtiment** : interventions réalisables directement depuis le bâtiment sélectionné, avec effets immédiats sur l’état, la propreté, la qualité du bassin et les finances.
+- **Historique de gestion** : nombre d'interventions et dépenses saisonnières dans le bilan.
+- **Rendu Canvas 2,5D vivant** : arbres qui oscillent selon la météo, voilage et panneau de snack, parasol de piscine, balle animée près des jeux, petits points lumineux au crépuscule.
+- **Aucun changement de caméra ni de commandes**, aucun nouveau média lourd. Sauvegardes existantes et même clé `campingTycoon.save.auto`.
+- **44 tests automatisés**, dont 7 nouveaux tests liés aux interventions, plus vérifications syntaxiques sur les scripts.
+
+Limites : les prestataires interviennent instantanément, sans animation de véhicule ni déplacement du technicien ; ce système restera à approfondir lors d'une version ultérieure. Le rendu et les FPS sur téléphone physique doivent être validés par essai sur l'appareil.

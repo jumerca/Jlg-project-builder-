@@ -485,3 +485,86 @@ test('V1.5 : mise en service d’une nouvelle parcelle prise en compte',()=>{
  assert.equal(S.unitPerformance(s,b).days,0);
  s.day=5;assert.equal(S.unitPerformance(s,b).days,4);
 });
+
+test('V1.6 : devis de nettoyage et aucune facturation deux fois', () => {
+ const s=fresh(1601),b=S.ofType(s,'sanitary')[0];
+ b.dirt=89;const opt=S.serviceOptions(s,b).find(x=>x.kind==='clean');
+ assert.ok(opt);assert.ok(opt.cost>35);
+ const before=s.fin.cash,ledger=ledgerSum(s),rep=s.reputation;
+ const r=S.serviceIntervention(s,b.id,'clean');
+ assert.ok(r.ok);assert.equal(r.cost,opt.cost);assert.equal(b.dirt,0);
+ assert.equal(s.fin.cash,S.r2(before-opt.cost));
+ assert.equal(S.r2(ledgerSum(s)),S.r2(ledger-opt.cost));
+ assert.equal(s.reputation,rep);
+ assert.equal(S.serviceIntervention(s,b.id,'clean').ok,false);
+ assert.equal(s.fin.cash,S.r2(before-opt.cost));
+});
+test('V1.6 : dépannage express tarifé et remise en service réelle', () => {
+ const s=fresh(1602),b=S.ofType(s,'sanitary')[0];
+ b.broken=true;b.cond=12;b.brokenDay=s.day;
+ const option=S.serviceOptions(s,b).find(x=>x.kind==='repair');
+ assert.ok(option && option.cost>0);const out=S.serviceIntervention(s,b.id,'repair');
+ assert.ok(out.ok);assert.equal(b.broken,false);assert.ok(b.cond>=85);
+ assert.equal(b.brokenDay,-1);assert.equal(s.stats.serviceInterventions,1);
+ assert.equal(s.stats.serviceExpenses,option.cost);
+});
+test('V1.6 : révision préventive uniquement quand nécessaire', () => {
+ const s=fresh(1603),b=S.ofType(s,'sanitary')[0];
+ b.cond=52;
+ const before=s.fin.cash;
+ assert.ok(S.serviceIntervention(s,b.id,'prevent').ok);
+ assert.equal(b.cond,87);assert.ok(s.fin.cash<before);
+ const after=s.fin.cash;
+ assert.equal(S.serviceIntervention(s,b.id,'prevent').ok,false);
+ assert.equal(s.fin.cash,after);
+});
+test('V1.6 : intervention refusée si trésorerie trop faible, occupation ou salarié sur place',()=>{
+ const s=fresh(1604),b=S.ofType(s,'sanitary')[0];
+ b.dirt=78;
+ s.fin.cash=0;const failed=S.serviceIntervention(s,b.id,'clean');
+ assert.equal(failed.ok,false);assert.equal(b.dirt,78);
+ s.fin.cash=10000;
+ const st=S.bs(s,b),worker={id:998,task:{b:b.id,kind:'clean'}};
+ s.rt.agentMap.set(998,worker);st.claim=998;
+ assert.equal(S.serviceIntervention(s,b.id,'clean').ok,false);
+ s.rt.agentMap.delete(998);st.claim=0;
+ assert.ok(S.serviceIntervention(s,b.id,'clean').ok);
+});
+test('V1.6 : ménage locatif extérieur sans gêner un vacancier occupant',()=>{
+ const s=fresh(1605),tent=S.units(s).find(x=>x.type==='tent');
+ tent.clean=true;
+ assert.ok(S.serviceOptions(s,tent).some(x=>x.kind==='turnover'));
+ const booking=S.requestBooking(s,{profile:'couple',type:'tent',arrive:0,nights:2,size:2,force:true}).booking;
+ S.checkIn(s,booking,false);
+ tent.clean=true;
+ assert.equal(S.serviceOptions(s,tent).some(x=>x.kind==='turnover'),false);
+ assert.equal(S.serviceIntervention(s,tent.id,'turnover').ok,false);
+ booking.status='done';
+ assert.ok(S.serviceIntervention(s,tent.id,'turnover').ok);
+ assert.equal(tent.clean,false);
+});
+test('V1.6 : liste d’exploitation triée, sauvegardée et bilan saisonnier',()=>{
+ const s=fresh(1606),b=S.ofType(s,'sanitary')[0];
+ b.dirt=93;b.broken=true;
+ let list=S.serviceChecklist(s);
+ assert.ok(list.length>=2);assert.equal(list[0].kind,'repair');
+ assert.equal(list[0].id,b.id);
+ assert.ok(S.serviceIntervention(s,b.id,'repair').ok);
+ assert.ok(S.serviceIntervention(s,b.id,'clean').ok);
+ const saved=SV.deserialize(SV.serialize(s));
+ assert.equal(saved.stats.serviceInterventions,2);
+ assert.equal(saved.stats.serviceExpenses,s.stats.serviceExpenses);
+ const report=S.endSeason(saved);
+ assert.equal(report.serviceInterventions,2);
+ assert.equal(report.serviceExpenses,s.stats.serviceExpenses);
+});
+test('V1.6 : devis écartés pour équipement inaccessible ou en chantier',()=>{
+ const s=fresh(1607),b=S.ofType(s,'sanitary')[0];b.dirt=95;
+ const before=s.fin.cash;b.ax=-1;
+ assert.ok(!S.serviceChecklist(s).some(x=>x.id===b.id));
+ assert.equal(S.serviceIntervention(s,b.id,'clean').ok,false);
+ b.ax=10;b.ay=10;b.progress=2;
+ assert.equal(S.serviceOptions(s,b).length,0);
+ assert.equal(S.serviceIntervention(s,b.id,'clean').ok,false);
+ assert.equal(s.fin.cash,before);
+});

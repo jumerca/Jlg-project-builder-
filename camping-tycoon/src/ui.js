@@ -11,7 +11,7 @@
 
   let s = null;
   const R = new CT.Renderer($('view'));
-  const ui = { speed: 1, tool: 'select', item: null, tab: null, sel: null, acc: 0, last: performance.now(), lastDay: -1, lastSave: 0, ghostAt: null, panelTick: 0 };
+  const ui = { speed: 1, tool: 'select', item: null, tab: null, sel: null, acc: 0, last: performance.now(), lastDay: -1, lastSave: 0, ghostAt: null, panelTick: 0, opsExpanded: false };
 
   /* ================= Démarrage ================= */
   function boot() {
@@ -396,7 +396,7 @@
         <button class="btn" data-act="updates">🔄 Rechercher une mise à jour</button>
         <button class="btn red" data-act="new">⛺ Nouvelle partie</button>
       </div>
-      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v1.5 · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
+      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v1.6 · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
       resume: () => { closeModal(); setSpeed(1); },
       save: () => { toast(SV.autosave(s) ? 'Partie sauvegardée.' : 'Stockage local indisponible : utilisez l’export.', SV.hasAuto() ? 'good' : 'warn'); closeModal(); },
       export: exportDialog,
@@ -562,6 +562,14 @@
     let h = '';
     const pay = s.staff.reduce((a, x) => a + x.wage * D.EMPLOYER_RATE, 0);
     h += `<div class="kpis"><div class="kpi"><b>${s.staff.length}</b><small>employés</small></div><div class="kpi"><b>${eur(pay)}</b><small>masse salariale / mois</small></div><div class="kpi"><b>${eur(pay / 30)}</b><small>par jour</small></div></div>`;
+    const tasks = S.serviceChecklist(s);
+    h += `<details data-ops ${ui.opsExpanded ? 'open' : ''}><summary style="cursor:pointer;font-weight:800;padding:9px 2px">🧰 Interventions du jour : ${tasks.length} besoin${tasks.length > 1 ? 's' : ''}${tasks.length ? ' · à traiter en priorité' : ' · tout va bien'}</summary>
+      <p class="note">Des prestataires peuvent intervenir immédiatement, mais leur intervention coûte plus cher qu’un salarié. Les interventions inutiles sont refusées et aucun paiement n’est débité.</p>
+      <div class="list">${tasks.slice(0,8).map(t => `<div class="row"><span>🔧</span><div class="grow"><b>${D.BUILDINGS[t.type].short}${t.number ? ' n°' + t.number : ''}</b><small>${t.label}</small></div>
+      <button class="btn small" data-intervention="${t.id}" data-kind="${t.kind}">${eur(t.cost)}</button></div>`).join('') || '<p class="note">Aucune intervention extérieure urgente à prévoir.</p>'}</div>
+      ${tasks.length > 8 ? '<small>8 problèmes prioritaires affichés sur ' + tasks.length + '. Sélectionnez les autres bâtiments sur la carte.</small>' : ''}
+      <p class="note">Déjà engagés cette saison : ${s.stats.serviceInterventions || 0} intervention(s), ${eur(s.stats.serviceExpenses || 0)}.</p>
+    </details>`;
     h += `<h3>Recruter un saisonnier</h3>`;
     for (const r in D.STAFF) {
       const R0 = D.STAFF[r];
@@ -688,6 +696,14 @@
 
   function bindPanel() {
     const body = $('pbody');
+    const operations = body.querySelector('[data-ops]');
+    if (operations) operations.ontoggle = () => { ui.opsExpanded = operations.open; };
+    body.querySelectorAll('[data-intervention]').forEach((b) => (b.onclick = () => {
+      const r = S.serviceIntervention(s, +b.dataset.intervention, b.dataset.kind);
+      if (r.ok) { CT.sfx.play('coin'); toast(`Intervention effectuée : ${eur(r.cost)}.`, 'good'); SV.autosave(s); }
+      else { CT.sfx.play('error'); toast(r.why || 'Intervention impossible.', 'warn'); }
+      renderPanel(true); if (ui.sel) renderInspector();
+    }));
     body.querySelectorAll('[data-hire]').forEach((b) => (b.onclick = () => { S.hire(s, b.dataset.hire); CT.sfx.play('hire'); renderPanel(true); }));
     body.querySelectorAll('[data-policy-role]').forEach((b) => (b.onclick = () => {
       if (S.setStaffPolicy(s, b.dataset.policyRole, b.dataset.policyValue)) { CT.sfx.play('click'); renderPanel(true); SV.autosave(s); }
@@ -749,6 +765,14 @@
         if (nx.length) h += `<small>À venir : ${nx.map((k) => `${S.dateParts(k.arrive).d}/${S.dateParts(k.arrive).m.slice(0, 3)}. (${k.nights} n.)`).join(', ')}</small>`;
       }
     }
+    if (s.phase === 'season' && b.progress <= 0) {
+      const options = S.serviceOptions(s, b);
+      if (options.length) {
+        h += `<div class="loan" style="margin-top:8px"><b>🧰 Intervention immédiate</b>
+          <p class="note">Prestataire extérieur : action immédiate, coût supérieur à une intervention interne.</p>
+          <div class="acts">${options.map(o => `<button class="btn small" data-ins-service="${o.kind}">${o.label} · ${eur(o.cost)}</button>`).join('')}</div></div>`;
+      }
+    }
     const refund = def.cost * D.DEMOLISH_REFUND * (b.progress > 0 ? 2 : 1);
     if (def.upgrade && b.level !== 2) {
       const cu = S.canUpgrade(s, b);
@@ -757,6 +781,12 @@
     h += `<div class="acts"><button class="btn small red" data-demo="1">🧨 Démolir (+${eur(Math.min(refund, def.cost))})</button></div>`;
     el.innerHTML = h; el.classList.remove('hidden');
     el.querySelector('[data-x]').onclick = () => { ui.sel = null; el.classList.add('hidden'); };
+    el.querySelectorAll('[data-ins-service]').forEach(btn => btn.onclick = () => {
+      const result = S.serviceIntervention(s, b.id, btn.dataset.insService);
+      if (result.ok) { CT.sfx.play('coin'); toast(`Intervention effectuée : ${eur(result.cost)}.`, 'good'); SV.autosave(s); }
+      else { CT.sfx.play('error'); toast(result.why, 'warn'); }
+      renderInspector(); if (ui.tab === 'staff') renderPanel(true);
+    });
     const upb = el.querySelector('[data-up]');
     if (upb) upb.onclick = () => { const r = S.upgrade(s, b.id); if (r.ok) { CT.sfx.play('build'); toast(`Amélioration lancée : ${def.upgrade.name}.`, 'good'); renderInspector(); } else { CT.sfx.play('error'); toast(r.why, 'bad'); } };
     el.querySelector('[data-demo]').onclick = () => { const r = S.demolish(s, b.x, b.y); if (!r.ok) toast(r.why || 'Impossible', 'warn'); else { ui.sel = null; el.classList.add('hidden'); toast(`Démoli : +${eur(r.refund)}.`, 'info'); } };

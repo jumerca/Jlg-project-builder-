@@ -81,7 +81,7 @@
   }
 
   function newSeasonStats() {
-    return { groups: 0, nights: 0, persons: 0, shows: 0, ratings: [], occ: [], peakOcc: 0, lostFull: 0, lostPrice: 0, requests: 0, waits: 0, breakdowns: 0, guestTrips: 0, escortedTrips: 0, guestActivities: {}, guestMood: [], repStart: null };
+    return { groups: 0, nights: 0, persons: 0, shows: 0, ratings: [], occ: [], peakOcc: 0, lostFull: 0, lostPrice: 0, requests: 0, waits: 0, breakdowns: 0, serviceInterventions: 0, serviceExpenses: 0, guestTrips: 0, escortedTrips: 0, guestActivities: {}, guestMood: [], repStart: null };
   }
 
   const idx = (x, y) => y * W + x;
@@ -1608,6 +1608,7 @@
       operating, invest, avgRating: Math.round(avgRating * 10) / 10, avgOcc, peakOcc: st.peakOcc, summerOcc: peakDays.length ? peakDays.reduce((a, b) => a + b, 0) / peakDays.length : 0,
       lostFull: st.lostFull, lostPrice: st.lostPrice, requests: st.requests, breakdowns: st.breakdowns,
       guestTrips: st.guestTrips || 0, escortedTrips: st.escortedTrips || 0,
+      serviceInterventions: st.serviceInterventions || 0, serviceExpenses: st.serviceExpenses || 0,
       guestActivities: Object.assign({}, st.guestActivities || {}),
       avgGuestMood: st.guestMood && st.guestMood.length ? Math.round(st.guestMood.reduce((a,b)=>a+b,0)/st.guestMood.length) : 0,
       repStart: st.repStart ?? 42, repEnd: Math.round(s.reputation), stars: s.stars, units: units(s).length, cash: s.fin.cash,
@@ -1808,6 +1809,71 @@
   }
 
 
+
+  /* ---------- Exploitation V1.6 : interventions ciblées et vraies conséquences ---------- */
+  function serviceOptions(s, b) {
+    if (!b || !s.buildings.some(x => x.id === b.id) || b.progress > 0) return [];
+    const options = [];
+    if (b.broken) {
+      const parts = Math.min(900, BUILDINGS[b.type].cost * 0.03) + 60;
+      options.push({ kind: 'repair', label: 'Dépannage express', cost: r2(parts * 1.8),
+        priority: 100 + (BUILDINGS[b.type].unit ? 12 : 0) });
+    }
+    if (b.type === 'sanitary' && b.dirt >= 35)
+      options.push({ kind: 'clean', label: 'Nettoyage immédiat', cost: r2(35 + b.dirt * 0.65), priority: b.dirt });
+    if (b.clean && BUILDINGS[b.type].unit && !s.bookings.some(bk => bk.unit === b.id && bk.status === 'onsite'))
+      options.push({ kind: 'turnover', label: 'Ménage avant arrivée', cost: 75, priority: arrivalToday(s, b) ? 92 : 55 });
+    if (b.type === 'pool' && b.water < 70)
+      options.push({ kind: 'water', label: 'Traitement du bassin', cost: r2(65 + (100 - b.water) * 1.5), priority: 70 - b.water * .4 });
+    if (b.cond < 65 && !b.broken)
+      options.push({ kind: 'prevent', label: 'Révision préventive', cost: r2(45 + (100 - b.cond) * 1.3), priority: 65 - b.cond * .4 });
+    return options;
+  }
+  function serviceChecklist(s) {
+    const tasks = [];
+    if (s.phase !== 'season') return tasks;
+    for (const b of built(s)) {
+      for (const opt of serviceOptions(s, b)) {
+        // Prestataires accessibles même si le bâtiment est en panne ; impossible hors carte.
+        if (!accessible(s, b)) continue;
+        tasks.push({ id: b.id, type: b.type, number: b.num || 0, label: opt.label,
+          kind: opt.kind, cost: opt.cost, priority: opt.priority });
+      }
+    }
+    return tasks.sort((a, b) => b.priority - a.priority || a.id - b.id);
+  }
+  function serviceIntervention(s, id, kind) {
+    if (s.phase !== 'season') return { ok: false, why: 'Les interventions express sont réservées à la saison.' };
+    const b = byId(s, id);
+    if (!b || !accessible(s, b) || b.progress > 0)
+      return { ok: false, why: 'Équipement absent, en chantier ou inaccessible.' };
+    const option = serviceOptions(s, b).find(x => x.kind === kind);
+    if (!option) return { ok: false, why: 'Cette intervention n’est plus nécessaire.' };
+    const st = s.rt.bstate.get(id);
+    if (st && st.claim && s.rt.agentMap.has(st.claim)) {
+      const agent = s.rt.agentMap.get(st.claim);
+      const sameTask = agent && agent.task && agent.task.b === id
+        && ((kind === 'repair' && agent.task.kind === 'repair') ||
+          (kind === 'clean' && agent.task.kind === 'clean') ||
+          (kind === 'turnover' && agent.task.kind === 'mh') ||
+          (kind === 'water' && agent.task.kind === 'pool') ||
+          (kind === 'prevent' && agent.task.kind === 'service'));
+      if (sameTask) return { ok: false, why: 'Votre équipe intervient déjà sur ce problème.' };
+    }
+    if (s.fin.cash < option.cost) return { ok: false, why: 'Trésorerie insuffisante.' };
+    money(s, -option.cost, kind === 'repair' ? 'Réparations' : 'Interventions extérieures');
+    if (kind === 'repair') { b.broken = false; b.cond = Math.max(85, b.cond); b.brokenDay = -1; }
+    else if (kind === 'clean') b.dirt = 0;
+    else if (kind === 'turnover') b.clean = false;
+    else if (kind === 'water') b.water = 100;
+    else if (kind === 'prevent') b.cond = Math.min(100, b.cond + 35);
+    if (!s.stats.serviceInterventions) s.stats.serviceInterventions = 0;
+    s.stats.serviceInterventions++;
+    s.stats.serviceExpenses = r2((s.stats.serviceExpenses || 0) + option.cost);
+    log(s, `${option.label} : ${BUILDINGS[b.type].short.toLowerCase()}${b.num ? ' n°'+b.num : ''} (${Math.round(option.cost)} €).`, 'good');
+    return { ok: true, cost: option.cost, kind, id };
+  }
+
   /* ---------- Prévisions basées exclusivement sur les contrats ---------- */
   function bookingOutlook(s, horizon = 14) {
     const days = s.phase === 'winter' ? 0 : Math.min(Math.max(0, Math.floor(Number(horizon) || 0)), Math.max(0, D.SEASON_DAYS - s.day));
@@ -1884,6 +1950,7 @@
     W, H, DAY, newGame, initRuntime, step, tick, rand, fmtDate, fmtTime, dateParts, dow, seasonCurve,
     requestBooking, isBooked, occupancy, classement, units, built, ofType, services, accessible, beautyAt, avgBeauty,
     seasonBand, seasonMultiplier, setSeasonRate, setStaffPolicy, unitPerformance,
+    serviceOptions, serviceChecklist, serviceIntervention,
     guestStates, guestMood, guestNeedsStep, guestStateForAgent, guestSnapshot,
     hire, fire, build, buildPath, placeDeco, demolish, canPlace, buildingAt, byId, setPrice, setMarkup,
     startSeason, endSeason, endOfDay, checkIn, checkOut, money, summary, bookingOutlook, field, idx, bs, mapChanged, attractiveness, weatherAt,

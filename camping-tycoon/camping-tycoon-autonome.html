@@ -493,7 +493,7 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
   }
 
   function newSeasonStats() {
-    return { groups: 0, nights: 0, persons: 0, shows: 0, ratings: [], occ: [], peakOcc: 0, lostFull: 0, lostPrice: 0, requests: 0, waits: 0, breakdowns: 0, guestTrips: 0, escortedTrips: 0, guestActivities: {}, guestMood: [], repStart: null };
+    return { groups: 0, nights: 0, persons: 0, shows: 0, ratings: [], occ: [], peakOcc: 0, lostFull: 0, lostPrice: 0, requests: 0, waits: 0, breakdowns: 0, serviceInterventions: 0, serviceExpenses: 0, guestTrips: 0, escortedTrips: 0, guestActivities: {}, guestMood: [], repStart: null };
   }
 
   const idx = (x, y) => y * W + x;
@@ -2020,6 +2020,7 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
       operating, invest, avgRating: Math.round(avgRating * 10) / 10, avgOcc, peakOcc: st.peakOcc, summerOcc: peakDays.length ? peakDays.reduce((a, b) => a + b, 0) / peakDays.length : 0,
       lostFull: st.lostFull, lostPrice: st.lostPrice, requests: st.requests, breakdowns: st.breakdowns,
       guestTrips: st.guestTrips || 0, escortedTrips: st.escortedTrips || 0,
+      serviceInterventions: st.serviceInterventions || 0, serviceExpenses: st.serviceExpenses || 0,
       guestActivities: Object.assign({}, st.guestActivities || {}),
       avgGuestMood: st.guestMood && st.guestMood.length ? Math.round(st.guestMood.reduce((a,b)=>a+b,0)/st.guestMood.length) : 0,
       repStart: st.repStart ?? 42, repEnd: Math.round(s.reputation), stars: s.stars, units: units(s).length, cash: s.fin.cash,
@@ -2220,6 +2221,71 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
   }
 
 
+
+  /* ---------- Exploitation V1.6 : interventions ciblées et vraies conséquences ---------- */
+  function serviceOptions(s, b) {
+    if (!b || !s.buildings.some(x => x.id === b.id) || b.progress > 0) return [];
+    const options = [];
+    if (b.broken) {
+      const parts = Math.min(900, BUILDINGS[b.type].cost * 0.03) + 60;
+      options.push({ kind: 'repair', label: 'Dépannage express', cost: r2(parts * 1.8),
+        priority: 100 + (BUILDINGS[b.type].unit ? 12 : 0) });
+    }
+    if (b.type === 'sanitary' && b.dirt >= 35)
+      options.push({ kind: 'clean', label: 'Nettoyage immédiat', cost: r2(35 + b.dirt * 0.65), priority: b.dirt });
+    if (b.clean && BUILDINGS[b.type].unit && !s.bookings.some(bk => bk.unit === b.id && bk.status === 'onsite'))
+      options.push({ kind: 'turnover', label: 'Ménage avant arrivée', cost: 75, priority: arrivalToday(s, b) ? 92 : 55 });
+    if (b.type === 'pool' && b.water < 70)
+      options.push({ kind: 'water', label: 'Traitement du bassin', cost: r2(65 + (100 - b.water) * 1.5), priority: 70 - b.water * .4 });
+    if (b.cond < 65 && !b.broken)
+      options.push({ kind: 'prevent', label: 'Révision préventive', cost: r2(45 + (100 - b.cond) * 1.3), priority: 65 - b.cond * .4 });
+    return options;
+  }
+  function serviceChecklist(s) {
+    const tasks = [];
+    if (s.phase !== 'season') return tasks;
+    for (const b of built(s)) {
+      for (const opt of serviceOptions(s, b)) {
+        // Prestataires accessibles même si le bâtiment est en panne ; impossible hors carte.
+        if (!accessible(s, b)) continue;
+        tasks.push({ id: b.id, type: b.type, number: b.num || 0, label: opt.label,
+          kind: opt.kind, cost: opt.cost, priority: opt.priority });
+      }
+    }
+    return tasks.sort((a, b) => b.priority - a.priority || a.id - b.id);
+  }
+  function serviceIntervention(s, id, kind) {
+    if (s.phase !== 'season') return { ok: false, why: 'Les interventions express sont réservées à la saison.' };
+    const b = byId(s, id);
+    if (!b || !accessible(s, b) || b.progress > 0)
+      return { ok: false, why: 'Équipement absent, en chantier ou inaccessible.' };
+    const option = serviceOptions(s, b).find(x => x.kind === kind);
+    if (!option) return { ok: false, why: 'Cette intervention n’est plus nécessaire.' };
+    const st = s.rt.bstate.get(id);
+    if (st && st.claim && s.rt.agentMap.has(st.claim)) {
+      const agent = s.rt.agentMap.get(st.claim);
+      const sameTask = agent && agent.task && agent.task.b === id
+        && ((kind === 'repair' && agent.task.kind === 'repair') ||
+          (kind === 'clean' && agent.task.kind === 'clean') ||
+          (kind === 'turnover' && agent.task.kind === 'mh') ||
+          (kind === 'water' && agent.task.kind === 'pool') ||
+          (kind === 'prevent' && agent.task.kind === 'service'));
+      if (sameTask) return { ok: false, why: 'Votre équipe intervient déjà sur ce problème.' };
+    }
+    if (s.fin.cash < option.cost) return { ok: false, why: 'Trésorerie insuffisante.' };
+    money(s, -option.cost, kind === 'repair' ? 'Réparations' : 'Interventions extérieures');
+    if (kind === 'repair') { b.broken = false; b.cond = Math.max(85, b.cond); b.brokenDay = -1; }
+    else if (kind === 'clean') b.dirt = 0;
+    else if (kind === 'turnover') b.clean = false;
+    else if (kind === 'water') b.water = 100;
+    else if (kind === 'prevent') b.cond = Math.min(100, b.cond + 35);
+    if (!s.stats.serviceInterventions) s.stats.serviceInterventions = 0;
+    s.stats.serviceInterventions++;
+    s.stats.serviceExpenses = r2((s.stats.serviceExpenses || 0) + option.cost);
+    log(s, `${option.label} : ${BUILDINGS[b.type].short.toLowerCase()}${b.num ? ' n°'+b.num : ''} (${Math.round(option.cost)} €).`, 'good');
+    return { ok: true, cost: option.cost, kind, id };
+  }
+
   /* ---------- Prévisions basées exclusivement sur les contrats ---------- */
   function bookingOutlook(s, horizon = 14) {
     const days = s.phase === 'winter' ? 0 : Math.min(Math.max(0, Math.floor(Number(horizon) || 0)), Math.max(0, D.SEASON_DAYS - s.day));
@@ -2296,6 +2362,7 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
     W, H, DAY, newGame, initRuntime, step, tick, rand, fmtDate, fmtTime, dateParts, dow, seasonCurve,
     requestBooking, isBooked, occupancy, classement, units, built, ofType, services, accessible, beautyAt, avgBeauty,
     seasonBand, seasonMultiplier, setSeasonRate, setStaffPolicy, unitPerformance,
+    serviceOptions, serviceChecklist, serviceIntervention,
     guestStates, guestMood, guestNeedsStep, guestStateForAgent, guestSnapshot,
     hire, fire, build, buildPath, placeDeco, demolish, canPlace, buildingAt, byId, setPrice, setMarkup,
     startSeason, endSeason, endOfDay, checkIn, checkOut, money, summary, bookingOutlook, field, idx, bs, mapChanged, attractiveness, weatherAt,
@@ -2963,6 +3030,44 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
     g.beginPath(); g.arc(x, y - 3 + bob, 3.5, Math.PI, 0); g.fillStyle = SHIRT[a.id % SHIRT.length]; g.fill();
   }
 
+
+  // Détails de vie près des équipements. Une poignée de formes Canvas par bâtiment visible :
+  // aucune nouvelle texture, pas de changement de caméra.
+  function drawFacilityLife(g, b, t, weather, minute) {
+    if (b.progress > 0) return;
+    const px = b.x * TS, py = b.y * TS, w = b.w * TS, h = b.h * TS;
+    if (b.type === 'snack' && minute >= 11 * 60 && minute < 22 * 60) {
+      // Petit panneau menu et voilage de terrasse animés.
+      const flutter = Math.sin(t * .002 + b.id) * (weather === 'storm' ? 3 : 1);
+      g.save();g.translate(px + w - 22, py + h - 25);
+      g.fillStyle = '#684633'; g.fillRect(-9,-16,18,20);
+      g.strokeStyle = '#33233d';g.lineWidth = 1;g.strokeRect(-9,-16,18,20);
+      g.fillStyle = '#f8ead1';g.fillRect(-7,-14,14,16);
+      g.fillStyle = '#8b5738';g.fillRect(-4,-11,8,1.5);g.fillRect(-5,-7,10,1.5);g.fillRect(-3,-3,6,1.5);
+      g.strokeStyle = '#e9d59d';g.lineWidth=2;
+      g.beginPath();g.moveTo(-20,-22);g.quadraticCurveTo(-10,-30 + flutter,1,-22);g.stroke();
+      g.restore();
+    } else if (b.type === 'pool' && minute >= 9 * 60 && minute < 20 * 60) {
+      g.save();
+      const x = px + 13, y = py + h - 19;
+      const lean = Math.sin(t * .0017 + b.id)*.9;
+      // Ombre, pied et parasol en coupe avec trois panneaux colorés.
+      g.fillStyle='rgba(34,73,90,.2)';g.beginPath();g.ellipse(x+10,y+2,14,4,0,0,7);g.fill();
+      g.strokeStyle='#815b43';g.lineWidth=2;g.beginPath();g.moveTo(x+lean,y);g.lineTo(x+lean,y-24);g.stroke();
+      g.beginPath();g.moveTo(x-16+lean,y-22);g.quadraticCurveTo(x+lean,y-39,x+16+lean,y-22);
+      g.closePath();g.fillStyle='#f8e3a0';g.fill();g.lineWidth=1.1;g.strokeStyle='#6e6259';g.stroke();
+      g.fillStyle='#e96869';g.beginPath();g.moveTo(x-8+lean,y-28);g.quadraticCurveTo(x+lean,y-38,x+lean,y-30);g.lineTo(x+lean,y-22);g.closePath();g.fill();
+      g.restore();
+    } else if (b.type === 'playground' && weather !== 'storm' && weather !== 'rain') {
+      // Deux ballons à proximité des jeux, le rebond n'est visible qu'en journée.
+      if (minute > 9 * 60 && minute < 19 * 60) {
+        const bounce = Math.abs(Math.sin(t * .003 + b.id)) * 4;
+        g.beginPath();g.arc(px+w-11,py+h-10-bounce,3.2,0,7);
+        g.fillStyle='#efbb45';g.strokeStyle='#9a4f2f';g.lineWidth=1.1;g.fill();g.stroke();
+      }
+    }
+  }
+
   /* ---------- Renderer ---------- */
   function Renderer(canvas) {
     this.c = canvas; this.g = canvas.getContext('2d');
@@ -3252,11 +3357,26 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
     const lamps = [];
     for (const o of list) {
       if (o.kind === 'deco') {
-        if (o.d === DECO.TREE || o.d === DECO.PINE) g.drawImage(sprite('tree' + o.d + Math.floor(o.v * 3), 52, 64, 10, 28, (gg) => drawTree(gg, o.d, Math.floor(o.v * 3) / 3)), o.x - 10 + (o.v - 0.5) * 8, o.y - 28 + (o.v * 7 % 1 - 0.5) * 6, 52, 64);
-        else g.drawImage(sprite('deco' + o.d + Math.floor(o.v * 5), 36, 44, 2, 10, (gg) => drawDeco(gg, o.d, o.v)), o.x - 2, o.y - 10, 36, 44);
+        if (o.d === DECO.TREE || o.d === DECO.PINE) {
+          const spr = sprite('tree' + o.d + Math.floor(o.v * 3), 52, 64, 10, 28, (gg) => drawTree(gg, o.d, Math.floor(o.v * 3) / 3));
+          const dx=o.x-10+(o.v-.5)*8,dy=o.y-28+(o.v*7%1-.5)*6;
+          const wind=s.weather.type==='storm' ? .036 : s.weather.type==='rain' ? .018 : .008;
+          const angle=Math.sin(now*.0008+o.x*.07+o.y*.09)*wind;
+          const pivotX=o.x+16,pivotY=o.y+28;
+          g.save();g.translate(pivotX,pivotY);g.rotate(angle);
+          g.drawImage(spr,dx-pivotX,dy-pivotY,52,64);g.restore();
+        } else {
+          g.drawImage(sprite('deco' + o.d + Math.floor(o.v * 5), 36, 44, 2, 10, (gg) => drawDeco(gg, o.d, o.v)), o.x - 2, o.y - 10, 36, 44);
+          // Points de lumière subtils dans les fleurs par temps doux au crépuscule.
+          if (o.d===DECO.FLOWERS && s.minute>=20*60 && s.minute<23*60 && !['rain','storm'].includes(s.weather.type)) {
+            g.globalAlpha=.3+.25*Math.sin(now*.003+o.x+o.y);
+            g.fillStyle='#fff0a0';g.beginPath();g.arc(o.x+10,o.y+4,1.8,0,7);g.fill();g.globalAlpha=1;
+          }
+        }
         if (o.lamp) lamps.push([o.x + 16, o.y - 2, 60]);
       } else if (o.kind === 'b') {
         this.drawBuilding(g, s, o.b, occ.get(o.b.id));
+        drawFacilityLife(g, o.b, now, s.weather.type, s.minute);
         const b = o.b, cx = b.x * TS + b.w * TS / 2;
         if (b.progress <= 0) {
           if (BUILDINGS[b.type].unit && occ.get(b.id)) lamps.push([cx, b.y * TS + b.h * TS / 2, 36]);
@@ -3395,7 +3515,7 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
 
   let s = null;
   const R = new CT.Renderer($('view'));
-  const ui = { speed: 1, tool: 'select', item: null, tab: null, sel: null, acc: 0, last: performance.now(), lastDay: -1, lastSave: 0, ghostAt: null, panelTick: 0 };
+  const ui = { speed: 1, tool: 'select', item: null, tab: null, sel: null, acc: 0, last: performance.now(), lastDay: -1, lastSave: 0, ghostAt: null, panelTick: 0, opsExpanded: false };
 
   /* ================= Démarrage ================= */
   function boot() {
@@ -3780,7 +3900,7 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
         <button class="btn" data-act="updates">🔄 Rechercher une mise à jour</button>
         <button class="btn red" data-act="new">⛺ Nouvelle partie</button>
       </div>
-      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v1.5 · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
+      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v1.6 · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
       resume: () => { closeModal(); setSpeed(1); },
       save: () => { toast(SV.autosave(s) ? 'Partie sauvegardée.' : 'Stockage local indisponible : utilisez l’export.', SV.hasAuto() ? 'good' : 'warn'); closeModal(); },
       export: exportDialog,
@@ -3946,6 +4066,14 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
     let h = '';
     const pay = s.staff.reduce((a, x) => a + x.wage * D.EMPLOYER_RATE, 0);
     h += `<div class="kpis"><div class="kpi"><b>${s.staff.length}</b><small>employés</small></div><div class="kpi"><b>${eur(pay)}</b><small>masse salariale / mois</small></div><div class="kpi"><b>${eur(pay / 30)}</b><small>par jour</small></div></div>`;
+    const tasks = S.serviceChecklist(s);
+    h += `<details data-ops ${ui.opsExpanded ? 'open' : ''}><summary style="cursor:pointer;font-weight:800;padding:9px 2px">🧰 Interventions du jour : ${tasks.length} besoin${tasks.length > 1 ? 's' : ''}${tasks.length ? ' · à traiter en priorité' : ' · tout va bien'}</summary>
+      <p class="note">Des prestataires peuvent intervenir immédiatement, mais leur intervention coûte plus cher qu’un salarié. Les interventions inutiles sont refusées et aucun paiement n’est débité.</p>
+      <div class="list">${tasks.slice(0,8).map(t => `<div class="row"><span>🔧</span><div class="grow"><b>${D.BUILDINGS[t.type].short}${t.number ? ' n°' + t.number : ''}</b><small>${t.label}</small></div>
+      <button class="btn small" data-intervention="${t.id}" data-kind="${t.kind}">${eur(t.cost)}</button></div>`).join('') || '<p class="note">Aucune intervention extérieure urgente à prévoir.</p>'}</div>
+      ${tasks.length > 8 ? '<small>8 problèmes prioritaires affichés sur ' + tasks.length + '. Sélectionnez les autres bâtiments sur la carte.</small>' : ''}
+      <p class="note">Déjà engagés cette saison : ${s.stats.serviceInterventions || 0} intervention(s), ${eur(s.stats.serviceExpenses || 0)}.</p>
+    </details>`;
     h += `<h3>Recruter un saisonnier</h3>`;
     for (const r in D.STAFF) {
       const R0 = D.STAFF[r];
@@ -4072,6 +4200,14 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
 
   function bindPanel() {
     const body = $('pbody');
+    const operations = body.querySelector('[data-ops]');
+    if (operations) operations.ontoggle = () => { ui.opsExpanded = operations.open; };
+    body.querySelectorAll('[data-intervention]').forEach((b) => (b.onclick = () => {
+      const r = S.serviceIntervention(s, +b.dataset.intervention, b.dataset.kind);
+      if (r.ok) { CT.sfx.play('coin'); toast(`Intervention effectuée : ${eur(r.cost)}.`, 'good'); SV.autosave(s); }
+      else { CT.sfx.play('error'); toast(r.why || 'Intervention impossible.', 'warn'); }
+      renderPanel(true); if (ui.sel) renderInspector();
+    }));
     body.querySelectorAll('[data-hire]').forEach((b) => (b.onclick = () => { S.hire(s, b.dataset.hire); CT.sfx.play('hire'); renderPanel(true); }));
     body.querySelectorAll('[data-policy-role]').forEach((b) => (b.onclick = () => {
       if (S.setStaffPolicy(s, b.dataset.policyRole, b.dataset.policyValue)) { CT.sfx.play('click'); renderPanel(true); SV.autosave(s); }
@@ -4133,6 +4269,14 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
         if (nx.length) h += `<small>À venir : ${nx.map((k) => `${S.dateParts(k.arrive).d}/${S.dateParts(k.arrive).m.slice(0, 3)}. (${k.nights} n.)`).join(', ')}</small>`;
       }
     }
+    if (s.phase === 'season' && b.progress <= 0) {
+      const options = S.serviceOptions(s, b);
+      if (options.length) {
+        h += `<div class="loan" style="margin-top:8px"><b>🧰 Intervention immédiate</b>
+          <p class="note">Prestataire extérieur : action immédiate, coût supérieur à une intervention interne.</p>
+          <div class="acts">${options.map(o => `<button class="btn small" data-ins-service="${o.kind}">${o.label} · ${eur(o.cost)}</button>`).join('')}</div></div>`;
+      }
+    }
     const refund = def.cost * D.DEMOLISH_REFUND * (b.progress > 0 ? 2 : 1);
     if (def.upgrade && b.level !== 2) {
       const cu = S.canUpgrade(s, b);
@@ -4141,6 +4285,12 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
     h += `<div class="acts"><button class="btn small red" data-demo="1">🧨 Démolir (+${eur(Math.min(refund, def.cost))})</button></div>`;
     el.innerHTML = h; el.classList.remove('hidden');
     el.querySelector('[data-x]').onclick = () => { ui.sel = null; el.classList.add('hidden'); };
+    el.querySelectorAll('[data-ins-service]').forEach(btn => btn.onclick = () => {
+      const result = S.serviceIntervention(s, b.id, btn.dataset.insService);
+      if (result.ok) { CT.sfx.play('coin'); toast(`Intervention effectuée : ${eur(result.cost)}.`, 'good'); SV.autosave(s); }
+      else { CT.sfx.play('error'); toast(result.why, 'warn'); }
+      renderInspector(); if (ui.tab === 'staff') renderPanel(true);
+    });
     const upb = el.querySelector('[data-up]');
     if (upb) upb.onclick = () => { const r = S.upgrade(s, b.id); if (r.ok) { CT.sfx.play('build'); toast(`Amélioration lancée : ${def.upgrade.name}.`, 'good'); renderInspector(); } else { CT.sfx.play('error'); toast(r.why, 'bad'); } };
     el.querySelector('[data-demo]').onclick = () => { const r = S.demolish(s, b.x, b.y); if (!r.ok) toast(r.why || 'Impossible', 'warn'); else { ui.sel = null; el.classList.add('hidden'); toast(`Démoli : +${eur(r.refund)}.`, 'info'); } };

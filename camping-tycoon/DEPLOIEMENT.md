@@ -28,3 +28,9 @@ Déploiement attendu sur le projet Vercel existant `camping-tycoon-jlg` avec le 
 Conserver `campingTycoon.save.auto` et `campingTycoon.save.prev`. La migration initialise `seasonRates` et `staffPolicy` lorsqu'ils sont absents. Tester les 37 scénarios `node --test tests/*.test.js` avant publication. Le service worker porte la version `camping-tycoon-v1.5.0` et remplace l'ancien cache à l'activation.
 
 Ne pas confondre le résultat financier du camping avec la marge indicative par hébergement : celle-ci exclut les frais communs, le personnel et les investissements.
+
+## Version V1.6 — Exploitation & Ambiances
+
+Publier la racine `camping-tycoon/` sur le projet Vercel existant `camping-tycoon-jlg`, sans changer le domaine HTTPS. Préserver le service worker version `camping-tycoon-v1.6.0`, les 11 icônes/logos du dossier assets, les scripts du projet, la sauvegarde locale `campingTycoon.save.auto` et le fichier HTML autonome.
+
+Tests : `node --test tests/*.test.js` (44 tests). Les dépenses d'interventions sont enregistrées dans le grand livre avec catégorie Réparations ou Interventions extérieures. Un échec de validation n'altère ni les finances ni les équipements.
