@@ -320,3 +320,43 @@ test('avis clients rédigés selon le vécu, feu d’artifice du 14 juillet', ()
   const onsite = s.bookings.filter((b) => b.status === 'onsite');
   if (s.weather.type !== 'rain' && s.weather.type !== 'storm') assert.ok(onsite.every((b) => b.n && b.n.fireworks), 'tout le monde a vu le feu d’artifice');
 });
+
+test('prévision à 14 jours : nuits partielles, encaissements restants et intégrité', () => {
+  const s=fresh(201);
+  const a=S.requestBooking(s,{profile:'couple',type:'tent',arrive:2,nights:5,size:2,force:true}).booking;
+  const b=S.requestBooking(s,{profile:'couple',type:'tent',arrive:12,nights:5,size:2,force:true}).booking;
+  const json=SV.serialize(s).replace(/"savedAt":"[^"]+"/,'');
+  const f=S.bookingOutlook(s,14);
+  assert.equal(f.bookedNights,7);assert.equal(f.contracted,S.r2(a.price*5+b.price*2));
+  assert.equal(f.balancesDue,S.r2(a.total-a.paid+b.total-b.paid));
+  assert.equal(f.capacityNights,S.units(s).length*14);
+  assert.equal(SV.serialize(s).replace(/"savedAt":"[^"]+"/,''),json);
+});
+test('prévision : clients sur place et réservations annulées', () => {
+  const s=fresh(202),a=S.requestBooking(s,{profile:'couple',type:'tent',arrive:0,nights:3,size:2,force:true}).booking;
+  S.checkIn(s,a,false);
+  const b=S.requestBooking(s,{profile:'couple',type:'tent',arrive:5,nights:2,size:2,force:true}).booking;
+  assert.equal(S.bookingOutlook(s,14).balancesDue,S.r2(b.total-b.paid));
+  b.status='cancelled';
+  assert.equal(S.bookingOutlook(s,14).bookedNights,3);
+  assert.equal(S.bookingOutlook(s,14).balancesDue,0);
+});
+test('prévision : pannes, frais de personnel et prêt bancaire', () => {
+  const s=fresh(203),b=S.requestBooking(s,{profile:'couple',type:'tent',arrive:3,nights:2,size:2,force:true}).booking;
+  const base=S.bookingOutlook(s,7);
+  S.byId(s,b.unit).broken=true;assert.equal(S.bookingOutlook(s,7).riskBookings,1);
+  S.hire(s,'cleaning');assert.ok(S.bookingOutlook(s,7).fixedCosts>base.fixedCosts);
+  assert.ok(S.borrow(s,10000).ok);assert.ok(S.bookingOutlook(s,7).loanCosts>0);
+});
+test('classement 4 et 5 étoiles : quatre métiers et objectif équipe compatibles', () => {
+  const s=fresh(204),tent=S.units(s).find(b=>b.type==='tent'),rec=s.buildings.find(b=>b.type==='reception');
+  const add=t=>s.buildings.push({...((t==='tent')?tent:rec),type:t,id:s.nextId++,progress:0});
+  while(S.units(s).length<30)add('tent');
+  add('sanitary');add('shop');add('pool');add('playground');
+  s.staff=['reception','cleaning','maintenance','animation'].map(role=>({role,wage:D.STAFF[role].wage}));
+  s.reputation=85;assert.equal(S.classement(s).stars,4);
+  while(S.units(s).length<40)add('tent');
+  for(let i=0;i<10;i++)add('mobilhome');
+  add('sanitary');add('stage');s.deco.fill(D.DECO.FLOWERS);
+  assert.equal(S.classement(s).stars,5);
+});

@@ -259,7 +259,7 @@
     const levels = [
       { stars: 2, req: [[u >= 8, '8 hébergements'], [has('reception'), 'un accueil relié'], [has('sanitary'), 'des sanitaires']] },
       { stars: 3, req: [[u >= 18, '18 hébergements'], [has('shop'), 'une épicerie'], [rep >= 50, 'réputation ≥ 50'], [ratioOk, '1 cabine sanitaire pour 14 pers. max']] },
-      { stars: 4, req: [[u >= 30, '30 hébergements'], [has('pool'), 'une piscine'], [has('playground'), 'une aire de jeux'], [rep >= 65, 'réputation ≥ 65'], [roles.size === 3, 'les 3 métiers en poste']] },
+      { stars: 4, req: [[u >= 30, '30 hébergements'], [has('pool'), 'une piscine'], [has('playground'), 'une aire de jeux'], [rep >= 65, 'réputation ≥ 65'], [(['reception', 'cleaning', 'maintenance'].every((role) => roles.has(role))), 'accueil, entretien et maintenance en poste']] },
       { stars: 5, req: [[u >= 50, '50 hébergements'], [mh >= 10, '10 mobil-homes'], [rep >= 80, 'réputation ≥ 80'], [avgBeauty(s) >= 8, 'paysagisme soigné (beauté ≥ 8)'], [has('stage') && roles.has('animation'), 'une scène avec animateur']] }
     ];
     let stars = 1, next = null;
@@ -1433,7 +1433,7 @@
     const done = {
       first10: s.totals.groups >= 10,
       pool: services(s, 'pool').length > 0,
-      staff3: s.staff.length >= 3 && roles.size === 3,
+      staff3: s.staff.length >= 3 && ['reception', 'cleaning', 'maintenance'].every((role) => roles.has(role)),
       units20: units(s).length >= 20,
       rep60: s.reputation >= 60,
       stars3: s.stars >= 3,
@@ -1551,6 +1551,51 @@
   function setPrice(s, type, v) { s.prices[type] = clamp(Math.round(v), type === 'extra' ? 0 : 5, 400); }
   function setMarkup(s, v) { s.shopMarkup = clamp(Math.round(v * 100) / 100, 0.8, 1.6); }
 
+
+  /* ---------- Prévisions basées exclusivement sur les contrats ---------- */
+  function bookingOutlook(s, horizon = 14) {
+    const days = s.phase === 'winter' ? 0 : Math.min(Math.max(0, Math.floor(Number(horizon) || 0)), Math.max(0, D.SEASON_DAYS - s.day));
+    const end = s.day + days, allUnits = units(s), umap = new Map(allUnits.map((b) => [b.id, b]));
+    const byType = {};
+    for (const type of ['tent', 'caravan', 'mobilhome']) {
+      const count = allUnits.filter((b) => BUILDINGS[b.type].unitType === type).length;
+      byType[type] = { units: count, availableNights: count * days, bookedNights: 0, contracted: 0, rate: 0 };
+    }
+    let bookings = 0, balancesDue = 0, riskBookings = 0;
+    for (const bk of s.bookings) {
+      if (bk.status !== 'booked' && bk.status !== 'onsite') continue;
+      const unit = umap.get(bk.unit);
+      if (!unit || !byType[bk.type]) continue;
+      const nights = Math.max(0, Math.min(end, bk.depart) - Math.max(s.day, bk.arrive));
+      if (!nights) continue;
+      const row = byType[bk.type];
+      bookings++; row.bookedNights += nights; row.contracted = r2(row.contracted + nights * bk.price);
+      if (bk.status === 'booked' && bk.arrive >= s.day && bk.arrive < end)
+        balancesDue = r2(balancesDue + Math.max(0, bk.total - bk.paid));
+      if (unit.broken || !accessible(s, unit)) riskBookings++;
+    }
+    let capacityNights = 0, bookedNights = 0, contracted = 0;
+    for (const row of Object.values(byType)) {
+      row.rate = row.availableNights ? row.bookedNights / row.availableNights : 0;
+      capacityNights += row.availableNights; bookedNights += row.bookedNights;
+      contracted = r2(contracted + row.contracted);
+    }
+    const fixedCosts = r2(days * (built(s).reduce((a, b) => a + BUILDINGS[b.type].upkeep, 18)
+      + s.staff.reduce((a, st) => a + st.wage * D.EMPLOYER_RATE / 30, 0)));
+    let loanCosts = 0;
+    if (s.loan) {
+      let left = s.loan.left;
+      for (let i = 0; i < days && left > 0; i++) {
+        const principal = r2(Math.min(s.loan.perDay, left));
+        loanCosts = r2(loanCosts + principal + r2(left * s.loan.rate / D.SEASON_DAYS));
+        left = r2(left - principal);
+      }
+    }
+    return { days, bookings, byType, capacityNights, bookedNights,
+      occupancy: capacityNights ? bookedNights / capacityNights : 0, contracted, balancesDue,
+      fixedCosts, loanCosts, riskBookings, unbookedNights: Math.max(0, capacityNights - bookedNights) };
+  }
+
   /* ---------- Vue d'ensemble pour l'UI ---------- */
   function summary(s) {
     const o = occupancy(s);
@@ -1563,7 +1608,7 @@
     W, H, DAY, newGame, initRuntime, step, tick, rand, fmtDate, fmtTime, dateParts, dow, seasonCurve,
     requestBooking, isBooked, occupancy, classement, units, built, ofType, services, accessible, beautyAt, avgBeauty,
     hire, fire, build, buildPath, placeDeco, demolish, canPlace, buildingAt, byId, setPrice, setMarkup,
-    startSeason, endSeason, endOfDay, checkIn, checkOut, money, summary, field, idx, bs, mapChanged, attractiveness, weatherAt,
+    startSeason, endSeason, endOfDay, checkIn, checkOut, money, summary, bookingOutlook, field, idx, bs, mapChanged, attractiveness, weatherAt,
     occupancyGrid, poolOpen, INCOME, FINANCING, r2, stageLive, stageWindow, borrow, repayLoan, loanCapacity,
     snackOpen, canUpgrade, upgrade, displayName, unitPrice, acceptRate, eventView, resolveEvent, EVENTS, hasMod, demandMod, FIREWORKS, rollEvent, PREMIUM
   };

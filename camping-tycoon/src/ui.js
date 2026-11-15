@@ -468,6 +468,8 @@
     const today = s.bookings.filter((b) => b.arrive === s.day && (b.status === 'booked' || b.status === 'onsite'));
     const leaving = s.bookings.filter((b) => b.depart === s.day && (b.status === 'onsite' || b.status === 'done'));
     let h = `<div class="kpis"><div class="kpi"><b>${o.used}/${o.total}</b><small>occupés ce soir</small></div><div class="kpi"><b>${sum.persons}</b><small>vacanciers / ${o.cap} places</small></div><div class="kpi"><b style="color:${sum.satAvg == null ? 'inherit' : satColor(sum.satAvg)}">${sum.satAvg == null ? '—' : Math.round(sum.satAvg)}</b><small>satisfaction</small></div></div>`;
+    const outlook = S.bookingOutlook(s, 14);
+    h += `<p class="note">📊 Sur les ${outlook.days} prochains jours : <b>${pct(outlook.occupancy)} d'occupation confirmée</b> · <b>${eur(outlook.contracted)}</b> de nuitées contractées · ${outlook.unbookedNights} nuits encore libres.${outlook.riskBookings ? ' ⚠️ ' + outlook.riskBookings + ' réservation(s) sur un hébergement en panne ou inaccessible.' : ''}</p>`;
     // calendrier 14 jours par type
     const types = ['tent', 'caravan', 'mobilhome'].filter((t) => S.units(s).some((u) => D.BUILDINGS[u.type].unitType === t));
     h += `<h3>Remplissage des 14 prochains jours</h3><div class="cal"><span></span>`;
@@ -556,6 +558,21 @@
     inc.sort((a, b) => b[1] - a[1]); exp.sort((a, b) => a[1] - b[1]);
     const ti = inc.reduce((a, b) => a + b[1], 0), te = exp.reduce((a, b) => a + b[1], 0);
     let h = `<div class="kpis"><div class="kpi"><b class="${s.fin.cash >= 0 ? 'pos' : 'neg'}">${eur(s.fin.cash)}</b><small>trésorerie</small></div><div class="kpi"><b class="pos">${eur(ti)}</b><small>recettes saison</small></div><div class="kpi"><b class="${ti + te >= 0 ? 'pos' : 'neg'}">${eur(ti + te)}</b><small>résultat saison</small></div></div>`;
+    const outlook = S.bookingOutlook(s, 14);
+    if (outlook.days) {
+      h += `<h3>📈 Pilotage — ${outlook.days} prochains jours</h3>
+        <div class="kpis"><div class="kpi"><b>${pct(outlook.occupancy)}</b><small>nuits réservées</small></div>
+        <div class="kpi"><b class="pos">${eur(outlook.contracted)}</b><small>nuitées contractées*</small></div>
+        <div class="kpi"><b class="pos">${eur(outlook.balancesDue)}</b><small>soldes à encaisser*</small></div></div>
+        <table class="fin"><tr><th>Hébergement</th><th>Occupation</th><th>Recettes*</th></tr>
+        ${['tent', 'caravan', 'mobilhome'].map((t) => {
+          const o = outlook.byType[t];
+          return `<tr><td>${TYPE_NAME[t]} (${o.units})</td><td>${o.bookedNights}/${o.availableNights} · ${pct(o.rate)}</td><td>${eur(o.contracted)}</td></tr>`;
+        }).join('')}</table>
+        <p class="note"><b>Engagements connus sur la période :</b> soldes à recevoir ${eur(outlook.balancesDue)} ; charges fixes estimées ${eur(outlook.fixedCosts)}${outlook.loanCosts ? ' ; échéances d’emprunt ' + eur(outlook.loanCosts) : ''}.
+        ${outlook.riskBookings ? '<br>⚠️ ' + outlook.riskBookings + ' séjour(s) à risque : hébergement en panne ou non relié.' : ''}
+        <br>* La valeur contractée inclut les acomptes déjà encaissés. Les soldes restent soumis aux annulations. Les réservations nouvelles, dépenses variables, achats, incidents et investissements ne sont pas prévus.</p>`;
+    }
     h += `<h3>Trésorerie — 60 derniers jours</h3><canvas class="spark" id="spark"></canvas>`;
     const capL = S.loanCapacity(s);
     h += `<h3>🏦 Banque</h3><div class="loan">`;

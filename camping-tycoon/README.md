@@ -20,7 +20,7 @@ Aucune installation, aucune compilation : HTML, CSS et JavaScript.
 node --test tests/*.test.js      # ou : npm test   (Node 18+)
 ```
 
-19 tests (dont emprunt, animations, améliorations, snack-bar, événements, avis) : réservations simultanées (pas de double attribution), capacité maximale, arrivées/départs et rotation le même jour, facturation (acompte 30 % + solde, tarif verrouillé, annulation), salaires, cohérence trésorerie/grand livre, déplacements sur les allées uniquement, capacité des équipements, sauvegarde/reprise, migration et rejet de fichiers invalides, saison complète avec bilan, construction et démolition protégée.
+23 tests (dont emprunt, animations, améliorations, snack-bar, événements, avis) : réservations simultanées (pas de double attribution), capacité maximale, arrivées/départs et rotation le même jour, facturation (acompte 30 % + solde, tarif verrouillé, annulation), salaires, cohérence trésorerie/grand livre, déplacements sur les allées uniquement, capacité des équipements, sauvegarde/reprise, migration et rejet de fichiers invalides, saison complète avec bilan, construction et démolition protégée.
 
 ## Architecture
 
@@ -42,6 +42,14 @@ L’état persistant est un simple objet JSON ; tout ce qui est transitoire (per
 - Scène d’animation + métier d’animateur : club enfants 15h–17h, spectacle 20h–22h (annulé s’il pleut), objectif « Ambiance du soir », exigé pour le 5★.
 - Banque : emprunts de 10 000 à 100 000 € (capacité = 20 000 € + 50 % de la valeur des installations), 4,5 %/an, remboursement quotidien sur 300 jours d’ouverture, remboursement anticipé (+1 %).
 - Sons et ambiance sonore, coupables (bouton 🔊 ou menu).
+
+## Nouveautés v1.3
+
+- **Pilotage des 14 prochains jours** dans Réservations et Finances : nuits confirmées, taux d'occupation et recettes contractées par hébergement.
+- **Trésorerie prévisionnelle prudente** : soldes restant à encaisser, charges fixes et échéances d'emprunt distinguées des revenus déjà perçus. Les futures demandes restent inconnues.
+- **Alertes réservations** quand un hébergement assigné est en panne ou inaccessible.
+- **Progression réparée** : les 4 étoiles et l'objectif « Une vraie équipe » exigent les métiers accueil, entretien et maintenance sans pénaliser le recrutement d'un animateur ; les 5 étoiles redeviennent accessibles.
+- **4 nouveaux tests de régression**. Sauvegardes inchangées, cache PWA actualisé pour les appareils déjà installés.
 
 ## Nouveautés v1.2
 
