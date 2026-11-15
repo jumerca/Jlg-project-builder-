@@ -13,6 +13,69 @@
   const R = new CT.Renderer($('view'));
   const ui = { speed: 1, tool: 'select', item: null, tab: null, sel: null, acc: 0, last: performance.now(), lastDay: -1, lastSave: 0, ghostAt: null, panelTick: 0, opsExpanded: false };
 
+
+  /* Version visible et historique : même source de vérité pour l'accueil et les menus. */
+  const RELEASE = {
+    version: '1.7.0', date: '15 novembre 2026',
+    headline: 'Le camping prend vie !',
+    highlights: [
+      ['minigolf','Mini-golf','6 pistes animées · 8 € la partie'],
+      ['multisport','Terrain multisports','Basket, foot et vacanciers sportifs'],
+      ['bikes','Location de vélos','Vélos visibles · 12 € la sortie'],
+      ['laundry','Laverie','Confort longue durée · 6 € le cycle']
+    ],
+    history: [
+      ['1.7.0','15 novembre 2026','Quatre nouveaux bâtiments dessinés, activités et revenus réels, animations sur la carte, panneau Vie du camping et nouvel écran d’accueil avec historique.'],
+      ['1.6.0','15 novembre 2026','Interventions d’exploitation, dépannage ciblé, détails animés, végétation et météo.'],
+      ['1.5.0','15 novembre 2026','Scènes de vie, tarifs saisonniers, marge par emplacement, priorités du personnel.'],
+      ['1.4.0','15 novembre 2026','Besoins individuels, promenades, sorties en famille et comportements adaptés à la météo.']
+    ]
+  };
+  function releaseVisuals(root = document) {
+    root.querySelectorAll('[data-ct-preview]').forEach(el => {
+      if (el.childElementCount) return;
+      try { const canvas=CT.drawSpriteIcon(el.dataset.ctPreview); canvas.setAttribute('aria-hidden','true'); el.appendChild(canvas); }
+      catch(e) { el.textContent='🏕️'; }
+    });
+  }
+  function releaseHistory(back) {
+    modal(`<h2>🗞️ Versions & mises à jour</h2>
+      <p class="release-tag">CAMPING TYCOON · VERSION ${RELEASE.version} · ${RELEASE.date}</p>
+      <div class="release-history">${RELEASE.history.map(([v,d,desc])=>
+        `<div class="release-history-entry"><b>Version ${v}</b><small>${d}</small><p>${desc}</p></div>`).join('')}</div>
+      <div class="acts"><button class="btn primary" data-act="back">← Retour</button>
+      <button class="btn" data-act="check">🔄 Vérifier en ligne</button></div>`,{
+        back: back || (()=>titleScreen(SV.hasAuto())),
+        check: ()=>checkOnlineVersion()
+      });
+  }
+  async function checkOnlineVersion() {
+    try {
+      if ('serviceWorker' in navigator) {
+        const reg=await navigator.serviceWorker.getRegistration();
+        if (reg) await reg.update();
+      }
+      const response=await fetch('./version.json?ts='+Date.now(),{cache:'no-store'});
+      if (!response.ok) throw Error('Service de version indisponible.');
+      const data=await response.json();
+      const compare=(a,b)=>{
+        const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);
+        for(let i=0;i<3;i++) if ((x[i]||0)!==(y[i]||0)) return (x[i]||0)-(y[i]||0);
+        return 0;
+      };
+      if (compare(data.version,RELEASE.version)>0) {
+        modal(`<h2>🆕 Mise à jour ${esc(data.version)} disponible</h2>
+          <p>La version ${esc(data.version)} est publiée. Ta sauvegarde locale sera conservée.</p>
+          <div class="acts"><button class="btn primary" data-act="install">Enregistrer et actualiser</button>
+          <button class="btn" data-act="later">Plus tard</button></div>`,{
+            install: ()=>{SV.autosave(s);location.reload();},later: ()=>releaseHistory(()=>titleScreen(SV.hasAuto()))
+          });
+      } else toast(`✓ Version ${RELEASE.version} à jour. Aucune version plus récente détectée.`,'good',8000);
+    } catch(err) {
+      toast('Vérification des versions indisponible : '+err.message,'warn',8000);
+    }
+  }
+
   /* ================= Démarrage ================= */
   function boot() {
     R.resize();
@@ -28,41 +91,63 @@
   }
 
   function titleScreen(hasSave) {
-    const recap = hasSave ? `<p class="note">Partie en cours : <b>${esc(s.name)}</b> — saison ${s.year}, ${s.phase === 'winter' ? 'hors saison' : S.fmtDate(s)} · ${eur(s.fin.cash)}</p>` : '';
+    const recap = hasSave ? `<p class="note">Ta partie : <b>${esc(s.name)}</b> — saison ${s.year}, ${s.phase === 'winter' ? 'hors saison' : S.fmtDate(s)} · ${eur(s.fin.cash)}</p>` : '';
     modal(`
-      <div class="title-hero"><img src="assets/logo.svg" alt="Camping Tycoon — JLG Creative"></div>
-      <p>Vous reprenez un petit camping au bord du lac. Tracez les allées, installez parcelles et mobil-homes, recrutez votre équipe, fixez vos tarifs… et faites-en un domaine réputé, saison après saison.</p>
+      <div class="title-hero title-hero-compact"><img src="assets/logo.svg" alt="Camping Tycoon — JLG Creative"></div>
+      <div class="release-hero">
+        <div class="release-meta"><strong>VERSION ${RELEASE.version}</strong><span>Publié le ${RELEASE.date}</span></div>
+        <h2>${RELEASE.headline}</h2>
+        <p>Un véritable cap : nouveaux bâtiments visibles et activités jouables sur la carte, avec leurs propres recettes et dépenses.</p>
+      </div>
       ${recap}
-      <div class="acts">
-        ${hasSave ? '<button class="btn primary" data-act="continue">▶ Continuer</button>' : ''}
+      <div class="acts release-main-actions">
+        ${hasSave ? '<button class="btn primary" data-act="continue">▶ Continuer ma partie</button>' : ''}
         <button class="btn ${hasSave ? '' : 'primary'}" data-act="new">⛺ Nouvelle partie</button>
-        <button class="btn" data-act="import">📂 Importer une sauvegarde</button>
-        <button class="btn" data-act="help">❓ Comment jouer</button>
-      </div>`, {
-      continue: () => { closeModal(); setSpeed(1); },
-      new: () => newGameDialog(),
-      import: () => importDialog(),
-      help: () => helpDialog(() => titleScreen(hasSave))
+        <button class="btn" data-act="import">📂 Charger / importer</button>
+      </div>
+      <h3 class="release-section-title">🆕 Nouveautés de la version ${RELEASE.version}</h3>
+      <div class="release-cards">${RELEASE.highlights.map(([key,name,info])=>
+        `<div class="release-card"><div class="release-card-art" data-ct-preview="${key}"></div>
+          <div><b>${name}</b><small>${info}</small></div></div>`).join('')}</div>
+      <div class="acts release-footer">
+        <button class="btn blue" data-act="history">🗞️ Historique des versions</button>
+        <button class="btn" data-act="check">🔄 Vérifier les mises à jour</button>
+        <button class="btn" data-act="help">❓ Aide</button>
+      </div>`,{
+      continue: ()=>{closeModal();setSpeed(1);},
+      new: ()=>newGameDialog(),
+      import: ()=>importDialog(),
+      help: ()=>helpDialog(()=>titleScreen(hasSave)),
+      history: ()=>releaseHistory(()=>titleScreen(hasSave)),
+      check: ()=>checkOnlineVersion()
     });
+    releaseVisuals($('modalCard'));
   }
 
+
   function newGameDialog() {
-    modal(`<h2>Nouvelle partie</h2>
-      <p>Nom de votre camping :</p>
-      <input type="text" id="ngName" maxlength="32" value="Camping Les Flots Bleus">
-      <p class="note">Départ : 1er avril, 30 000 € de trésorerie, 7 emplacements tente, 2 emplacements caravane, un accueil et un bloc sanitaire. ${SV.hasAuto() ? '<b>La partie en cours sera remplacée</b> (exportez-la d’abord si besoin).' : ''}</p>
-      <div class="acts"><button class="btn primary" data-act="go">C’est parti !</button><button class="btn" data-act="back">Retour</button></div>`, {
-      go: () => {
-        const name = ($('ngName').value || '').trim() || 'Camping Les Flots Bleus';
-        s = S.newGame({ seed: (Date.now() % 1e9) | 0, name });
-        R.groundKey = ''; R.fit(s); closeModal(); SV.autosave(s); setSpeed(1);
-        s.rt.events.length = 0;
-        toast(`Bienvenue au ${s.name} ! Le domaine ouvre ses portes le 1er avril.`, 'good');
-        toast('Astuce : tracez des allées 🟫 puis posez des emplacements le long. Tout doit être relié à l’entrée !', 'info', 9000);
-      },
-      back: () => titleScreen(SV.hasAuto())
-    });
-    setTimeout(() => { const i = $('ngName'); if (i) { i.focus(); i.select(); } }, 50);
+    const launch=(mode)=>{
+      const name=($('ngName').value||'').trim()||'Camping Les Flots Bleus';
+      s=S.newGame({seed:(Date.now()%1e9)|0,name,mode});
+      R.groundKey='';R.fit(s);closeModal();SV.autosave(s);setSpeed(1);
+      s.rt.events.length=0;
+      toast(mode==='discovery'?'Camp de découverte : 4 équipements V1.7 installés !':`Bienvenue au ${s.name} !`,'good',8000);
+      toast(mode==='discovery'?'Explore le mini-golf, les multisports, les vélos et la laverie.':
+        'Trace des allées puis construis : tous les équipements doivent être reliés à l’entrée.','info',9000);
+    };
+    modal(`<h2>⛺ Nouvelle partie</h2>
+      <p>Nom de ton camping :</p><input type="text" id="ngName" maxlength="32" value="Camping Les Flots Bleus">
+      <p class="note">${SV.hasAuto()?'<b>Attention : cette nouvelle partie remplacera la sauvegarde actuelle. Exporte-la d’abord.</b>':'Trésorerie de départ : 30 000 €.'}</p>
+      <div class="start-modes">
+        <div class="start-mode"><b>⛺ Camping classique</b>
+        <p>Le camping de départ habituel, à développer saison après saison.</p>
+        <button class="btn primary" data-act="go">Démarrer normalement</button></div>
+        <div class="start-mode discovery"><b>🎨 Camp découverte · V${RELEASE.version}</b>
+        <p>Les 4 nouveaux équipements sont déjà installés sur la carte. Trésorerie normale, installations offertes pour découvrir la mise à jour.</p>
+        <button class="btn blue" data-act="demo">Découvrir les nouveautés</button></div>
+      </div><div class="acts"><button class="btn" data-act="back">← Retour</button></div>`,{
+        go:()=>launch('normal'),demo:()=>launch('discovery'),back:()=>titleScreen(SV.hasAuto())
+      });
   }
 
   function helpDialog(back) {
@@ -393,10 +478,11 @@
         <button class="btn" data-act="night">🌙 Nuits accélérées : ${s.settings.nightFast ? 'oui' : 'non'}</button>
         <button class="btn" data-act="sound">${s.settings.sound === false ? '🔇' : '🔊'} Sons : ${s.settings.sound === false ? 'non' : 'oui'}</button>
         <button class="btn" data-act="help">❓ Comment jouer</button>
+        <button class="btn" data-act="history">🗞️ Versions et nouveautés — v${RELEASE.version}</button>
         <button class="btn" data-act="updates">🔄 Rechercher une mise à jour</button>
         <button class="btn red" data-act="new">⛺ Nouvelle partie</button>
       </div>
-      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v1.6 · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
+      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v${RELEASE.version} · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
       resume: () => { closeModal(); setSpeed(1); },
       save: () => { toast(SV.autosave(s) ? 'Partie sauvegardée.' : 'Stockage local indisponible : utilisez l’export.', SV.hasAuto() ? 'good' : 'warn'); closeModal(); },
       export: exportDialog,
@@ -405,17 +491,8 @@
       night: () => { s.settings.nightFast = !s.settings.nightFast; menu(); },
       sound: () => { s.settings.sound = s.settings.sound === false; CT.sfx.setEnabled(s.settings.sound); menu(); },
       help: () => helpDialog(menu),
-      updates: () => {
-        if (!('serviceWorker' in navigator)) {
-          toast('Mise à jour automatique indisponible dans ce navigateur.', 'warn'); return;
-        }
-        navigator.serviceWorker.getRegistration().then((reg) => {
-          if (!reg) throw Error('L’application n’est pas enregistrée pour les mises à jour.');
-          return reg.update();
-        }).then(() => toast('Recherche effectuée. Rechargez le jeu pour utiliser les nouveaux fichiers.', 'good', 8000))
-          .catch((err) => toast('Recherche impossible : ' + err.message, 'warn', 8000));
-        closeModal();
-      },
+      updates: ()=>checkOnlineVersion(),
+      history: ()=>releaseHistory(menu),
       new: newGameDialog
     });
   }
@@ -449,7 +526,7 @@
   }
 
   /* ================= Panneaux ================= */
-  const TITLES = { reviews: '💬 Avis des vacanciers', bookings: '📅 Réservations', prices: '🏷️ Tarifs', staff: '👷 Équipe', finance: '📊 Finances', goals: '🏆 Objectifs & classement', log: '📰 Journal du camping' };
+  const TITLES = { life: '🌞 Vie du camping', reviews: '💬 Avis des vacanciers', bookings: '📅 Réservations', prices: '🏷️ Tarifs', staff: '👷 Équipe', finance: '📊 Finances', goals: '🏆 Objectifs & classement', log: '📰 Journal du camping' };
   function openPanel(tab) {
     ui.tab = tab; $('panel').classList.remove('hidden'); $('ptitle').textContent = TITLES[tab];
     document.querySelectorAll('#tools [data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
@@ -462,7 +539,7 @@
     const body = $('pbody');
     if (!force && body.contains(document.activeElement) && document.activeElement.tagName !== 'BODY' && document.activeElement.tagName !== 'BUTTON') return;
     const scroll = body.scrollTop;
-    const fn = { reviews: pReviews, bookings: pBookings, prices: pPrices, staff: pStaff, finance: pFinance, goals: pGoals, log: pLog }[ui.tab];
+    const fn = { life: pLife, reviews: pReviews, bookings: pBookings, prices: pPrices, staff: pStaff, finance: pFinance, goals: pGoals, log: pLog }[ui.tab];
     if (!fn) return;
     body.innerHTML = fn();
     body.scrollTop = scroll;
@@ -473,6 +550,36 @@
   const PROF = (p) => D.PROFILES[p].icon;
   const TYPE_NAME = { tent: 'Tente', caravan: 'Caravane', mobilhome: 'Mobil-home' };
   const satColor = (v) => (v >= 70 ? '#2f9e6b' : v >= 45 ? '#f2a516' : '#e8553d');
+
+
+  function pLife() {
+    const snap=S.guestSnapshot(s), counts=s.stats.leisureVisits || {}, rent=s.stats.leisureRevenue || 0;
+    const kinds=['minigolf','multisport','bikes','laundry'];
+    const total=Object.values(counts).reduce((a,v)=>a+v,0);
+    let h=`<div class="life-hero"><b>🏕️ ${s.mode==='discovery'?'Camp de découverte':'Le camping vivant'}</b>
+      <p>Les vacanciers choisissent leurs activités selon la météo, leurs envies et les horaires. Chaque équipement a un coût et un effet sur la satisfaction.</p></div>
+      <div class="kpis"><div class="kpi"><b>${snap.persons}</b><small>personnes présentes</small></div>
+        <div class="kpi"><b>${Math.round(snap.mood)}/100</b><small>bien-être</small></div>
+        <div class="kpi"><b>${snap.groupOutings}</b><small>sorties accompagnées</small></div></div>
+      <div class="kpis" style="margin-top:6px"><div class="kpi"><b>${total}</b><small>visites aux nouveautés</small></div>
+        <div class="kpi"><b class="${rent>=0?'pos':'neg'}">${eur(rent)}</b><small>marge loisirs*</small></div>
+        <div class="kpi"><b>${snap.trips}</b><small>excursions totales</small></div></div>
+      <h3>🎪 Équipements V1.7</h3>`;
+    for(const type of kinds){
+      const d=D.BUILDINGS[type], buildings=S.ofType(s,type), visits=counts[type]||0;
+      const opened=buildings.filter(b=>S.activityOpen(s,b)).length;
+      h+=`<div class="life-facility"><div class="life-facility-art" data-ct-preview="${type}"></div>
+        <div class="life-facility-info"><b>${d.name}</b><small>${buildings.length} construit(s) · ${opened} actif(s) actuellement</small>
+        <small>${visits} utilisations cette saison</small><small>${d.desc}</small></div>
+        ${buildings.length?'<span class="tag good">Présent</span>':`<button class="btn small" data-quickbuild="${type}">Construire</button>`}</div>`;
+    }
+    h+=`<h3>🧭 Besoins des vacanciers</h3>
+      <div class="kpis"><div class="kpi"><b>${snap.hungry}</b><small>ont faim</small></div>
+        <div class="kpi"><b>${snap.tired}</b><small>fatigués</small></div>
+        <div class="kpi"><b>${snap.unhappy}</b><small>en manque de loisirs</small></div></div>
+      <p class="note">* Marge directe : recettes moins coûts immédiats des prestations, hors personnel, entretien quotidien et coût de construction.</p>`;
+    return h;
+  }
 
   function pBookings() {
     if (s.phase === 'winter') return `<p class="note">Hors saison : les réservations de la saison ${s.year + 1} s’ouvriront dès que vous lancerez la saison.</p>`;
@@ -696,6 +803,12 @@
 
   function bindPanel() {
     const body = $('pbody');
+    releaseVisuals(body);
+    body.querySelectorAll('[data-quickbuild]').forEach(b=>b.onclick=()=>{
+      const type=b.dataset.quickbuild;
+      closePanel();setTool('build',type);
+      toast(`Choisis une parcelle pour construire ${D.BUILDINGS[type].name} — ${eur(D.BUILDINGS[type].cost)}.`,'info',7000);
+    });
     const operations = body.querySelector('[data-ops]');
     if (operations) operations.ontoggle = () => { ui.opsExpanded = operations.open; };
     body.querySelectorAll('[data-intervention]').forEach((b) => (b.onclick = () => {

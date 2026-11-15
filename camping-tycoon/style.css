@@ -175,3 +175,76 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
   #hint { top: 92px; }
   .title-hero h1 { font-size: 30px !important; }
 }
+
+
+/* ================= CAMPING TYCOON V1.7 — ACCUEIL & VIE =================
+   Fenêtre d'accueil revue : version immédiatement visible, aperçu des
+   bâtiments en vrais sprites du jeu, historique et accès aux parties.
+   Mise en page responsive sans modifier le moteur tactile/caméra. */
+#modal .card:has(.release-hero) { width:min(760px, 100%); padding:14px 18px 18px; }
+.title-hero-compact { margin:-14px auto -2px; }
+.title-hero-compact img { max-width:340px; max-height:108px; object-fit:contain; animation:none; }
+.release-hero {
+  background:linear-gradient(120deg,#157e9b 0%,#31add0 60%,#69d2b9 100%);
+  color:#fff; padding:12px 16px; border:2.5px solid #33233d;
+  border-radius:15px; box-shadow:3px 3px 0 #33233d; position:relative;
+}
+.release-meta { display:flex; gap:12px; flex-wrap:wrap; align-items:center; font-size:12px; }
+.release-meta strong { background:#ffd24c; color:#33233d; border:2px solid #33233d; padding:3px 8px; border-radius:8px; letter-spacing:.04em; }
+.release-meta span { font-weight:700; opacity:.95; }
+#modal .release-hero h2 {font-size:22px; margin:5px 0 2px; color:#fff; text-shadow:1px 2px 0 #267394;}
+#modal .release-hero p { font-size:13px; line-height:1.4; margin:3px 0 0; }
+#modal .release-main-actions { margin:12px 0 5px; }
+.release-main-actions .btn { flex:1 1 145px; min-height:38px; }
+#modal .release-section-title { font-size:15px; margin:11px 0 7px; }
+.release-cards {display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;}
+.release-card {
+  display:flex; align-items:center; gap:9px; min-width:0;
+  background:#fff; padding:6px; border:2px solid #33233d; border-radius:12px;
+}
+.release-card-art, .life-facility-art {
+  flex:0 0 76px; height:66px; background:linear-gradient(160deg,#d7efb9,#a6d4a9);
+  border:1.5px solid #9aba85; border-radius:9px; display:grid;
+  place-items:center; overflow:hidden;
+}
+.release-card-art canvas,.life-facility-art canvas { width:70px; height:70px; object-fit:contain; }
+.release-card b,.life-facility-info b { display:block; font-size:13px; line-height:1.12; }
+.release-card small,.life-facility-info small {display:block; font-size:11px; line-height:1.25; margin-top:3px; opacity:.8; }
+#modal .release-footer { margin:10px 0 0; }
+.release-footer .btn {font-size:12px; padding:5px 7px;}
+.release-tag {font-size:12px; font-weight:800; color:#1d7291; margin:8px 0!important;}
+.release-history {display:grid; gap:8px;}
+.release-history-entry {background:#fff; border:2px solid #33233d; border-radius:10px; padding:9px 11px;}
+.release-history-entry b {display:inline-block; margin-right:10px;}
+.release-history-entry small {font-weight:700; opacity:.65;}
+#modal .release-history-entry p {font-size:13px; margin:4px 0 0;}
+.start-modes {display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:9px;}
+.start-mode {border:2px solid #33233d; border-radius:12px; background:#fff; padding:11px; display:flex; flex-direction:column; align-items:flex-start;}
+.start-mode.discovery {background:linear-gradient(160deg,#e2f5cf,#e4f5ff);}
+.start-mode b {font-size:15px;}
+#modal .start-mode p {font-size:12px; line-height:1.4; flex:1; margin:7px 0 11px;}
+.start-mode .btn {font-size:12px; width:100%;}
+.life-hero {background:#d3ecf8; border:2px solid #33233d; border-radius:12px; padding:10px; margin-bottom:10px;}
+.life-hero b {font-size:16px;}
+.life-hero p {font-size:12px; margin:5px 0 0;}
+.life-facility {display:flex; gap:8px; align-items:center; padding:7px; background:#fff; border:2px solid #33233d; border-radius:11px; margin:6px 0;}
+.life-facility-info {flex:1; min-width:0;}
+.life-facility .btn {flex:0 0 auto; align-self:center;}
+.life-facility .tag {flex:0 0 auto; align-self:center;}
+.life-facility-art {flex-basis:65px; height:65px;}
+.life-facility-art canvas {width:64px; height:64px;}
+@media(max-width:520px){
+  #modal .card:has(.release-hero){padding:10px 12px 14px;}
+  .title-hero-compact img{height:74px; max-width:290px;}
+  .release-hero{padding:9px 11px;}
+  #modal .release-hero h2{font-size:19px;}
+  .release-hero p{font-size:12px!important;}
+  .release-cards{gap:5px;}
+  .release-card{padding:4px; gap:5px;}
+  .release-card-art{flex-basis:48px; height:52px;}
+  .release-card-art canvas{width:48px;height:48px;}
+  .release-card b{font-size:12px;}
+  .release-card small{font-size:10.5px;}
+  .release-footer .btn{flex:1 1 120px; font-size:11px;}
+  .start-modes{grid-template-columns:1fr;}
+}

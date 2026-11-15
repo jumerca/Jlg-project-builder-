@@ -64,6 +64,26 @@
       name: 'Aire de jeux', short: 'Jeux', cat: 'loisir', w: 2, h: 2, cost: 2800, build: 2,
       service: 'playground', slots: 8, upkeep: 1, wear: 0.05,
       desc: 'Toboggan et balançoires. Les familles l’adorent.'
+    },
+    minigolf: {
+      name: 'Mini-golf paysager', short: 'Mini-golf', cat: 'loisir', w: 4, h: 3, cost: 11500, build: 6,
+      service: 'minigolf', slots: 10, upkeep: 7, wear: 0.08, openFrom: 9 * 60, openTo: 20 * 60,
+      desc: 'Six pistes compactes, obstacles et massifs. Les familles et couples jouent pour 8 € par personne.'
+    },
+    multisport: {
+      name: 'Terrain multisports', short: 'Multisports', cat: 'loisir', w: 4, h: 3, cost: 13500, build: 7,
+      service: 'multisport', slots: 14, upkeep: 9, wear: 0.12, openFrom: 9 * 60, openTo: 21 * 60,
+      desc: 'Terrain de basket et foot avec paniers et cages, activité gratuite et très sociale.'
+    },
+    bikes: {
+      name: 'Location de vélos', short: 'Vélos', cat: 'loisir', w: 3, h: 2, cost: 7200, build: 4,
+      service: 'bikes', slots: 6, upkeep: 6, wear: 0.15, openFrom: 9 * 60, openTo: 19 * 60,
+      desc: 'Vélos, VTT et sièges enfants : 12 € par excursion. Augmente l’attrait nature et le chiffre d’affaires.'
+    },
+    laundry: {
+      name: 'Laverie', short: 'Laverie', cat: 'service', w: 2, h: 2, cost: 4500, build: 3,
+      service: 'laundry', slots: 4, upkeep: 5, wear: 0.06, openFrom: 8 * 60, openTo: 21 * 60,
+      desc: 'Machines à laver et séchoirs : 6 € par utilisation, confort accru pour les longs séjours.'
     }
   };
 

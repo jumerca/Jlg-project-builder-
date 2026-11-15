@@ -108,3 +108,18 @@ Les animations sont un enrichissement progressif du Canvas 2,5D existant, et non
 - **44 tests automatisés**, dont 7 nouveaux tests liés aux interventions, plus vérifications syntaxiques sur les scripts.
 
 Limites : les prestataires interviennent instantanément, sans animation de véhicule ni déplacement du technicien ; ce système restera à approfondir lors d'une version ultérieure. Le rendu et les FPS sur téléphone physique doivent être validés par essai sur l'appareil.
+
+## Version 1.7.0 — Le camping prend vie ! (15 novembre 2026)
+
+**Saut visible et fonctionnalités réellement actives** :
+- Écran d'accueil entièrement révisé : numéro 1.7.0 immédiatement visible, date de publication, historique des versions 1.4 à 1.7, illustrations Canvas des nouveautés et vérification de la version en ligne via `version.json`.
+- Quatre bâtiments construisibles, tous avec sprites 2,5D distincts et nouveaux personnages animés : mini-golf (4×3), terrain multisports (4×3), location de vélos (3×2) et laverie (2×2). Nouvelles constructions dans les menus Services/Loisirs ; coûts, durées et entretien associés.
+- IA de vacanciers : sélection des nouvelles attractions selon profil, besoins, météo, horaire, distance, file d'attente et énergie. Enfants accompagnés selon les mêmes règles que pour les loisirs existants ; laverie limitée à un passage par réservation tous les 3 jours.
+- Activités et comptabilité : 8 € par mini-golf, 12 € par location de vélo, 6 € par lessive, multisports gratuit ; frais directs, satisfaction, humeur et réputation du séjour. Les valeurs passent dans le grand livre `Activités & loisirs` / `Frais activités`, les stats de la saison et les rapports de clôture. L'attractivité commerciale dépend des installations construites.
+- Nouveau panneau 🌞 **Vie du camping** : nombre de visites, marge des activités, bien-être des vacanciers, illustrations des équipements, statut et accès direct au placement des structures.
+- **Mode découverte facultatif** pour les nouvelles parties : les quatre bâtiments sont construits et reliés dès le départ. Le camping normal reste inchangé, et ce mode est clairement indiqué comme un cadeau de démonstration. Attention : créer une nouvelle partie remplace la sauvegarde auto existante (export recommandé).
+- Responsive : aperçu du contenu dès l'accueil avec 2 colonnes, retour 1 colonne sur les plus petits écrans. Mêmes contrôles de caméra et de tactile, même clé de sauvegarde `campingTycoon.save.auto`.
+- `camping-tycoon-autonome.html` reconstruit depuis les mêmes sources que le site, avec son logo intégré et les nouveaux styles.
+- **53 tests** : les 44 tests de régression précédents plus 9 nouveaux sur l'accès, l'économie, les interactions, les conditions météo, les sauvegardes et les saisons.
+
+**Important :** les animations restent de la 2,5D Canvas et non un moteur isométrique 3D. Le rendu, la fluidité et la lisibilité sur l'appareil Android doivent encore être vérifiés en conditions réelles.

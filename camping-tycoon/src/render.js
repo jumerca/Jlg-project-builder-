@@ -229,6 +229,103 @@
       drawTables(g, [[30, 58], [62, 58]]);
     }
   }
+
+  /* ---------- Grands équipements V1.7 : décors dessinés à la main, volume 2,5D ---------- */
+  function drawMinigolf(g, w, h) {
+    const W=w*TS,H=h*TS;
+    shadow(g,W/2,H-4,W/2-5,11);
+    box(g,3,6,W-6,H-12,'#2e865a',11,2);
+    box(g,8,10,W-16,H-22,'#7ec45f',8,1.5);
+    for(let n=0;n<6;n++) {
+      const col=n%3,row=Math.floor(n/3);
+      const x=12+col*37, y=18+row*32;
+      box(g,x,y,32,24,'#397f4a',7,1.5);
+      box(g,x+3,y+3,26,18,n%2?'#91c766':'#a3d77d',6,0.8);
+      g.strokeStyle='#f1e5c2';g.lineWidth=2;g.beginPath();
+      g.moveTo(x+7,y+16);g.quadraticCurveTo(x+18,y+6,x+25,y+11);g.stroke();
+      ell(g,x+25,y+11,2.5,1.5,'#2b553b',.7);
+      ell(g,x+8,y+17,1.7,1.7,'#fff',.6);
+      if(n===2 || n===4){box(g,x+14,y+6,5,11,'#ce9b59',1,.7);
+        poly(g,[x+17,y+5,x+14,y+2,x+20,y+2],'#fff3c4',.6);}
+    }
+    // Haies en volume, arbres ornementaux et panneau de bienvenue.
+    for(const [x,y] of [[9,11],[W-9,11],[9,H-12],[W-9,H-12]]) {
+      ell(g,x,y,5,5,'#37934f',1);
+      ell(g,x-1,y-2,3.1,2.2,'#8be093',0,false);
+    }
+    box(g,40,-8,W-80,15,'#f4c348',3,1.8);
+    text(g,'MINI-GOLF',W/2,-.5,8.5);
+  }
+  function drawMultisport(g,w,h) {
+    const W=w*TS,H=h*TS;
+    shadow(g,W/2,H-2,W/2-4,9);
+    box(g,3,5,W-6,H-12,'#5c9c77',7,2);
+    box(g,8,10,W-16,H-22,'#3f9d83',5,1.6);
+    g.strokeStyle='#f1f5e8';g.lineWidth=1.7;
+    g.strokeRect(13,15,W-26,H-33);
+    g.beginPath();g.moveTo(W/2,15);g.lineTo(W/2,H-18);
+    g.ellipse(W/2,(H-3)/2,13,13,0,0,7);g.stroke();
+    g.beginPath();g.arc(18,H/2,13,-1.2,1.2);g.arc(W-18,H/2,13,1.9,4.4);g.stroke();
+    // Cages dessinées en volume avec filet.
+    for(const x of [9,W-9]) {
+      g.strokeStyle='#edf5eb';g.lineWidth=2.2;
+      g.beginPath();g.moveTo(x,H/2-12);g.lineTo(x+(x<W/2?7:-7),H/2-17);
+      g.lineTo(x+(x<W/2?7:-7),H/2+14);g.lineTo(x,H/2+10);g.closePath();g.stroke();
+      g.strokeStyle='rgba(255,255,255,.5)';g.lineWidth=.6;
+      for(let y=H/2-10;y<H/2+12;y+=5){g.beginPath();g.moveTo(x,y);g.lineTo(x+(x<W/2?7:-7),y);g.stroke();}
+    }
+    // Paniers de basket au-dessus des cages.
+    for(const x of [22,W-22]) {
+      g.strokeStyle='#41445c';g.lineWidth=2;g.beginPath();g.moveTo(x,14);g.lineTo(x,3);g.stroke();
+      box(g,x-6,-3,12,8,'#e5f5f8',1,1);
+      ell(g,x,7,4,1.5,'#f8b44c',1);
+    }
+    box(g,W/2-27,-8,54,14,'#f8cb4f',3,1.6);
+    text(g,'MULTISPORTS',W/2,-1,7.2);
+  }
+  function drawBikeHire(g,w,h) {
+    const W=w*TS,H=h*TS;
+    shadow(g,W/2,H-3,W/2-3,9);
+    box(g,3,18,W-6,H-23,'#d9c49a',4,1.7);
+    // Auvent en pente et façade bois avec vitrage.
+    box(g,9,5,W-18,34,'#f3ead8',4,1.5);
+    poly(g,[3,10,12,-11,W-13,-11,W-3,10],'#eaa344',2);
+    g.strokeStyle='#ba7433';g.lineWidth=1.1;
+    for(let i=0;i<4;i++){const x=18+i*18;g.beginPath();g.moveTo(x,-8);g.lineTo(x+4,8);g.stroke();}
+    box(g,12,15,18,15,'#b7dfe3',2,1.1);
+    box(g,W-32,15,19,15,'#b7dfe3',2,1.1);
+    box(g,W/2-7,19,14,22,'#bc8059',2,1.5);
+    text(g,'VÉLOS',W/2,8,7.2,'#fff');
+    // Plusieurs vélos avec roues, cadres et guidons.
+    for(let i=0;i<3;i++){
+      const x=15+i*31,y=H-13;
+      g.strokeStyle=INK;g.lineWidth=1.8;
+      for(const off of [0,15]){g.beginPath();g.arc(x+off,y,5.3,0,7);g.stroke();}
+      g.beginPath();g.moveTo(x,y);g.lineTo(x+6,y-9);g.lineTo(x+15,y);
+      g.lineTo(x+9,y);g.lineTo(x+6,y-9);g.lineTo(x+8,y-12);
+      g.moveTo(x+15,y);g.lineTo(x+12,y-12);g.lineTo(x+17,y-12);g.stroke();
+      g.strokeStyle=['#e65f4b','#2e9bc7','#f5ba37'][i];g.lineWidth=2;g.stroke();
+      g.fillStyle='#3e4355';g.fillRect(x+3,y-13,10,2);
+    }
+  }
+  function drawLaundry(g,w,h) {
+    const W=w*TS,H=h*TS;
+    shadow(g,W/2,H-3,W/2-3,8);
+    box(g,3,12,W-6,H-18,'#f5ede0',4,1.8);
+    poly(g,[0,13,W/2,-10,W,13],'#527ba6',2);
+    box(g,9,20,W-18,30,'#d6e5ea',2,1.2);
+    for(let i=0;i<2;i++){
+      const cx=18+i*27;
+      box(g,cx-10,23,20,23,'#fff',3,1);
+      ell(g,cx,37,7,7,'#447aa2',1.5);
+      ell(g,cx,37,4.5,4.5,'#b4e0ef',0,false);
+      ell(g,cx-6,27,1.2,1.2,'#5aaed9',0,false);
+    }
+    box(g,10,8,W-20,10,'#fbd364',3,1.2);
+    text(g,'LAVERIE',W/2,13,6.4);
+    box(g,W-10,36,6,19,'#559f64',2,1);
+  }
+
   function drawPlayground(g, w, h) {
     const W = w * TS, Hh = h * TS;
     box(g, 2, 4, W - 4, Hh - 8, '#f2d89a', 8, 1.6);
@@ -401,6 +498,22 @@
       const hand = Math.sin(t * 0.007 + a.id);
       g.strokeStyle = skin; g.lineWidth = 1.8; g.beginPath();
       g.moveTo(3, -9); g.lineTo(6 + hand, -10 - Math.max(0, hand) * 4); g.stroke();
+    }
+    if (a.kind === 'guest' && a.act === 'minigolf') {
+      // Petit swing et club de golf, synchronisés sur le cycle d'animation.
+      const swing=Math.sin(t*.008+a.id);
+      g.strokeStyle='#71634f';g.lineWidth=1.4;g.beginPath();
+      g.moveTo(4,-10);g.lineTo(8+swing*5,-5-Math.max(0,swing)*7);g.lineTo(10+swing*5,-1);g.stroke();
+    }
+    if (a.kind === 'guest' && a.act === 'bikes') {
+      // Roues et pédalage en silhouette sur la zone vélo.
+      g.strokeStyle='#383b50';g.lineWidth=1.1;
+      g.beginPath();g.arc(-6,0,4,0,7);g.arc(8,0,4,0,7);g.stroke();
+      g.beginPath();g.moveTo(-6,0);g.lineTo(1,-5);g.lineTo(8,0);g.lineTo(1,0);g.lineTo(-6,0);g.stroke();
+    }
+    if (a.kind === 'guest' && a.act === 'multisport') {
+      const ball=Math.sin(t*.009+a.id);
+      ell(g,7,-1-Math.max(0,ball)*6,2.6,2.6,'#f3bb46',.8);
     }
     if (a.kind === 'guest' && a.act === 'show' && a.state === 'use') {
       const clap = Math.sin(t * 0.012 + a.id);
@@ -626,7 +739,7 @@
       const cx = b.x + b.w / 2 - 0.5, cy = b.y + b.h / 2 - 0.5;
       let dx = b.ax - cx, dy = b.ay - cy; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
       st.queue.forEach((aid, i) => qpos.set(aid, { x: (b.ax + dx * 0.35 * (i + 0.3) - dy * 0.18 * (i % 2 ? 1 : -1)) * TS + TS / 2, y: (b.ay + dy * 0.35 * (i + 0.3)) * TS + TS / 2 + 6 }));
-      if (b.type === 'pool' || b.type === 'playground' || b.type === 'stage' || b.type === 'snack') {
+      if (['pool','playground','stage','snack','minigolf','multisport','bikes','laundry'].includes(b.type)) {
         st.users.forEach((u) => qpos.set(u.aid, { inside: b.type, b }));
       } else st.users.forEach((u) => qpos.set(u.aid, { hidden: true }));
     }
@@ -649,10 +762,20 @@
         else if (q.inside === 'stage') { x = b.x * TS + 12 + hash(a.id, 3) * (w - 24); y = b.y * TS + 60 + hash(3, a.id) * (h - 66) - (S.stageWindow(s) && S.stageWindow(s).show ? Math.abs(Math.sin(t * 0.008 + a.id)) * 2 : 0); }
         else { x = b.x * TS + 10 + hash(a.id, 2) * (w - 20) + Math.sin(t * 0.002 + a.id) * 5; y = b.y * TS + 22 + hash(2, a.id) * (h - 26); }
         if (q.inside === 'playground' && a.kid) y -= Math.max(0, Math.sin(t * 0.009 + a.id)) * 5;
+        if (q.inside === 'minigolf') { x=b.x*TS+18+(a.id%3)*37; y=b.y*TS+38+((a.id>>2)%2)*29; }
+        if (q.inside === 'multisport') {
+          x=b.x*TS+18+((a.id*17)%90)+Math.sin(t*.002+a.id)*7;
+          y=b.y*TS+31+((a.id*11)%42)+Math.cos(t*.003+a.id)*4;
+        }
+        if (q.inside === 'bikes') { x=b.x*TS+15+(a.id%3)*30; y=b.y*TS+46; }
+        if (q.inside === 'laundry') { x=b.x*TS+21+(a.id%2)*24; y=b.y*TS+53; }
         if (!vis(x, y)) continue;
         const activityAgent = q.inside === 'snack' ? Object.assign({}, a, { state: 'rest', act: 'eat' }) :
           q.inside === 'playground' ? Object.assign({}, a, { state: 'walk', act: 'play' }) :
-          q.inside === 'stage' ? Object.assign({}, a, { state: 'use', act: 'show' }) : a;
+          q.inside === 'stage' ? Object.assign({}, a, { state: 'use', act: 'show' }) :
+          ['minigolf','multisport','bikes'].includes(q.inside) ?
+            Object.assign({},a,{state:'walk',act:q.inside}) :
+          q.inside === 'laundry' ? Object.assign({},a,{state:'rest',act:'laundry'}) : a;
         list.push({ z: b.y * TS + h + 0.5 + y * 0.0001, kind: 'p', a: activityAgent, x, y });
         continue;
       } else if (q) { x = q.x; y = q.y; }
@@ -718,6 +841,10 @@
       case 'shop': put(sprite('shop', w * TS + 12, h * TS + 12, 6, 6, (gg) => drawShop(gg, w, h))); break;
       case 'snack': put(sprite('snack', w * TS + 12, h * TS + 40, 6, 32, (gg) => drawSnack(gg, w, h))); break;
       case 'playground': put(sprite('play', w * TS + 12, h * TS + 12, 6, 6, (gg) => drawPlayground(gg, w, h))); break;
+      case 'minigolf': put(sprite('minigolf', w*TS+20, h*TS+24, 10, 16, (gg) => drawMinigolf(gg,w,h))); break;
+      case 'multisport': put(sprite('multisport', w*TS+20,h*TS+24,10,16,(gg)=>drawMultisport(gg,w,h))); break;
+      case 'bikes': put(sprite('bikehire', w*TS+18,h*TS+30,9,22,(gg)=>drawBikeHire(gg,w,h))); break;
+      case 'laundry': put(sprite('laundry',w*TS+18,h*TS+28,9,20,(gg)=>drawLaundry(gg,w,h))); break;
       case 'stage': {
         put(sprite('stage', w * TS + 12, h * TS + 40, 6, 32, (gg) => drawStage(gg, w, h)));
         if (S.stageLive(s, b)) {
@@ -924,6 +1051,10 @@
     else if (type === 'playground') drawPlayground(g, w, h);
     else if (type === 'stage') drawStage(g, w, h);
     else if (type === 'snack') drawSnack(g, w, h);
+    else if (type === 'minigolf') drawMinigolf(g,w,h);
+    else if (type === 'multisport') drawMultisport(g,w,h);
+    else if (type === 'bikes') drawBikeHire(g,w,h);
+    else if (type === 'laundry') drawLaundry(g,w,h);
     else if (type === 'mobilhome') drawMobilhome(g, w, h, 1);
     else if (type === 'tent') { rr(g, 2, 2, 60, 60, 6); g.fillStyle = '#9bd66c'; g.fill(); drawTentPitchBits(g, 1); g.translate(8, 2); drawTent(g, '#e8553d', 0); }
     else if (type === 'caravan') { rr(g, 2, 2, 92, 60, 6); g.fillStyle = '#d8cdb5'; g.fill(); drawCaravanPitchBits(g, 1); g.translate(22, 10); drawCaravan(g, '#2a9dd8', false); }

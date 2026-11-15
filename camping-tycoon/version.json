@@ -1,0 +1,14 @@
+{
+  "version": "1.7.0",
+  "date": "2026-11-15",
+  "title": "Le camping prend vie !",
+  "site": "https://camping-tycoon-jlg.vercel.app/",
+  "features": [
+    "Nouvel accueil avec version et historique",
+    "Quatre équipements construisibles avec sprites 2,5D",
+    "Mini-golf, terrain multisports, vélos, laverie",
+    "IA vacanciers et économie de nouvelles activités",
+    "Mode découverte sans toucher au mode classique",
+    "Onglet Vie du camping et 53 tests"
+  ]
+}

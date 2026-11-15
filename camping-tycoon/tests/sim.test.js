@@ -568,3 +568,84 @@ test('V1.6 : devis écartés pour équipement inaccessible ou en chantier',()=>{
  assert.equal(S.serviceIntervention(s,b.id,'clean').ok,false);
  assert.equal(s.fin.cash,before);
 });
+
+test('V1.7 : nouvelles installations disponibles, classiques inchangés',()=>{
+ const s=S.newGame({seed:1701}),types=['minigolf','multisport','bikes','laundry'];
+ for(const type of types){assert.ok(D.BUILDINGS[type].cost>0);assert.equal(S.ofType(s,type).length,0);}
+ assert.equal(s.mode,'normal');
+ assert.equal(S.units(s).length,9);assert.equal(s.fin.start,30000);
+});
+test('V1.7 : le camping découverte place 4 équipements accessibles et distincts',()=>{
+ const s=S.newGame({seed:1702,mode:'discovery'}),kinds=['minigolf','multisport','bikes','laundry'];
+ assert.equal(s.mode,'discovery');assert.equal(s.fin.start,30000);assert.equal(S.units(s).length,9);
+ for(const type of kinds){
+   const b=S.ofType(s,type);assert.equal(b.length,1);
+   assert.equal(b[0].progress,0);assert.ok(S.accessible(s,b[0]),type+' inaccessible');
+ }
+ const seen=new Set();
+ for(const b of s.buildings)for(let y=b.y;y<b.y+b.h;y++)for(let x=b.x;x<b.x+b.w;x++){
+   const id=x+','+y;assert.ok(!seen.has(id),'overlap '+id);seen.add(id);
+ }
+});
+test('V1.7 : activité extérieure fermée par intempéries mais laverie opérationnelle',()=>{
+ const s=S.newGame({seed:1703,mode:'discovery'});s.minute=12*60;
+ s.weather={type:'sun',temp:25};
+ for(const type of ['minigolf','multisport','bikes','laundry'])
+   assert.ok(S.activityOpen(s,S.ofType(s,type)[0]),type+' fermé au soleil');
+ s.weather={type:'storm',temp:16};
+ for(const type of ['minigolf','multisport','bikes'])
+   assert.equal(S.activityOpen(s,S.ofType(s,type)[0]),false);
+ assert.equal(S.activityOpen(s,S.ofType(s,'laundry')[0]),true);
+ s.weather={type:'sun',temp:25};s.minute=23*60;
+ for(const type of ['minigolf','multisport','bikes','laundry'])
+   assert.equal(S.activityOpen(s,S.ofType(s,type)[0]),false);
+});
+test('V1.7 : les nouveaux loisirs accueillent vraiment des vacanciers',()=>{
+ const s=S.newGame({seed:1704,mode:'discovery'});S.step(s,1440*25);
+ for(const type of ['minigolf','multisport','bikes','laundry']) {
+   assert.ok((s.stats.leisureVisits[type]||0)>0,type+' sans visiteurs');
+   assert.ok((s.stats.guestActivities[type]||0)>0,type+' sans trajets');
+ }
+ assert.ok(s.stats.leisureRevenue>0,'activités sans recette nette');
+ assert.ok(s.fin.season['Activités & loisirs']>0,'aucun revenu réel');
+ assert.ok(s.fin.season['Frais activités']<0,'aucun frais direct');
+});
+test('V1.7 : fréquentation lave-linge limitée, pas d’abus plusieurs fois par jour',()=>{
+ const s=S.newGame({seed:1705,mode:'discovery'});S.step(s,1440*12);
+ const bks=s.bookings.filter(b=>b.laundryDay!==undefined);
+ assert.ok(bks.length>0);
+ assert.ok((s.stats.leisureVisits.laundry||0)<200,'laverie trop fréquentée');
+});
+test('V1.7 : lavage, loisir gratuit et rémunéré ont des règles économiques distinctes',()=>{
+ const s=S.newGame({seed:1706,mode:'discovery'});S.step(s,1440*10);
+ assert.ok((s.stats.leisureVisits.multisport||0)>0);
+ assert.ok(s.stats.leisureRevenue>0);
+ const inc=s.fin.season['Activités & loisirs'],expenses=s.fin.season['Frais activités'];
+ assert.equal(S.r2(inc+expenses),S.r2(s.stats.leisureRevenue));
+});
+test('V1.7 : sauvegarde/restauration du mode découverte et visites',()=>{
+ const s=S.newGame({seed:1707,mode:'discovery'});S.step(s,1440*5);
+ const restored=SV.deserialize(SV.serialize(s));
+ assert.equal(restored.mode,'discovery');
+ assert.equal(S.ofType(restored,'minigolf').length,1);
+ assert.equal(S.ofType(restored,'laundry').length,1);
+ assert.deepEqual(restored.stats.leisureVisits,s.stats.leisureVisits);
+ assert.equal(restored.stats.leisureRevenue,s.stats.leisureRevenue);
+ S.step(restored,60);
+ assert.ok(restored.fin.cash>0);
+});
+test('V1.7 : la présence des activités accroît l’attractivité avant tout',()=>{
+ const s=S.newGame({seed:1708}),d=S.newGame({seed:1708,mode:'discovery'});
+ for(const profile of ['family','couple','nomad'])
+   assert.ok(S.attractiveness(d,profile)>S.attractiveness(s,profile),profile);
+});
+test('V1.7 : fin de saison conserve la fréquentation et la marge loisirs',()=>{
+ const s=S.newGame({seed:1709,mode:'discovery'});S.step(s,1440*9);
+ const visited=s.stats.leisureVisits,earned=s.stats.leisureRevenue;
+ const report=S.endSeason(s);
+ assert.deepEqual(report.leisureVisits,visited);
+ assert.equal(report.leisureRevenue,earned);
+ assert.ok(S.startSeason(s));
+ assert.equal(s.reports[0].leisureRevenue,earned);
+ assert.equal(s.stats.leisureRevenue,0);
+});

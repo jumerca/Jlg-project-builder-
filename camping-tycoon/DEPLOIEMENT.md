@@ -34,3 +34,12 @@ Ne pas confondre le résultat financier du camping avec la marge indicative par 
 Publier la racine `camping-tycoon/` sur le projet Vercel existant `camping-tycoon-jlg`, sans changer le domaine HTTPS. Préserver le service worker version `camping-tycoon-v1.6.0`, les 11 icônes/logos du dossier assets, les scripts du projet, la sauvegarde locale `campingTycoon.save.auto` et le fichier HTML autonome.
 
 Tests : `node --test tests/*.test.js` (44 tests). Les dépenses d'interventions sont enregistrées dans le grand livre avec catégorie Réparations ou Interventions extérieures. Un échec de validation n'altère ni les finances ni les équipements.
+
+## V1.7.0 — publication & vérifications
+
+Version et journal des modifications visibles dès l'écran d'accueil. Endpoint `/version.json` pour vérifier en ligne si la version en cours de session est à jour ; ne pas faussement annoncer une installation automatique si elle n'a pas eu lieu.
+
+Cache PWA `camping-tycoon-v1.7.0`. Garder le domaine `https://camping-tycoon-jlg.vercel.app/` et la clé `campingTycoon.save.auto` sans migration destructive.
+
+Bundle statique : `index.html`, `version.json`, `src/*.js`, `style.css`, `sw.js`, `manifest.webmanifest`, `assets/*` et `camping-tycoon-autonome.html`.
+`node --test tests/sim.test.js` : 53 tests de non-régression. Le mode découverte est facultatif et n'est utilisé que pour une **nouvelle** partie.
