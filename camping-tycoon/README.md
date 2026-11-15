@@ -127,3 +127,32 @@ Limites : les prestataires interviennent instantanément, sans animation de véh
 ### Correctif V1.7.1 (15 novembre 2026)
 
 L’état des recherches de mises à jour (version à jour / vérification indisponible) est désormais affiché directement dans l’accueil, l’historique et le menu, via un message ARIA live. L’ancienne implémentation affichait uniquement un toast masqué par la fenêtre modale. Aucun changement destructif des sauvegardes ; cache PWA version 1.7.1.
+
+## Version 1.8.0 — Le Grand Domaine vivant (15 novembre 2026)
+
+### Huit lieux de loisirs et de services visibles dès le mode découverte
+La V1.8 conserve les quatre équipements V1.7 (mini-golf, multisports, vélos, laverie) et ajoute quatre **bâtiments complètement dessinés en Canvas 2,5D** :
+- **Boulodrome ombragé (4×2)** — 3 terrains en sable, boules mobiles, bancs, parties gratuites, horaires 9h–20h
+- **Cinéma plein air (4×3)** — écran, gradins, guirlandes, projecteur animé à la tombée du jour, séances 20h15–22h30, 5 € par spectateur, interrompu par la pluie
+- **Boulangerie-café (3×2)** — toiture et façade volumétriques, vitrine, pain et croissants, vapeur de cheminée, petit-déjeuner 7h–13h, 7 € par commande
+- **Espace bien-être (4×3)** — pergola, transats, bain et bulles animées, séances de 15 €, ouvert 10h–21h, couvert en cas de pluie
+
+Chaque installation possède un coût de construction, une durée de chantier, une capacité, un entretien et une usure. Les vacanciers s'y rendent réellement par les allées, selon leurs besoins, l'heure, la météo et leurs envies. Le comportement enfant/adulte et les sorties groupées continuent de fonctionner. Les revenus et frais directs des prestations sont enregistrés dans le grand livre et le bilan de saison.
+
+### Lac et ambiance vivants
+3 canards se déplacent sur l'eau, une barque de loisirs glisse au large, le cinéma projette des images et les gradins accueillent des spectateurs. Spa et boulangerie disposent de leurs animations spécifiques. Ces décors sont dessinés avec Canvas sans textures externes ni changement de caméra.
+
+### Bureau du directeur 🎯
+Un **nouvel onglet Direction** centralise les prévisions contractuelles à 14 jours (occupation, chiffre d'affaires signé, soldes attendus, charges fixes, crédits, réservations à risque) et les actions suivantes :
+- **3 campagnes commerciales** (affichage local 350 €/7 j ×1,12 ; familles 850 €/12 j ×1,25 ; grande campagne 1 700 €/16 j ×1,42). Leur effet passe réellement dans le générateur de demandes futures, mais une campagne ne garantit pas des réservations si le camping est complet ou trop cher. Une seule campagne active, paiement unique avec refus si trésorerie insuffisante.
+- **3 programmations de soirée** (douce 0 €/jour ; familiale 35 €/jour ; festive 95 €/jour). Elles influencent la satisfaction selon le profil, la réputation (fête) et les charges. Un animateur, une scène accessible et une météo compatible sont nécessaires pour engager les coûts. Une journée ne peut être décomptée deux fois.
+- **Indicateurs saisonniers** : publicités lancées, budget engagé, journées animées, programmation cumulée, activités et marge.
+
+### Ergonomie et sauvegarde
+La version 1.8.0 et le journal de modifications apparaissent dès l'accueil. Les quatre nouveaux équipements sont illustrés par les véritables sprites du jeu, le mode découverte construit **8** nouveautés d'emblée, sans remplacer le mode classique. Le menu Vie présente les 8 équipements. Son rafraîchissement passe à 1,7 s afin de limiter la recréation de vignettes sur mobile.
+
+Les anciennes parties sont conservées au même identifiant localStorage `campingTycoon.save.auto`; la migration complète les champs du directeur sans modifier l'ordre des champs existants. **75 tests automatisés** (66 simulation, 4 smoke Canvas, 5 interface) vérifient les réservations, les 18 bâtiments, les nouvelles économies, les campagnes, les sauvegardes et le rendu Canvas jour/nuit/intempéries. Des contrôles ciblés des écrans d'accueil et Direction sont également effectués.
+
+**Limites :** ni véritable physique 3D, ni textures riggées, ni mesure de FPS physique Samsung. Les silhouettes restent du Canvas procédural et les avis graphiques doivent être confirmés sur appareil réel.
+
+**Raccourcis ergonomiques V1.8 :** les panneaux Direction et Vie du camping sont également accessibles directement depuis le menu ☰, sans défilement horizontal de la barre d’outils.

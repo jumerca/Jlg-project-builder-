@@ -84,6 +84,26 @@
       name: 'Laverie', short: 'Laverie', cat: 'service', w: 2, h: 2, cost: 4500, build: 3,
       service: 'laundry', slots: 4, upkeep: 5, wear: 0.06, openFrom: 8 * 60, openTo: 21 * 60,
       desc: 'Machines à laver et séchoirs : 6 € par utilisation, confort accru pour les longs séjours.'
+    },
+    petanque: {
+      name: 'Boulodrome ombragé', short: 'Pétanque', cat: 'loisir', w: 4, h: 2, cost: 4200, build: 3,
+      service: 'petanque', slots: 12, upkeep: 2.5, wear: 0.05, openFrom: 9 * 60, openTo: 20 * 60,
+      desc: 'Trois terrains de pétanque, bancs et éclairages. Jeux et tournois gratuits pour tous.'
+    },
+    cinema: {
+      name: 'Cinéma plein air', short: 'Cinéma', cat: 'loisir', w: 4, h: 3, cost: 12500, build: 6,
+      service: 'cinema', slots: 36, upkeep: 11, wear: 0.08, openFrom: 20 * 60 + 15, openTo: 22 * 60 + 30,
+      desc: 'Projection sous les étoiles, gradins et guirlandes. 5 € par place, uniquement par temps sec.'
+    },
+    bakery: {
+      name: 'Boulangerie & café', short: 'Boulangerie', cat: 'service', w: 3, h: 2, cost: 7800, build: 4,
+      service: 'bakery', slots: 10, upkeep: 7, wear: 0.07, openFrom: 7 * 60, openTo: 13 * 60,
+      desc: 'Croissants, pain chaud et terrasse au petit-déjeuner. 7 € par commande.'
+    },
+    spa: {
+      name: 'Espace bien-être', short: 'Bien-être', cat: 'loisir', w: 4, h: 3, cost: 19800, build: 8,
+      service: 'spa', slots: 8, upkeep: 17, wear: 0.17, openFrom: 10 * 60, openTo: 21 * 60,
+      desc: 'Bain à remous sous pergola, transats et jardin zen. Séances détente à 15 €.'
     }
   };
 

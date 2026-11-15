@@ -41,6 +41,17 @@
     o.shopMarkup = o.shopMarkup || 1;
     o.seasonRates = Object.assign({ low: 1, mid: 1, high: 1 }, o.seasonRates || {});
     o.staffPolicy = Object.assign({ cleaning: 'arrivals', maintenance: 'urgent' }, o.staffPolicy || {});
+    if (!['calm','family','festive'].includes(o.program)) o.program='family';
+    if (o.campaign===undefined) o.campaign=null;
+    if (!Array.isArray(o.commercialHistory)) o.commercialHistory=[];
+    if (o.mode===undefined) o.mode='normal';
+    // Préserver l’ordre des clés existantes pour ne pas modifier les sauvegardes
+    // sans raison : important pour les comparaisons et imports/exports stables.
+    o.stats=o.stats||{};
+    for(const [key,value] of Object.entries({leisureVisits:{},leisureRevenue:0,programEvents:0,
+      programCost:0,marketingSpent:0,marketingCampaigns:0}))
+      if(o.stats[key]===undefined)o.stats[key]=value;
+
     for (const b of o.buildings) { if (b.water === undefined) b.water = 100; if (b.uses === undefined) b.uses = 0; }
     o.format = FORMAT;
     return o;

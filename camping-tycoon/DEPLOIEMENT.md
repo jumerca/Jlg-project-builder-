@@ -46,3 +46,13 @@ Bundle statique : `index.html`, `version.json`, `src/*.js`, `style.css`, `sw.js`
 
 ### Patch V1.7.1
 L’endpoint de version annonce 1.7.1 et le cache PWA utilise `camping-tycoon-v1.7.1`. La fonction de vérification doit écrire son statut dans le modal courant (ARIA live), pas dans un toast caché derrière lui.
+
+## Production V1.8.0 — Le Grand Domaine vivant
+
+Publier en production dans le projet Vercel **existant** `camping-tycoon-jlg` (sans nouveau nom de domaine). `index.html`, `style.css`, scripts `src/*.js`, dossier `assets`, `version.json`, `manifest.webmanifest`, `sw.js` et `camping-tycoon-autonome.html` doivent être synchronisés depuis le même commit.
+
+Version `1.8.0` commune au `package.json`, `src/ui.js`, `version.json`, au cache `camping-tycoon-v1.8.0` et à la version autonome. Le mode `discovery` inclut 8 équipements et leurs accès ; la partie normale n'est pas modifiée. Ne pas écraser les sauvegardes du joueur : `campingTycoon.save.auto`.
+
+Tests : `node --test tests/*.test.js` — **75 tests**. Vignette Canvas du catalogue de 18 bâtiments, nouvelles scènes nocturnes et météos testées dans un contexte 2D simulé. Les vrais FPS Samsung sont à mesurer en conditions physiques, sans prétendre les avoir validés.
+
+UI test : `tests/ui.test.js` exécute les fonctions réelles de l’interface dans un environnement DOM simulé et valide les actions, l’accueil, le journal des versions et le panneau Direction.

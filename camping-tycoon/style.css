@@ -254,3 +254,38 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
   border:2px solid #a65438; border-radius:9px; background:#ffefde; color:#7b3722; font-weight:700; }
 .update-status.visible { display:block; }
 .update-status.visible.good { border-color:#328156; background:#dff6e6; color:#185e3e; }
+
+
+/* ================= V1.8 : direction du camping ================= */
+.director-intro {
+ background:linear-gradient(125deg,#2c739e,#50afc9);color:#fff;border:2px solid #33233d;
+ border-radius:12px;padding:12px 13px;margin-bottom:9px;box-shadow:2px 2px 0 #33233d;
+}
+.director-intro b {display:block;font-size:17px;line-height:1.25;}
+.director-intro small {display:block;margin-top:5px;line-height:1.4;font-weight:600;}
+.director-option {display:flex;align-items:center;gap:9px;background:#fff;border:2px solid #33233d;
+  border-radius:10px;padding:9px;margin:6px 0;}
+.director-option>div {flex:1;min-width:0;}
+.director-option b {display:block;font-size:13px;line-height:1.25;}
+.director-option small {display:block;font-size:11.5px;opacity:.75;line-height:1.35;margin-top:4px;}
+.director-option .btn {flex:0 0 auto;white-space:nowrap;}
+.director-active {padding:10px 12px;border:2px solid #238c56;border-radius:10px;
+  background:#ddf8e8;color:#185839;}
+.director-active b,.director-active small{display:block;}
+.director-active small{font-size:12px;margin-top:4px;line-height:1.4;}
+.director-program {width:100%;background:#fff;color:#33233d;display:block;text-align:left;
+  border:2px solid #33233d;border-radius:10px;padding:11px 12px;margin:6px 0;
+  box-shadow:2px 2px 0 #33233d;font-family:inherit;}
+.director-program b,.director-program small {display:block;}
+.director-program b{font-size:13px;}
+.director-program small {font-size:11.5px;line-height:1.45;margin-top:4px;opacity:.85;}
+.director-program.active {background:#ffdf77;border-color:#b37825;box-shadow:3px 3px 0 #b37825;}
+.director-program.active b:before{content:'✓ ';color:#257445;font-weight:900;}
+.director-program:active{transform:translate(1px,1px);box-shadow:none;}
+.director-metric {font-size:12px;font-weight:700;background:#eef7e1;border:1.5px solid #9ebf89;
+  border-radius:8px;margin:8px 0 12px;padding:7px 9px;}
+@media(max-width:430px){
+  .director-option{padding:7px;gap:6px;}
+  .director-option b{font-size:12px;}
+  .director-option .btn{padding:4px 5px;font-size:11px;}
+}

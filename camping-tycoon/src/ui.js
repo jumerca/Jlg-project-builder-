@@ -16,15 +16,16 @@
 
   /* Version visible et historique : même source de vérité pour l'accueil et les menus. */
   const RELEASE = {
-    version: '1.7.1', date: '15 novembre 2026',
-    headline: 'Le camping prend vie !',
+    version: '1.8.0', date: '15 novembre 2026',
+    headline: 'Le Grand Domaine vivant',
     highlights: [
-      ['minigolf','Mini-golf','6 pistes animées · 8 € la partie'],
-      ['multisport','Terrain multisports','Basket, foot et vacanciers sportifs'],
-      ['bikes','Location de vélos','Vélos visibles · 12 € la sortie'],
-      ['laundry','Laverie','Confort longue durée · 6 € le cycle']
+      ['petanque','Boulodrome','Parties de pétanque & vie sociale'],
+      ['cinema','Cinéma sous les étoiles','Projection et gradins animés le soir'],
+      ['bakery','Boulangerie-café','Croissants, clients et fumée du four'],
+      ['spa','Espace bien-être','Spa animé, pergola et détente']
     ],
     history: [
+      ['1.8.0','15 novembre 2026','Grand domaine : pétanque, cinéma, boulangerie et spa, huit équipements en découverte, canards et barque sur le lac, direction commerciale et programmes d’animation.'],
       ['1.7.1','15 novembre 2026','Correctif : résultat des recherches de mises à jour désormais visible sur l’accueil et dans le menu.'],
       ['1.7.0','15 novembre 2026','Quatre nouveaux bâtiments dessinés, activités et revenus réels, animations sur la carte, panneau Vie du camping et nouvel écran d’accueil avec historique.'],
       ['1.6.0','15 novembre 2026','Interventions d’exploitation, dépannage ciblé, détails animés, végétation et météo.'],
@@ -103,7 +104,7 @@
       <div class="release-hero">
         <div class="release-meta"><strong>VERSION ${RELEASE.version}</strong><span>Publié le ${RELEASE.date}</span></div>
         <h2>${RELEASE.headline}</h2>
-        <p>Un véritable cap : nouveaux bâtiments visibles et activités jouables sur la carte, avec leurs propres recettes et dépenses.</p>
+        <p>Quatre nouveaux grands lieux de vie, un lac animé et des décisions de direction qui influencent réellement les réservations, les coûts et les vacanciers.</p>
       </div>
       ${recap}
       <div class="acts release-main-actions">
@@ -137,8 +138,8 @@
       s=S.newGame({seed:(Date.now()%1e9)|0,name,mode});
       R.groundKey='';R.fit(s);closeModal();SV.autosave(s);setSpeed(1);
       s.rt.events.length=0;
-      toast(mode==='discovery'?'Camp de découverte : 4 équipements V1.7 installés !':`Bienvenue au ${s.name} !`,'good',8000);
-      toast(mode==='discovery'?'Explore le mini-golf, les multisports, les vélos et la laverie.':
+      toast(mode==='discovery'?'Camp de découverte : 8 équipements V1.7–V1.8 installés !':`Bienvenue au ${s.name} !`,'good',8000);
+      toast(mode==='discovery'?'Explore les 8 installations et profite du cinéma le soir, sans modifier les commandes.':
         'Trace des allées puis construis : tous les équipements doivent être reliés à l’entrée.','info',9000);
     };
     modal(`<h2>⛺ Nouvelle partie</h2>
@@ -149,7 +150,7 @@
         <p>Le camping de départ habituel, à développer saison après saison.</p>
         <button class="btn primary" data-act="go">Démarrer normalement</button></div>
         <div class="start-mode discovery"><b>🎨 Camp découverte · V${RELEASE.version}</b>
-        <p>Les 4 nouveaux équipements sont déjà installés sur la carte. Trésorerie normale, installations offertes pour découvrir la mise à jour.</p>
+        <p>Les 8 nouveautés V1.7 et V1.8 sont déjà installées sur la carte : mini-golf, multisports, vélos, laverie, boulodrome, cinéma, boulangerie et spa.</p>
         <button class="btn blue" data-act="demo">Découvrir les nouveautés</button></div>
       </div><div class="acts"><button class="btn" data-act="back">← Retour</button></div>`,{
         go:()=>launch('normal'),demo:()=>launch('discovery'),back:()=>titleScreen(SV.hasAuto())
@@ -167,7 +168,9 @@
       <p>🎲 <b>Décisions</b> : des événements surgissent (inspection, tour-opérateur, concurrent, motards…) : à vous de trancher.</p>
       <p>⬆️ <b>Améliorations</b> : sélectionnez un bâtiment pour le passer au niveau 2 (mobil-home Premium, toboggan, sanitaires Confort…).</p>
       <p>💬 <b>Avis</b> : chaque client raconte son séjour. Lisez-les pour savoir quoi améliorer.</p>
-      <p>🎤 <b>Animations</b> : une scène + un animateur = club enfants l’après-midi et spectacle le soir (sauf pluie).</p>
+      <p>🎤 <b>Animations</b> : une scène + un animateur = club enfants et spectacle du soir. L’onglet 🎯 Direction permet de choisir une programmation avec de vrais coûts et effets sur les clients.</p>
+      <p>📣 <b>Publicité</b> : les campagnes de l’onglet Direction augmentent temporairement les demandes de réservations, en échange d’un budget contrôlé.</p>
+      <p>🍿 <b>Loisirs V1.8</b> : cinéma plein air, boulangerie, pétanque et spa. Il faut des allées et tenir compte des horaires et de la météo.</p>
       <p>🏦 <b>Banque</b> (onglet Finances) : empruntez pour investir plus vite, remboursement quotidien.</p>
       <p>☀️ <b>Météo</b> : canicule = piscine bondée ; pluie = tentes mécontentes ; orage = piscine fermée et pannes.</p>
       <p>⌨️ Espace : pause · 1-3 : vitesse · Échap : annuler l’outil · molette / pincement : zoom.</p>
@@ -194,7 +197,13 @@
     while (s.rt.events.length) handleEvent(s.rt.events.shift());
     if (now - (ui.ambT || 0) > 150) { ui.ambT = now; CT.sfx.ambience(s, ui.speed > 0 && $('modal').classList.contains('hidden')); }
     // HUD
-    if (now - ui.panelTick > 400) { ui.panelTick = now; hud(); tutoTick(); if (ui.tab && ui.tab !== 'prices') renderPanel(); if (ui.sel) renderInspector(); }
+    if (now - ui.panelTick > 400) {
+      ui.panelTick = now; hud(); tutoTick();
+      if (ui.tab && ui.tab !== 'prices' && (ui.tab !== 'life' || now - (ui.lastLifeRender||0) > 1700)) {
+        renderPanel(); if (ui.tab === 'life') ui.lastLifeRender = now;
+      }
+      if (ui.sel) renderInspector();
+    }
     // sauvegarde auto : chaque jour de jeu et toutes les 45 s
     const dayKey = s.year * 1000 + s.day;
     if (dayKey !== ui.lastDay || now - ui.lastSave > 45000) { if (ui.lastDay !== -1) SV.autosave(s); ui.lastDay = dayKey; ui.lastSave = now; }
@@ -477,6 +486,8 @@
     modal(`<h2>☰ Menu</h2>
       <div class="acts" style="flex-direction:column;align-items:stretch">
         <button class="btn primary" data-act="resume">▶ Reprendre</button>
+        <button class="btn blue" data-act="director">🎯 Bureau du directeur</button>
+        <button class="btn" data-act="life">🌞 Vie du camping</button>
         <button class="btn" data-act="save">💾 Sauvegarder maintenant</button>
         <button class="btn" data-act="export">📤 Exporter la partie (.json)</button>
         <button class="btn" data-act="import">📂 Importer une partie</button>
@@ -491,6 +502,8 @@
       <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v${RELEASE.version} · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>
       <div id="updateStatus" class="update-status" role="status" aria-live="polite"></div>`, {
       resume: () => { closeModal(); setSpeed(1); },
+      director: () => { closeModal(); openPanel('director'); },
+      life: () => { closeModal(); openPanel('life'); },
       save: () => { toast(SV.autosave(s) ? 'Partie sauvegardée.' : 'Stockage local indisponible : utilisez l’export.', SV.hasAuto() ? 'good' : 'warn'); closeModal(); },
       export: exportDialog,
       import: importDialog,
@@ -533,7 +546,7 @@
   }
 
   /* ================= Panneaux ================= */
-  const TITLES = { life: '🌞 Vie du camping', reviews: '💬 Avis des vacanciers', bookings: '📅 Réservations', prices: '🏷️ Tarifs', staff: '👷 Équipe', finance: '📊 Finances', goals: '🏆 Objectifs & classement', log: '📰 Journal du camping' };
+  const TITLES = { director: '🎯 Direction', life: '🌞 Vie du camping', reviews: '💬 Avis des vacanciers', bookings: '📅 Réservations', prices: '🏷️ Tarifs', staff: '👷 Équipe', finance: '📊 Finances', goals: '🏆 Objectifs & classement', log: '📰 Journal du camping' };
   function openPanel(tab) {
     ui.tab = tab; $('panel').classList.remove('hidden'); $('ptitle').textContent = TITLES[tab];
     document.querySelectorAll('#tools [data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
@@ -546,7 +559,7 @@
     const body = $('pbody');
     if (!force && body.contains(document.activeElement) && document.activeElement.tagName !== 'BODY' && document.activeElement.tagName !== 'BUTTON') return;
     const scroll = body.scrollTop;
-    const fn = { life: pLife, reviews: pReviews, bookings: pBookings, prices: pPrices, staff: pStaff, finance: pFinance, goals: pGoals, log: pLog }[ui.tab];
+    const fn = { director: pDirector, life: pLife, reviews: pReviews, bookings: pBookings, prices: pPrices, staff: pStaff, finance: pFinance, goals: pGoals, log: pLog }[ui.tab];
     if (!fn) return;
     body.innerHTML = fn();
     body.scrollTop = scroll;
@@ -559,9 +572,49 @@
   const satColor = (v) => (v >= 70 ? '#2f9e6b' : v >= 45 ? '#f2a516' : '#e8553d');
 
 
+
+  function pDirector() {
+    const outlook=S.bookingOutlook(s,14),stats=s.stats,active=S.campaignStatus(s);
+    let h=`<div class="director-intro"><b>🎯 Bureau du directeur</b>
+      <small>Remplissage, publicité, animation et suivi de l'exploitation.</small></div>
+      <div class="kpis"><div class="kpi"><b>${pct(outlook.occupancy)}</b><small>nuits réservées /14 j</small></div>
+        <div class="kpi"><b>${eur(outlook.contracted)}</b><small>CA contractuel /14 j</small></div>
+        <div class="kpi"><b>${outlook.riskBookings}</b><small>réservations à risque</small></div></div>
+      <div class="kpis" style="margin-top:6px"><div class="kpi"><b>${eur(outlook.balancesDue)}</b><small>soldes attendus</small></div>
+        <div class="kpi"><b>${eur(outlook.fixedCosts)}</b><small>charges fixes prévues*</small></div>
+        <div class="kpi"><b>${eur(outlook.loanCosts)}</b><small>crédit à décaisser</small></div></div>
+      <p class="note">* Prévision indicative sur les contrats existants. Elle exclut futures ventes, météo, pannes et nouveaux recrutements.</p>
+      <h3>📣 Campagnes de réservation</h3>`;
+    if(s.phase!=='season')h+='<p class="note">Campagnes commerciales disponibles à l’ouverture de la saison.</p>';
+    else if(active)h+=`<div class="director-active"><b>📣 ${active.label}</b>
+      <small>Encore ${active.remaining} jour(s) · demande ×${active.mult.toFixed(2)}
+      du ${S.dateParts(active.from).d} ${S.dateParts(active.from).m} au ${S.dateParts(active.until).d} ${S.dateParts(active.until).m}</small></div>`;
+    else h+='<p class="note">Une seule campagne à la fois. Son coût est débité immédiatement. Son effet est limité aux demandes de la période.</p>';
+    for(const [kind,cfg] of Object.entries(S.MARKETING)){
+      h+=`<div class="director-option"><div><b>${cfg.label}</b>
+        <small>${cfg.days} jours · demande ×${cfg.mult.toFixed(2)}</small></div>
+        <button class="btn small" data-campaign="${kind}" ${active||s.phase!=='season'||s.fin.cash<cfg.cost?'disabled':''}>${eur(cfg.cost)}</button></div>`;
+    }
+    h+=`<p class="director-metric">${stats.marketingCampaigns||0} campagne(s) · ${eur(stats.marketingSpent||0)} investis cette saison</p>
+      <h3>🎤 Programmation du camping</h3>
+      <p class="note">Une scène accessible, un animateur et la météo adaptée sont nécessaires. Le coût est débité uniquement les jours où une animation est effectivement organisée.</p>`;
+    for(const [kind,cfg] of Object.entries(S.PROGRAMS)){
+      h+=`<button class="director-program ${(s.program||'family')===kind?'active':''}" data-program="${kind}">
+        <b>${cfg.label}</b><small>${cfg.cost===0?'Sans frais supplémentaires':eur(cfg.cost)+' / journée animée'}
+        · familles ${cfg.family>=0?'+':''}${cfg.family} · couples ${cfg.couple>=0?'+':''}${cfg.couple} satisfaction</small></button>`;
+    }
+    h+=`<p class="director-metric">${stats.programEvents||0} journée(s) animée(s) · ${eur(stats.programCost||0)} engagés</p>
+      <h3>📊 Bilan des activités</h3><div class="kpis">
+        <div class="kpi"><b>${eur(stats.leisureRevenue||0)}</b><small>marge loisirs*</small></div>
+        <div class="kpi"><b>${stats.requests||0}</b><small>demandes reçues</small></div>
+        <div class="kpi"><b>${stats.lostFull||0}</b><small>refus faute de place</small></div></div>
+      <p class="note">* Hors personnel et frais fixes. Une campagne augmente les demandes, pas automatiquement les ventes si le camping est complet.</p>`;
+    return h;
+  }
+
   function pLife() {
     const snap=S.guestSnapshot(s), counts=s.stats.leisureVisits || {}, rent=s.stats.leisureRevenue || 0;
-    const kinds=['minigolf','multisport','bikes','laundry'];
+    const kinds=['petanque','cinema','bakery','spa','minigolf','multisport','bikes','laundry'];
     const total=Object.values(counts).reduce((a,v)=>a+v,0);
     let h=`<div class="life-hero"><b>🏕️ ${s.mode==='discovery'?'Camp de découverte':'Le camping vivant'}</b>
       <p>Les vacanciers choisissent leurs activités selon la météo, leurs envies et les horaires. Chaque équipement a un coût et un effet sur la satisfaction.</p></div>
@@ -571,7 +624,7 @@
       <div class="kpis" style="margin-top:6px"><div class="kpi"><b>${total}</b><small>visites aux nouveautés</small></div>
         <div class="kpi"><b class="${rent>=0?'pos':'neg'}">${eur(rent)}</b><small>marge loisirs*</small></div>
         <div class="kpi"><b>${snap.trips}</b><small>excursions totales</small></div></div>
-      <h3>🎪 Équipements V1.7</h3>`;
+      <h3>🎪 Nouveautés V1.8 et V1.7</h3>`;
     for(const type of kinds){
       const d=D.BUILDINGS[type], buildings=S.ofType(s,type), visits=counts[type]||0;
       const opened=buildings.filter(b=>S.activityOpen(s,b)).length;
@@ -811,6 +864,18 @@
   function bindPanel() {
     const body = $('pbody');
     releaseVisuals(body);
+    body.querySelectorAll('[data-campaign]').forEach(btn=>btn.onclick=()=>{
+      const r=S.launchCampaign(s,btn.dataset.campaign);
+      if(r.ok){
+        CT.sfx.play('coin');
+        toast('Campagne active jusqu’au '+S.dateParts(r.until).d+' '+S.dateParts(r.until).m+'.','good');
+        SV.autosave(s);
+      }else{CT.sfx.play('error');toast(r.why,'warn');}
+      renderPanel(true);
+    });
+    body.querySelectorAll('[data-program]').forEach(btn=>btn.onclick=()=>{
+      if(S.setProgram(s,btn.dataset.program)){CT.sfx.play('click');SV.autosave(s);renderPanel(true);}
+    });
     body.querySelectorAll('[data-quickbuild]').forEach(b=>b.onclick=()=>{
       const type=b.dataset.quickbuild;
       closePanel();setTool('build',type);

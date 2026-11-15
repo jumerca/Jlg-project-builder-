@@ -66,6 +66,7 @@
       buildings: [], nextId: 1, bookings: [], staff: [],
       mode: opts.mode === 'discovery' ? 'discovery' : 'normal',
       prices: Object.assign({}, D.DEFAULT_PRICES), seasonRates: { low: 1, mid: 1, high: 1 }, shopMarkup: 1.0, staffPolicy: { cleaning: 'arrivals', maintenance: 'urgent' },
+      program: 'family', campaign: null, commercialHistory: [],
       reputation: 42, stars: 1,
       fin: { cash: 30000, start: 30000, season: {}, all: {}, history: [] },
       stats: newSeasonStats(), totals: { groups: 0, nights: 0, seasons: 0, shows: 0 },
@@ -82,7 +83,7 @@
   }
 
   function newSeasonStats() {
-    return { groups: 0, nights: 0, persons: 0, shows: 0, ratings: [], occ: [], peakOcc: 0, lostFull: 0, lostPrice: 0, requests: 0, waits: 0, breakdowns: 0, serviceInterventions: 0, serviceExpenses: 0, guestTrips: 0, escortedTrips: 0, guestActivities: {}, guestMood: [], leisureVisits: {}, leisureRevenue: 0, repStart: null };
+    return { groups: 0, nights: 0, persons: 0, shows: 0, ratings: [], occ: [], peakOcc: 0, lostFull: 0, lostPrice: 0, requests: 0, waits: 0, breakdowns: 0, serviceInterventions: 0, serviceExpenses: 0, guestTrips: 0, escortedTrips: 0, guestActivities: {}, guestMood: [], leisureVisits: {}, leisureRevenue: 0, programEvents: 0, programCost: 0, marketingSpent: 0, marketingCampaigns: 0, repStart: null };
   }
 
   const idx = (x, y) => y * W + x;
@@ -131,7 +132,19 @@
       place('multisport',25,13);
       place('bikes',25,19);
       place('laundry',8,8);
-      log(s, 'Mode découverte : quatre équipements supplémentaires déjà aménagés.', 'good');
+      // V1.8 : quatre nouvelles installations dans le parc découverte, sans
+      // retirer ni modifier les neuf hébergements historiques.
+      for(let x=20;x<=21;x++)setPath(s,x,11);
+      setPath(s,21,10);
+      place('petanque',21,8);
+      for(let y=5;y<=7;y++)setPath(s,12,y);
+      for(let x=8;x<=11;x++)setPath(s,x,5);
+      place('bakery',5,4);
+      place('spa',13,3);
+      for(let y=21;y<=25;y++)setPath(s,24,y);
+      setPath(s,25,25);
+      place('cinema',26,24);
+      log(s, 'Mode découverte : huit équipements supplémentaires déjà aménagés.', 'good');
     }
     refreshAccess(s);
   }
@@ -351,6 +364,10 @@
     if (services(s, 'multisport').length) a *= 1 + (profile === 'family' ? .14 : .06);
     if (services(s, 'bikes').length) a *= 1 + (profile === 'couple' || profile === 'nomad' ? .13 : .09);
     if (services(s, 'laundry').length) a *= 1 + (profile === 'family' ? .06 : .04);
+    if (services(s,'petanque').length) a *= 1 + (profile === 'couple' ? .12 : .075);
+    if (services(s,'cinema').length) a *= 1 + (profile === 'family' ? .13 : .1);
+    if (services(s,'bakery').length) a *= 1.09;
+    if (services(s,'spa').length) a *= 1 + (profile === 'couple' ? .19 : .085);
     if (services(s, 'pool').some((b) => b.level === 2)) a *= 1 + 0.1 * (w.pool || 0.5);
     if (services(s, 'stage').length && s.staff.some((x) => x.role === 'animation')) a *= 1 + 0.1 * (w.anim || 0.5);
     a *= 1 + Math.min(10, avgBeauty(s)) * 0.012 * (w.beauty || 0.6);
@@ -567,7 +584,7 @@
 
   /* ---------- Vacanciers V1.4 : besoins persistants entre sauvegardes ---------- */
   const NEED_KEYS = ['energy', 'hunger', 'hygiene', 'fun', 'social'];
-  const NEED_ACTIVITY = { use: 'sanitary', buy: 'shop', eat: 'snack', swim: 'pool', play: 'playground', show: 'stage', stroll: 'walk', golf: 'minigolf', sport: 'multisport', cycle: 'bikes', wash: 'laundry' };
+  const NEED_ACTIVITY = { use: 'sanitary', buy: 'shop', eat: 'snack', swim: 'pool', play: 'playground', show: 'stage', stroll: 'walk', golf: 'minigolf', sport: 'multisport', cycle: 'bikes', wash: 'laundry', bowl: 'petanque', movie: 'cinema', breakfast: 'bakery', relax: 'spa' };
 
   function guestStates(bk) {
     if (!Array.isArray(bk.guests)) bk.guests = [];
@@ -770,7 +787,7 @@
       if (b.type === 'pool' && !poolOpen(s, b)) { adj(bk, -(2)); return sendTo(s, a, { kind: 'home', id: bk.unit }); }
       if (b.type === 'stage' && !stageLive(s, b)) return sendTo(s, a, { kind: 'home', id: bk.unit });
       if (b.type === 'snack' && !snackOpen(s, b)) return sendTo(s, a, { kind: 'home', id: bk.unit });
-      if (['minigolf','multisport','bikes','laundry'].includes(b.type) && !activityOpen(s,b))
+      if (['minigolf','multisport','bikes','laundry','petanque','cinema','bakery','spa'].includes(b.type) && !activityOpen(s,b))
         return sendTo(s, a, { kind: 'home', id: bk.unit });
       a.state = 'queue'; a.wait = 0; a.inB = b.id; a.purpose = d.purpose;
       bs(s, b).queue.push(a.id);
@@ -800,7 +817,7 @@
     const def = BUILDINGS[b.type];
     if (!def || !def.service) return false;
     if (def.openFrom !== undefined && (s.minute < def.openFrom || s.minute >= def.openTo)) return false;
-    if (['minigolf','multisport','bikes'].includes(b.type) &&
+    if (['minigolf','multisport','bikes','petanque','cinema'].includes(b.type) &&
         ['rain','storm'].includes(s.weather.type)) return false;
     if (b.type === 'pool') return poolOpen(s, b);
     if (b.type === 'stage') return stageLive(s, b);
@@ -881,6 +898,15 @@
       (bk.profile === 'family' ? 17 : 0), outdoors && h >= 9 && h < 20.5 && needs.energy > 40);
     consider('bikes', 'cycle', 26 + gap('fun') * .87 + (bk.profile === 'nomad' ? 19 : 8),
       outdoors && h >= 9 && h < 18.5 && needs.energy > 43);
+    consider('bakery','breakfast',28+gap('hunger')*1.12+(h<10?21:0),
+      h>=7.5 && h<12 && s.day-(bk.bakeryDay??-99)>=1);
+    consider('petanque','bowl',32+gap('social')*.76+gap('fun')*.54+
+      (bk.profile==='couple'?15:0),outdoors && h>=10 && h<20 && needs.energy>29);
+    consider('spa','relax',29+gap('energy')*.82+gap('fun')*.65+
+      (bk.profile==='couple'?24:4),h>=10 && h<20.5 && !guest.kid &&
+      s.day-(bk.spaDay??-99)>=1);
+    consider('cinema','movie',40+gap('fun')*.83+
+      (bk.profile==='family'?13:9),outdoors && h>=20.25 && h<21.6 && needs.energy>23);
     consider('laundry', 'wash', 20 + gap('hygiene') * .88 +
       (bk.nights >= 5 ? 32 : 0), !guest.kid && h >= 8 && h < 20.5 &&
       (bk.nights >= 4 || needs.hygiene < 45) && s.day - (bk.laundryDay ?? -99) >= 3);
@@ -927,7 +953,7 @@
             if (adult === -1) { guest.nextDecision = now + 20; continue; }
             fellow.push(adult);
           }
-        } else if (!guest.kid && ['stroll', 'swim', 'play', 'show', 'eat', 'golf', 'sport', 'cycle'].includes(chosen.purpose)) {
+        } else if (!guest.kid && ['stroll', 'swim', 'play', 'show', 'eat', 'golf', 'sport', 'cycle', 'bowl', 'movie', 'breakfast'].includes(chosen.purpose)) {
           const kid = bk.profile === 'family' && guestRand(s) < 0.55
             ? guests.findIndex((v, j) => v.kid && idle(j)) : -1;
           if (kid >= 0) fellow.push(kid);
@@ -950,6 +976,8 @@
         }
         if (chosen.purpose === 'buy') bk.shopDay = s.day;
         if (chosen.purpose === 'wash') bk.laundryDay = s.day;
+        if (chosen.purpose === 'breakfast') bk.bakeryDay = s.day;
+        if (chosen.purpose === 'relax') bk.spaDay = s.day;
         s.stats.guestTrips = (s.stats.guestTrips || 0) + 1;
         if (party.length > 1) s.stats.escortedTrips = (s.stats.escortedTrips || 0) + 1;
         const activity = NEED_ACTIVITY[chosen.purpose] || chosen.purpose;
@@ -982,7 +1010,7 @@
           const closing = (b.type === 'pool' && !poolOpen(s, b)) ||
             (b.type === 'stage' && (!stageLive(s, b) || (stageWindow(s) && stageWindow(s).to - s.minute <= 1))) ||
             (b.type === 'snack' && !snackOpen(s, b) && s.minute > 21 * 60 + 50) ||
-            (['minigolf','multisport','bikes','laundry'].includes(b.type) && !activityOpen(s,b));
+            (['minigolf','multisport','bikes','laundry','petanque','cinema','bakery','spa'].includes(b.type) && !activityOpen(s,b));
           if (u.until <= now || closing) finishUse(s, b, a, u);
           else keep.push(u);
         }
@@ -997,7 +1025,7 @@
       if (b.type === 'pool' && !poolOpen(s, b)) slots = 0;
       if (b.type === 'stage' && (!stageLive(s, b) || (stageWindow(s) && stageWindow(s).to - s.minute <= 2))) slots = 0;
       if (b.type === 'snack' && !snackOpen(s, b)) slots = 0;
-      if (['minigolf','multisport','bikes','laundry'].includes(b.type) && !activityOpen(s,b)) slots = 0;
+      if (['minigolf','multisport','bikes','laundry','petanque','cinema','bakery','spa'].includes(b.type) && !activityOpen(s,b)) slots = 0;
       while (st.queue.length && st.users.length < slots) {
         const aid = st.queue.shift();
         const a = s.rt.agentMap.get(aid);
@@ -1013,6 +1041,10 @@
         else if (b.type === 'multisport') dur = rint(s, 25, 65);
         else if (b.type === 'bikes') dur = rint(s, 38, 90);
         else if (b.type === 'laundry') dur = rint(s, 20, 38);
+        else if (b.type === 'petanque') dur = rint(s, 28, 68);
+        else if (b.type === 'cinema') dur = rint(s, 50, 82);
+        else if (b.type === 'bakery') dur = rint(s, 12, 26);
+        else if (b.type === 'spa') dur = rint(s, 40, 70);
         else if (b.type === 'stage') { const w = stageWindow(s); dur = Math.max(1, w ? w.to - s.minute - 1 : 1); if (w && w.show) s.rt.showDay = s.day; }
         else if (b.type === 'reception') dur = a.purpose === 'checkin' ? (staffed ? rint(s, 3, 5) : rint(s, 10, 14)) : (staffed ? 2 : 5);
         if (bk && a.wait > 10) { adj(bk, -(Math.min(8, (a.wait - 10) / 4))); note(bk, 'queue', 0.5); }
@@ -1027,7 +1059,7 @@
         if (!a) { st.queue.splice(i, 1); continue; }
         a.wait++;
         const patience = b.type === 'reception' ? 999 : b.type === 'pool' ? 25 : 20;
-        if (a.wait > patience || (b.broken && b.type !== 'reception') || (b.type === 'pool' && !poolOpen(s, b)) || (b.type === 'stage' && !stageLive(s, b)) || (b.type === 'snack' && !snackOpen(s, b)) || (['minigolf','multisport','bikes','laundry'].includes(b.type) && !activityOpen(s,b))) {
+        if (a.wait > patience || (b.broken && b.type !== 'reception') || (b.type === 'pool' && !poolOpen(s, b)) || (b.type === 'stage' && !stageLive(s, b)) || (b.type === 'snack' && !snackOpen(s, b)) || (['minigolf','multisport','bikes','laundry','petanque','cinema','bakery','spa'].includes(b.type) && !activityOpen(s,b))) {
           st.queue.splice(i, 1);
           const bk = bookingById(s, a.bk);
           if (bk) { adj(bk, -(5)); note(bk, 'queue'); if (!b._qwarn || b._qwarn < s.day) { b._qwarn = s.day; log(s, `File d’attente trop longue : ${BUILDINGS[b.type].short.toLowerCase()} saturé(e).`, 'warn'); } }
@@ -1062,16 +1094,17 @@
       money(s, bill, 'Restauration'); money(s, -bill / s.shopMarkup * 0.42, 'Stock restauration');
       adj(bk, s.shopMarkup >= 1.35 ? 0.5 : 2.5); note(bk, 'food', 0.4);
     }
-    else if (['minigolf', 'multisport', 'bikes', 'laundry'].includes(b.type)) {
-      const fees = { minigolf: 8, multisport: 0, bikes: 12, laundry: 6 };
-      const expenses = { minigolf: 1.1, multisport: 0.5, bikes: 2.6, laundry: 2.1 };
+    else if (['minigolf', 'multisport', 'bikes', 'laundry','petanque','cinema','bakery','spa'].includes(b.type)) {
+      const fees = { minigolf: 8, multisport: 0, bikes: 12, laundry: 6, petanque: 0, cinema: 5, bakery: 7, spa: 15 };
+      const expenses = { minigolf: 1.1, multisport: 0.5, bikes: 2.6, laundry: 2.1, petanque: .45, cinema: 1.9, bakery: 2.7, spa: 6 };
       const paid = fees[b.type], cost = expenses[b.type];
       if (paid) money(s, paid, 'Activités & loisirs');
       money(s, -cost, 'Frais activités');
       s.stats.leisureRevenue = r2((s.stats.leisureRevenue || 0) + paid - cost);
       const counts = s.stats.leisureVisits || (s.stats.leisureVisits = {});
       counts[b.type] = (counts[b.type] || 0) + 1;
-      adj(bk, b.type === 'multisport' ? 3.7 : b.type === 'laundry' ? 1.6 : 3.2);
+      adj(bk, b.type === 'multisport' ? 3.7 : b.type === 'laundry' ? 1.6 :
+        b.type === 'spa' ? 4.2 : b.type === 'bakery' ? 2.7 : 3.2);
       note(bk, b.type, .35);
     }
     else if (b.type === 'reception') {
@@ -1088,7 +1121,9 @@
         snack: { hunger: 54, energy: 7, social: 7 }, pool: { fun: 44, energy: -10, social: 9, hygiene: -5 },
         playground: { fun: 43, energy: -8, social: 9 }, stage: { fun: 40, social: 18, energy: -3 },
         minigolf: { fun: 38, energy: -7, social: 17 }, multisport: { fun: 45, energy: -15, social: 21 },
-        bikes: { fun: 37, energy: -14, social: 9 }, laundry: { hygiene: 17, energy: -2 }
+        bikes: { fun: 37, energy: -14, social: 9 }, laundry: { hygiene: 17, energy: -2 },
+        petanque: { fun: 37, social: 23, energy: -5 }, cinema: { fun: 42, social: 16, energy: -8 },
+        bakery: { hunger: 46, social: 5, energy: 4 }, spa: { energy: 26, fun: 38, hygiene: 8, social: 7 }
       };
       const activity = NEED_ACTIVITY[a.purpose] || a.purpose;
       if (effects[activity]) needAdjust(guest, effects[activity]);
@@ -1282,6 +1317,8 @@
 
   function endOfDay(s) {
     // bilan de la nuit écoulée (jour s.day)
+    const programResult=runProgram(s);
+    void programResult;
     const o = occupancy(s, s.day);
     s.stats.occ.push(o.occ);
     s.stats.peakOcc = Math.max(s.stats.peakOcc, o.occ);
@@ -1496,7 +1533,11 @@
     minigolf: 'On a fait de belles parties de mini-golf entre amis !',
     multisport: 'Le terrain multisports a occupé toute la famille !',
     bikes: 'La location de vélos a été parfaite pour découvrir le coin.',
-    laundry: 'La laverie sur place nous a bien dépannés.'
+    laundry: 'La laverie sur place nous a bien dépannés.',
+    petanque: 'Parties de pétanque entre voisins, excellente ambiance !',
+    cinema: 'Le cinéma sous les étoiles, quel souvenir !',
+    bakery: 'Le café et les croissants du matin : un vrai plaisir.',
+    spa: 'L’espace bien-être nous a ressourcés.'
   };
   const COMPLAINT = {
     mhdirty: 'Mobil-home sale à notre arrivée, inadmissible.', dirty: 'Sanitaires sales, ça gâche tout.', queue: 'Des files d’attente interminables.',
@@ -1683,6 +1724,8 @@
       guestTrips: st.guestTrips || 0, escortedTrips: st.escortedTrips || 0,
       serviceInterventions: st.serviceInterventions || 0, serviceExpenses: st.serviceExpenses || 0,
       leisureRevenue: st.leisureRevenue || 0, leisureVisits: Object.assign({}, st.leisureVisits || {}),
+      marketingSpent: st.marketingSpent || 0, marketingCampaigns: st.marketingCampaigns || 0,
+      programEvents: st.programEvents || 0, programCost: st.programCost || 0,
       guestActivities: Object.assign({}, st.guestActivities || {}),
       avgGuestMood: st.guestMood && st.guestMood.length ? Math.round(st.guestMood.reduce((a,b)=>a+b,0)/st.guestMood.length) : 0,
       repStart: st.repStart ?? 42, repEnd: Math.round(s.reputation), stars: s.stars, units: units(s).length, cash: s.fin.cash,
@@ -1709,6 +1752,7 @@
     const winter = 3000 + value * 0.01;
     s.year++; s.day = 0; s.minute = 7 * 60;
     s.fin.season = {};
+    s.campaign = null;
     money(s, -winter, 'Hivernage & taxes');
     for (const b of s.buildings) { b.progress = 0; b.water = 100; b.dirt = 0; b.clean = false; b.cond = Math.min(100, b.cond + 15); b.broken = false; }
     s.reputation = s.reputation + (50 - s.reputation) * 0.1;
@@ -1948,6 +1992,69 @@
     return { ok: true, cost: option.cost, kind, id };
   }
 
+
+  /* ---------- V1.8 : direction commerciale et programmation des animations ---------- */
+  const MARKETING = {
+    local: { label: 'Affichage local & office de tourisme', cost: 350, days: 7, mult: 1.12 },
+    families: { label: 'Campagne familles', cost: 850, days: 12, mult: 1.25 },
+    summer: { label: 'Grande campagne estivale', cost: 1700, days: 16, mult: 1.42 }
+  };
+  const PROGRAMS = {
+    calm: { label: 'Soirée douce', cost: 0, family: -.4, couple: 1.5, nomad: 1.1 },
+    family: { label: 'Animations familiales', cost: 35, family: 2.2, couple: .7, nomad: .3 },
+    festive: { label: 'Soirée festive', cost: 95, family: 1.2, couple: 2.3, nomad: 1.0 }
+  };
+  function setProgram(s, kind) {
+    if (!PROGRAMS[kind]) return false;
+    s.program = kind;
+    return true;
+  }
+  function runProgram(s) {
+    const config=PROGRAMS[s.program]||PROGRAMS.family;
+    const active=s.phase==='season' && services(s,'stage').some(b=>accessible(s,b)&&!b.broken) &&
+      s.staff.some(x=>x.role==='animation') && s.weather.type!=='storm' &&
+      (s.weather.type!=='rain'||services(s,'stage').some(b=>b.level===2&&!b.broken));
+    if (!active) return { active:false, reason:'Scène, animateur et météo compatibles nécessaires.' };
+    const dayKey=s.year*1000+s.day;
+    if(s.lastProgramDay===dayKey)return { active:false, reason:'La programmation a déjà été comptabilisée ce jour.' };
+    s.lastProgramDay=dayKey;
+    if (config.cost) money(s,-config.cost,'Programmation');
+    s.stats.programCost=r2((s.stats.programCost||0)+config.cost);
+    s.stats.programEvents=(s.stats.programEvents||0)+1;
+    for(const bk of s.bookings)if(bk.status==='onsite'){
+      bk.sat=clamp(bk.sat+config[bk.profile],0,100);
+      note(bk,'show',.15);
+    }
+    if(s.program==='festive')s.reputation=clamp(s.reputation+.045,0,100);
+    return { active:true,kind:s.program,cost:config.cost };
+  }
+  function campaignStatus(s) {
+    if (!s.campaign || s.campaign.until<s.day || s.phase!=='season') return null;
+    return Object.assign({},s.campaign,{remaining:s.campaign.until-s.day+1});
+  }
+  function launchCampaign(s,kind) {
+    const c=MARKETING[kind];
+    if (!c) return {ok:false,why:'Campagne inconnue.'};
+    if (s.phase!=='season') return {ok:false,why:'Les campagnes démarrent uniquement pendant la saison.'};
+    if (campaignStatus(s)) return {ok:false,why:'Une campagne est déjà en cours.'};
+    if (s.day>=D.SEASON_DAYS-1) return {ok:false,why:'La saison se termine.'};
+    if (s.fin.cash<c.cost) return {ok:false,why:'Trésorerie insuffisante.'};
+    const days=Math.min(c.days,D.SEASON_DAYS-1-s.day);
+    if(days<=0)return {ok:false,why:'La saison se termine.'};
+    money(s,-c.cost,'Publicité');
+    const from=s.day+1,until=s.day+days;
+    s.mods=s.mods||[];
+    s.mods.push({kind:'demand',mult:c.mult,from,until,label:c.label});
+    s.campaign={kind,label:c.label,cost:c.cost,from,until,mult:c.mult};
+    s.commercialHistory=s.commercialHistory||[];
+    s.commercialHistory.push({year:s.year,day:s.day,kind,cost:c.cost,until});
+    if(s.commercialHistory.length>30)s.commercialHistory.shift();
+    s.stats.marketingSpent=r2((s.stats.marketingSpent||0)+c.cost);
+    s.stats.marketingCampaigns=(s.stats.marketingCampaigns||0)+1;
+    log(s,'Campagne lancée : '+c.label+' ('+Math.round(c.cost)+' €). Demande attendue ×'+c.mult.toFixed(2)+'.','good');
+    return {ok:true,cost:c.cost,from,until,mult:c.mult};
+  }
+
   /* ---------- Prévisions basées exclusivement sur les contrats ---------- */
   function bookingOutlook(s, horizon = 14) {
     const days = s.phase === 'winter' ? 0 : Math.min(Math.max(0, Math.floor(Number(horizon) || 0)), Math.max(0, D.SEASON_DAYS - s.day));
@@ -2025,6 +2132,7 @@
     requestBooking, isBooked, occupancy, classement, units, built, ofType, services, accessible, beautyAt, avgBeauty,
     seasonBand, seasonMultiplier, setSeasonRate, setStaffPolicy, unitPerformance,
     serviceOptions, serviceChecklist, serviceIntervention, activityOpen,
+    MARKETING, PROGRAMS, launchCampaign, campaignStatus, setProgram, runProgram,
     guestStates, guestMood, guestNeedsStep, guestStateForAgent, guestSnapshot,
     hire, fire, build, buildPath, placeDeco, demolish, canPlace, buildingAt, byId, setPrice, setMarkup,
     startSeason, endSeason, endOfDay, checkIn, checkOut, money, summary, bookingOutlook, field, idx, bs, mapChanged, attractiveness, weatherAt,

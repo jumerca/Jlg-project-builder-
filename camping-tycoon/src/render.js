@@ -326,6 +326,128 @@
     box(g,W-10,36,6,19,'#559f64',2,1);
   }
 
+
+  /* V1.8 — bâtiments vectoriels conçus spécialement pour Camping Tycoon.
+     Volumes peints (toitures, façades, estrades, rambardes), pas de textures externes. */
+  function drawPetanque(g,w,h) {
+    const W=w*TS,H=h*TS;
+    shadow(g,W/2,H-3,W/2-3,8);
+    box(g,3,7,W-6,H-13,'#ba996d',7,2);
+    for(let i=0;i<3;i++){
+      const x=7+i*39;
+      box(g,x,11,36,H-23,'#e6c892',4,1.2);
+      g.fillStyle='rgba(130,87,49,.2)';
+      for(let j=0;j<20;j++){const vx=x+4+hash(i*33+j,12)*28,vy=15+hash(99,i*19+j)*(H-31);g.fillRect(vx,vy,1.1,1.1);}
+      // Cochonnet rouge et boules de métal groupées.
+      ell(g,x+18,36+i%2*5,1.8,1.8,'#e95948',.7);
+      for(let k=0;k<4;k++){
+        const px=x+10+(k%2)*10+(i%2)*3,py=29+Math.floor(k/2)*11;
+        ell(g,px,py,3.1,2.5,'#a7bac5',1);
+        ell(g,px-1,py-1,.8,.8,'#fff',0,false);
+      }
+    }
+    // Bancs extérieurs et pergola en trois-quarts.
+    for(const x of [13,W-35]) {
+      box(g,x,H-10,26,4,'#8b623e',1,1);
+      g.strokeStyle=INK;g.lineWidth=1.4;g.beginPath();
+      g.moveTo(x+4,H-6);g.lineTo(x+4,H-2);g.moveTo(x+22,H-6);g.lineTo(x+22,H-2);g.stroke();
+    }
+    box(g,W/2-25,-10,50,16,'#8d5339',3,1.6);
+    text(g,'PÉTANQUE',W/2,-1.5,7.5,'#fff');
+  }
+  function drawCinema(g,w,h) {
+    const W=w*TS,H=h*TS;
+    shadow(g,W/2,H-3,W/2-3,8);
+    box(g,4,7,W-8,H-13,'#7fa35d',5,1.8);
+    // Théâtre en perspective, écran haut et face de projection.
+    poly(g,[15,10,24,-31,W-24,-31,W-15,10],'#3a435c',2);
+    box(g,21,-25,W-42,44,'#f4efe1',3,2.3);
+    box(g,28,-19,W-56,31,'#263a5d',2,1);
+    poly(g,[30,9,W/2-12,-11,W/2+9,0,W-32,9],'#4678a5',1);
+    ell(g,W/2+14,-11,6,6,'#ffd27c',0,false);
+    // Bancs rangés en arc et projecteur.
+    for(let row=0;row<3;row++){
+      const y=35+row*17;
+      for(let i=0;i<5;i++) {
+        const x=17+i*22+((row%2)*7);
+        box(g,x-8,y-3,17,6,row%2?'#e7c17e':'#f3d296',2,1);
+        g.strokeStyle='#6c5540';g.lineWidth=1.5;g.beginPath();
+        g.moveTo(x-7,y+3);g.lineTo(x-7,y+5);g.moveTo(x+8,y+3);g.lineTo(x+8,y+5);g.stroke();
+      }
+    }
+    box(g,W-23,H-28,13,17,'#655e69',2,1.3);
+    ell(g,W-16,H-26,4.5,3.2,'#d8e8ee',1);
+    // Structure guirlande au-dessus de l'assistance.
+    g.strokeStyle='#71604e';g.lineWidth=1.6;
+    g.beginPath();g.moveTo(8,13);g.quadraticCurveTo(W/2,37,W-8,13);g.stroke();
+    for(let i=0;i<9;i++){const x=12+i*(W-24)/8, y=14+Math.sin(i/8*Math.PI)*10;
+      ell(g,x,y,2,2,['#ffd66d','#f8b2b3','#bbdff7'][i%3],.5);}
+    box(g,W/2-27,-38,54,12,'#e0a33c',2,1);
+    text(g,'CINÉ PLEIN AIR',W/2,-32,6.2);
+  }
+  function drawBakery(g,w,h) {
+    const W=w*TS,H=h*TS;
+    shadow(g,W/2,H-3,W/2-3,10);
+    box(g,6,12,W-12,H-18,'#f8ecda',4,1.8);
+    poly(g,[0,15,W/2,-19,W,15],'#d96749',2);
+    // Tuiles tracées et cheminée maçonnée.
+    g.strokeStyle='rgba(144,60,51,.7)';g.lineWidth=1;
+    for(let x=12;x<W-10;x+=13){g.beginPath();g.moveTo(x,3);g.lineTo(x+10,10);g.stroke();}
+    box(g,W-25,-18,11,22,'#aa7354',1,1.3);
+    box(g,W-27,-21,15,5,'#765442',1,1);
+    // Vitrine avec pains et corbeille de croissants.
+    box(g,9,21,35,23,'#bce5ed',2,1.5);
+    box(g,48,18,38,28,'#8d634c',2,1.4);
+    box(g,50,20,34,24,'#f9e8b9',2,.8);
+    for(let i=0;i<4;i++) {
+      const x=14+i*8;
+      ell(g,x,37,3.2,2.4,'#d89945',.7);
+      g.strokeStyle='#fff1bc';g.lineWidth=.6;g.beginPath();g.moveTo(x-2,35);g.lineTo(x+2,36);g.stroke();
+    }
+    for(const [x,y] of [[57,29],[69,29],[62,38],[74,38]]){
+      ell(g,x,y,4.4,3,'#bc7c40',.7);
+      g.strokeStyle='#f5d19c';g.lineWidth=1;g.beginPath();g.moveTo(x-2,y);g.lineTo(x+2,y);g.stroke();
+    }
+    box(g,W/2-24,-7,48,14,'#f4ce73',3,1.4);
+    text(g,'BOULANGERIE',W/2,0,6.3);
+    // La terrasse du matin.
+    ell(g,20,H-9,11,4.5,'#ffffff',1.1);
+    g.strokeStyle=INK;g.lineWidth=1.5;g.beginPath();g.moveTo(20,H-7);g.lineTo(20,H-2);g.stroke();
+  }
+  function drawSpa(g,w,h){
+    const W=w*TS,H=h*TS;
+    shadow(g,W/2,H-4,W/2-4,10);
+    box(g,4,8,W-8,H-15,'#d7cbb0',7,2);
+    // Pergola haute avec lattes projetées sur le sol.
+    for(let x=9;x<W-5;x+=18) {
+      box(g,x,5,4,H-13,'#b78a56',1,.9);
+      g.fillStyle='rgba(139,98,51,.1)';g.fillRect(x+7,18,4,H-29);
+    }
+    box(g,12,13,W-24,8,'#996b47',2,1.4);
+    for(let x=15;x<W-13;x+=11) {
+      g.strokeStyle='#d9b782';g.lineWidth=2;g.beginPath();g.moveTo(x,18);g.lineTo(x+4,23);g.stroke();
+    }
+    // Bassin avec double rebord, eau et reflets.
+    box(g,24,30,W-48,H-47,'#f6ebd2',11,2);
+    box(g,30,35,W-60,H-59,'#74bbcf',10,1.5);
+    for(let i=0;i<6;i++){
+      const x=40+((i*19)%(W-80)), y=43+(i%2)*18;
+      ell(g,x,y,4.2,2.2,'rgba(224,253,255,.75)',0,false);
+    }
+    // Transats et arbustes.
+    for(const x of [11,W-22]) {
+      box(g,x,H-33,11,21,'#f7e0a2',2,1.2);
+      g.strokeStyle='#976a47';g.lineWidth=1;
+      g.beginPath();g.moveTo(x,H-12);g.lineTo(x+12,H-9);g.stroke();
+    }
+    for(const [x,y] of [[11,16],[W-11,16],[W-12,H-10]]) {
+      ell(g,x,y,5,5,'#4e9f58',1);
+      ell(g,x-1,y-2,3,2,'#a1dc88',0,false);
+    }
+    box(g,W/2-28,-11,56,16,'#a87851',3,1.4);
+    text(g,'BIEN-ÊTRE',W/2,-2.5,7,'#fff');
+  }
+
   function drawPlayground(g, w, h) {
     const W = w * TS, Hh = h * TS;
     box(g, 2, 4, W - 4, Hh - 8, '#f2d89a', 8, 1.6);
@@ -511,6 +633,15 @@
       g.beginPath();g.arc(-6,0,4,0,7);g.arc(8,0,4,0,7);g.stroke();
       g.beginPath();g.moveTo(-6,0);g.lineTo(1,-5);g.lineTo(8,0);g.lineTo(1,0);g.lineTo(-6,0);g.stroke();
     }
+    if (a.kind === 'guest' && a.act === 'petanque') {
+      const throwPhase=Math.max(0,Math.sin(t*.006+a.id));
+      g.strokeStyle=skin;g.lineWidth=1.7;g.beginPath();g.moveTo(4,-10);
+      g.lineTo(7+throwPhase*6,-12-throwPhase*7);g.stroke();
+      ell(g,9+throwPhase*7,-4-throwPhase*6,2,1.7,'#c7d3d6',.8);
+    }
+    if (a.kind === 'guest' && a.act === 'bakery') {
+      ell(g,6,-8,3,2,'#d89c51',.9);
+    }
     if (a.kind === 'guest' && a.act === 'multisport') {
       const ball=Math.sin(t*.009+a.id);
       ell(g,7,-1-Math.max(0,ball)*6,2.6,2.6,'#f3bb46',.8);
@@ -607,6 +738,34 @@
       g.closePath();g.fillStyle='#f8e3a0';g.fill();g.lineWidth=1.1;g.strokeStyle='#6e6259';g.stroke();
       g.fillStyle='#e96869';g.beginPath();g.moveTo(x-8+lean,y-28);g.quadraticCurveTo(x+lean,y-38,x+lean,y-30);g.lineTo(x+lean,y-22);g.closePath();g.fill();
       g.restore();
+    } else if (b.type === 'bakery' && minute>=7*60 && minute<13*60) {
+      const x=px+w-25,y=py-19;
+      for(let i=0;i<3;i++){
+        const drift=Math.sin(t*.0013+i+b.id)*5;
+        g.save();g.globalAlpha=.17+.07*Math.sin(t*.001+i);
+        g.fillStyle='#fff4e4';g.beginPath();g.ellipse(x+drift+i*3,y-11-i*9,4+i,6+i,0,0,7);g.fill();g.restore();
+      }
+    } else if (b.type==='cinema' && minute>=20*60+15 && minute<22*60+30 && weather!=='rain'&&weather!=='storm'){
+      const flick=.35+.06*Math.sin(t*.012+b.id);
+      g.save();g.globalAlpha=flick;
+      g.fillStyle='#f6edce';g.beginPath();
+      g.moveTo(px+w-17,py+h-26);g.lineTo(px+27,py-18);g.lineTo(px+w-26,py-16);g.closePath();g.fill();
+      g.restore();
+      g.fillStyle=['#a3daef','#a3d59a','#e6b4b2'][Math.floor(t/1900)%3];
+      g.fillRect(px+32+Math.sin(t*.001)*5,py-8,19,10);
+    } else if (b.type==='petanque' && minute>=10*60 && minute<20*60) {
+      for(let i=0;i<3;i++){
+        const x=px+18+i*39,y=py+36;
+        const off=Math.sin(t*.0018+b.id+i)*3;
+        ell(g,x+off,y,2.8,2.3,'#b3c7d3',.9);
+      }
+    } else if (b.type==='spa' && minute>=10*60 && minute<21*60) {
+      for(let i=0;i<5;i++){
+        const x=px+40+i*11,y=py+51;
+        const r=1+((t*.00045+i*.28)%1)*5;
+        g.beginPath();g.arc(x,y-r*.5,r,0,7);
+        g.strokeStyle='rgba(244,255,255,.7)';g.lineWidth=1;g.stroke();
+      }
     } else if (b.type === 'playground' && weather !== 'storm' && weather !== 'rain') {
       // Deux ballons à proximité des jeux, le rebond n'est visible qu'en journée.
       if (minute > 9 * 60 && minute < 19 * 60) {
@@ -614,6 +773,44 @@
         g.beginPath();g.arc(px+w-11,py+h-10-bounce,3.2,0,7);
         g.fillStyle='#efbb45';g.strokeStyle='#9a4f2f';g.lineWidth=1.1;g.fill();g.stroke();
       }
+    }
+  }
+
+
+  // Lac vivant : trois canards et une barque discrète au coucher du soleil.
+  // Ces objets restent purement décoratifs et n'altèrent ni le cheminement ni le RNG du jeu.
+  function drawLakeLife(g,s,t,daylight) {
+    const dry=s.weather.type!=='storm';
+    if(!dry || daylight<.25)return;
+    const spots=[[42,8],[44,17],[43,30]];
+    for(let i=0;i<spots.length;i++){
+      const [tx,ty]=spots[i],x=(tx+.5)*TS+Math.sin(t*.00038+i*2)*11;
+      const y=(ty+.45)*TS+Math.sin(t*.00022+i)*4;
+      if((s.tiles[Math.floor(y/TS)*s.w+Math.floor(x/TS)]!==TERRAIN.WATER))continue;
+      g.save();g.translate(x,y);
+      g.strokeStyle='rgba(255,255,255,.55)';g.lineWidth=1.1;g.beginPath();
+      g.ellipse(0,2,15,3.5,0,0,Math.PI);g.stroke();
+      ell(g,0,-3,9,4.5,i===1?'#f1e9cb':'#fff6db',1);
+      ell(g,7,-8,3.4,3.4,'#fbf0d4',1);
+      poly(g,[9,-8,16,-7,9,-5],'#e4a048',.8);
+      g.fillStyle='#32313b';g.beginPath();g.arc(8,-9,1,0,7);g.fill();
+      g.restore();
+    }
+    // Canot de loisir à deux passagers et pagaie, au large du rivage.
+    const x=44.5*TS+Math.sin(t*.0002)*14,y=25*TS+Math.cos(t*.00026)*6;
+    if(s.tiles[Math.floor(y/TS)*s.w+Math.floor(x/TS)]===TERRAIN.WATER){
+      g.save();g.translate(x,y);
+      shadow(g,0,5,18,4);
+      poly(g,[-19,-4,19,-4,11,6,-13,6],'#e65d49',1.8);
+      poly(g,[-14,-1,14,-1,8,3,-8,3],'#f2bf62',.8);
+      for(const dx of [-5,7]){
+        ell(g,dx,-7,2.9,3.5,'#d5a47e',1);
+        box(g,dx-4,-3,8,6,dx<0?'#4a9dc9':'#f6c35d',2,1);
+      }
+      g.strokeStyle='#8f6942';g.lineWidth=1.5;g.beginPath();
+      const paddle=Math.sin(t*.003)*5;
+      g.moveTo(-8,-8);g.lineTo(-19,7+paddle);g.stroke();
+      g.restore();
     }
   }
 
@@ -739,7 +936,7 @@
       const cx = b.x + b.w / 2 - 0.5, cy = b.y + b.h / 2 - 0.5;
       let dx = b.ax - cx, dy = b.ay - cy; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
       st.queue.forEach((aid, i) => qpos.set(aid, { x: (b.ax + dx * 0.35 * (i + 0.3) - dy * 0.18 * (i % 2 ? 1 : -1)) * TS + TS / 2, y: (b.ay + dy * 0.35 * (i + 0.3)) * TS + TS / 2 + 6 }));
-      if (['pool','playground','stage','snack','minigolf','multisport','bikes','laundry'].includes(b.type)) {
+      if (['pool','playground','stage','snack','minigolf','multisport','bikes','laundry','petanque','cinema','bakery','spa'].includes(b.type)) {
         st.users.forEach((u) => qpos.set(u.aid, { inside: b.type, b }));
       } else st.users.forEach((u) => qpos.set(u.aid, { hidden: true }));
     }
@@ -769,13 +966,19 @@
         }
         if (q.inside === 'bikes') { x=b.x*TS+15+(a.id%3)*30; y=b.y*TS+46; }
         if (q.inside === 'laundry') { x=b.x*TS+21+(a.id%2)*24; y=b.y*TS+53; }
+        if (q.inside === 'petanque') { x=b.x*TS+17+(a.id%3)*38; y=b.y*TS+29+(a.id%2)*15; }
+        if (q.inside === 'cinema') { x=b.x*TS+16+(a.id%5)*22; y=b.y*TS+47+((a.id>>2)%3)*16; }
+        if (q.inside === 'bakery') { x=b.x*TS+20+(a.id%3)*24; y=b.y*TS+54; }
+        if (q.inside === 'spa') { x=b.x*TS+34+(a.id%3)*27; y=b.y*TS+66; }
         if (!vis(x, y)) continue;
         const activityAgent = q.inside === 'snack' ? Object.assign({}, a, { state: 'rest', act: 'eat' }) :
           q.inside === 'playground' ? Object.assign({}, a, { state: 'walk', act: 'play' }) :
           q.inside === 'stage' ? Object.assign({}, a, { state: 'use', act: 'show' }) :
           ['minigolf','multisport','bikes'].includes(q.inside) ?
             Object.assign({},a,{state:'walk',act:q.inside}) :
-          q.inside === 'laundry' ? Object.assign({},a,{state:'rest',act:'laundry'}) : a;
+          q.inside === 'laundry' ? Object.assign({},a,{state:'rest',act:'laundry'}) :
+          q.inside === 'petanque' ? Object.assign({},a,{state:'walk',act:'petanque'}) :
+          ['cinema','spa','bakery'].includes(q.inside) ? Object.assign({},a,{state:'rest',act:q.inside}) : a;
         list.push({ z: b.y * TS + h + 0.5 + y * 0.0001, kind: 'p', a: activityAgent, x, y });
         continue;
       } else if (q) { x = q.x; y = q.y; }
@@ -845,10 +1048,27 @@
       case 'multisport': put(sprite('multisport', w*TS+20,h*TS+24,10,16,(gg)=>drawMultisport(gg,w,h))); break;
       case 'bikes': put(sprite('bikehire', w*TS+18,h*TS+30,9,22,(gg)=>drawBikeHire(gg,w,h))); break;
       case 'laundry': put(sprite('laundry',w*TS+18,h*TS+28,9,20,(gg)=>drawLaundry(gg,w,h))); break;
+      case 'petanque': put(sprite('petanque',w*TS+18,h*TS+28,9,20,(gg)=>drawPetanque(gg,w,h))); break;
+      case 'cinema': put(sprite('cinema',w*TS+24,h*TS+58,12,48,(gg)=>drawCinema(gg,w,h))); break;
+      case 'bakery': put(sprite('bakery',w*TS+24,h*TS+50,12,38,(gg)=>drawBakery(gg,w,h))); break;
+      case 'spa': put(sprite('spa',w*TS+18,h*TS+28,9,20,(gg)=>drawSpa(gg,w,h))); break;
       case 'stage': {
         put(sprite('stage', w * TS + 12, h * TS + 40, 6, 32, (gg) => drawStage(gg, w, h)));
         if (S.stageLive(s, b)) {
           const W = w * TS, t = this.t;
+          const program=s.program||'family';
+          const label={calm:'SOIRÉE DOUCE',family:'FAMILLES',festive:'GRANDE FÊTE'}[program]||'FAMILLES';
+          const tint={calm:'#7ccfbd',family:'#f5cc63',festive:'#ea81b3'}[program]||'#f5cc63';
+          g.save();
+          box(g,px+W/2-32,py-31,64,12,tint,3,1.2);
+          text(g,label,px+W/2,py-25,6.7,INK);
+          if(program==='festive'){
+            for(let i=0;i<6;i++){
+              const px0=px+13+i*(W-26)/5;
+              ell(g,px0,py+11+Math.sin(t*.005+i)*3,2.5,2.5,['#ffdf74','#f5a3e7','#a5dbff'][i%3],.4);
+            }
+          }
+          g.restore();
           g.save(); g.globalAlpha = 0.22 + 0.08 * Math.sin(t * 0.004);
           for (const [x0, col] of [[px + 14, '#fff3a0'], [px + W - 14, '#ffb3e0']]) { g.fillStyle = col; g.beginPath(); g.moveTo(x0, py - 14); g.lineTo(px + W / 2 - 26 + Math.sin(t * 0.002 + x0) * 18, py + 46); g.lineTo(px + W / 2 + 26 + Math.sin(t * 0.002 + x0) * 18, py + 46); g.closePath(); g.fill(); }
           g.restore();
@@ -913,6 +1133,7 @@
     }
     const m = s.minute;
     const daylight = m < 360 ? 0 : m < 450 ? (m - 360) / 90 : m < 1230 ? 1 : m < 1320 ? 1 - (m - 1230) / 90 : 0;
+    drawLakeLife(g,s,now,daylight);
     // occupants des unités
     const occ = new Map();
     for (const bk of s.bookings) if (bk.status === 'onsite') occ.set(bk.unit, bk);
@@ -1055,6 +1276,10 @@
     else if (type === 'multisport') drawMultisport(g,w,h);
     else if (type === 'bikes') drawBikeHire(g,w,h);
     else if (type === 'laundry') drawLaundry(g,w,h);
+    else if (type === 'petanque') drawPetanque(g,w,h);
+    else if (type === 'cinema') drawCinema(g,w,h);
+    else if (type === 'bakery') drawBakery(g,w,h);
+    else if (type === 'spa') drawSpa(g,w,h);
     else if (type === 'mobilhome') drawMobilhome(g, w, h, 1);
     else if (type === 'tent') { rr(g, 2, 2, 60, 60, 6); g.fillStyle = '#9bd66c'; g.fill(); drawTentPitchBits(g, 1); g.translate(8, 2); drawTent(g, '#e8553d', 0); }
     else if (type === 'caravan') { rr(g, 2, 2, 92, 60, 6); g.fillStyle = '#d8cdb5'; g.fill(); drawCaravanPitchBits(g, 1); g.translate(22, 10); drawCaravan(g, '#2a9dd8', false); }

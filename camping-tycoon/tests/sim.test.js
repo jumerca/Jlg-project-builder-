@@ -649,3 +649,172 @@ test('V1.7 : fin de saison conserve la fréquentation et la marge loisirs',()=>{
  assert.equal(s.reports[0].leisureRevenue,earned);
  assert.equal(s.stats.leisureRevenue,0);
 });
+
+test('V1.8 : quatre nouveaux équipements ont leurs propres coûts et horaires',()=>{
+ const types=['petanque','cinema','bakery','spa'];
+ const s=S.newGame({seed:1801});
+ for(const type of types){
+   const def=D.BUILDINGS[type];assert.ok(def&&def.cost>0,type);
+   assert.ok(def.build>0&&def.slots>0);assert.equal(S.ofType(s,type).length,0);
+ }
+ assert.equal(S.units(s).length,9);
+ assert.equal(s.mode,'normal');
+});
+test('V1.8 : huit bâtiments accessibles dans le mode découverte, sans chevauchement',()=>{
+ const s=S.newGame({seed:1802,mode:'discovery'});
+ const types=['minigolf','multisport','bikes','laundry','petanque','cinema','bakery','spa'];
+ assert.equal(S.units(s).length,9);const occupied=new Set();
+ for(const b of s.buildings){
+   for(let y=b.y;y<b.y+b.h;y++)for(let x=b.x;x<b.x+b.w;x++){
+     const key=x+','+y;assert.ok(!occupied.has(key),'chevauchement '+key);
+     occupied.add(key);assert.notEqual(s.tiles[S.idx(x,y)],D.TERRAIN.WATER);
+   }
+ }
+ for(const type of types){
+   const b=S.ofType(s,type);
+   assert.equal(b.length,1);
+   assert.ok(S.accessible(s,b[0]),type+' inaccessible');
+   assert.equal(b[0].progress,0);
+ }
+});
+test('V1.8 : cinéma seulement le soir et par beau temps ; boulangerie le matin ; spa couvert',()=>{
+ const s=S.newGame({seed:1803,mode:'discovery'});
+ const v=(type)=>S.ofType(s,type)[0];
+ s.weather={type:'sun',temp:24};s.minute=8*60;
+ assert.ok(S.activityOpen(s,v('bakery')));
+ assert.equal(S.activityOpen(s,v('cinema')),false);
+ assert.equal(S.activityOpen(s,v('spa')),false);
+ s.minute=20*60+25;
+ assert.equal(S.activityOpen(s,v('bakery')),false);
+ assert.ok(S.activityOpen(s,v('cinema')));
+ assert.ok(S.activityOpen(s,v('spa')));
+ s.weather={type:'storm',temp:17};
+ assert.equal(S.activityOpen(s,v('cinema')),false);
+ assert.equal(S.activityOpen(s,v('petanque')),false);
+ assert.ok(S.activityOpen(s,v('spa')));
+});
+test('V1.8 : les quatre nouvelles installations reçoivent réellement des visiteurs',()=>{
+ const s=S.newGame({seed:1804,mode:'discovery'});S.step(s,1440*28);
+ for(const type of ['petanque','cinema','bakery','spa']){
+   assert.ok((s.stats.leisureVisits[type]||0)>0,type+' : aucun client');
+   assert.ok((s.stats.guestActivities[type]||0)>0,type+' : aucun trajet');
+ }
+ assert.ok(s.fin.season['Activités & loisirs']>0);
+ assert.ok(s.fin.season['Frais activités']<0);
+ assert.equal(S.r2(s.fin.season['Activités & loisirs']+s.fin.season['Frais activités']),S.r2(s.stats.leisureRevenue));
+});
+test('V1.8 : campagne commerciale débite une fois et agit sur la bonne période',()=>{
+ const s=S.newGame({seed:1805}),before=s.fin.cash,rng=s.rng;
+ const offer=S.launchCampaign(s,'families');
+ assert.ok(offer.ok);
+ assert.equal(before-s.fin.cash,850);assert.equal(s.rng,rng);
+ assert.equal(offer.from,s.day+1);assert.equal(offer.until,s.day+12);
+ assert.ok(S.demandMod(s,offer.from)>=1.25);
+ assert.equal(S.demandMod(s,offer.until+1),1);
+ const second=S.launchCampaign(s,'local');
+ assert.equal(second.ok,false);assert.equal(s.fin.cash,S.r2(before-850));
+ assert.equal(s.stats.marketingSpent,850);assert.equal(s.stats.marketingCampaigns,1);
+});
+test('V1.8 : publicités refusées sans trésorerie et en hiver, sans effet de bord',()=>{
+ const s=S.newGame({seed:1806});
+ const cash=s.fin.cash,rng=s.rng;
+ assert.equal(S.launchCampaign(s,'bad').ok,false);
+ assert.equal(s.fin.cash,cash);assert.equal(s.rng,rng);
+ s.fin.cash=12;
+ assert.equal(S.launchCampaign(s,'local').ok,false);
+ assert.equal(s.mods.filter(x=>x.label&&x.label.includes('Affichage local')).length,0);
+ s.phase='winter';s.fin.cash=cash;
+ assert.equal(S.launchCampaign(s,'local').ok,false);
+});
+test('V1.8 : publicité renouvelable uniquement après expiration',()=>{
+ const s=S.newGame({seed:1807});
+ assert.ok(S.launchCampaign(s,'local').ok);
+ s.day=6;assert.ok(S.campaignStatus(s));
+ assert.equal(S.launchCampaign(s,'summer').ok,false);
+ s.day=8;assert.equal(S.campaignStatus(s),null);
+ const renewed=S.launchCampaign(s,'summer');
+ assert.ok(renewed.ok);assert.equal(s.stats.marketingCampaigns,2);
+ assert.equal(s.stats.marketingSpent,2050);
+});
+test('V1.8 : programme animation sans scène ni employé ne facture rien',()=>{
+ const s=S.newGame({seed:1808}),cash=s.fin.cash;
+ s.weather={type:'sun',temp:25};
+ assert.ok(S.setProgram(s,'festive'));
+ assert.equal(S.setProgram(s,'fake'),false);
+ const result=S.runProgram(s);
+ assert.equal(result.active,false);assert.equal(s.fin.cash,cash);
+ assert.equal(s.stats.programEvents,0);
+});
+test('V1.8 : spectacle coûte seulement quand il est réalisable et pas deux fois par jour',()=>{
+ const s=S.newGame({seed:1809});let placed;
+ for(let y=3;y<30&&!placed;y++)for(let x=3;x<36&&!placed;x++){
+   const q=S.canPlace(s,'stage',x,y);
+   if(q.ok&&q.access)placed=S.build(s,'stage',x,y);
+ }
+ assert.ok(placed&&placed.ok);placed.building.progress=0;
+ S.mapChanged(s);assert.ok(S.accessible(s,placed.building));
+ S.hire(s,'animation');s.weather={type:'sun',temp:24};
+ assert.ok(S.setProgram(s,'festive'));
+ const cash=s.fin.cash;
+ const first=S.runProgram(s);assert.ok(first.active);assert.equal(first.cost,95);
+ assert.equal(s.fin.cash,S.r2(cash-95));
+ assert.equal(s.stats.programEvents,1);
+ const repeat=S.runProgram(s);assert.equal(repeat.active,false);
+ assert.equal(s.fin.cash,S.r2(cash-95));
+ s.day++;s.weather={type:'storm',temp:16};
+ assert.equal(S.runProgram(s).active,false);
+ assert.equal(s.fin.cash,S.r2(cash-95));
+ s.day++;s.weather={type:'sun',temp:26};
+ assert.ok(S.setProgram(s,'calm'));
+ assert.equal(S.runProgram(s).active,true);
+ assert.equal(s.fin.cash,S.r2(cash-95));
+ assert.equal(s.stats.programEvents,2);
+});
+test('V1.8 : nouvelle campagne et programmation persistent après sauvegarde',()=>{
+ const s=S.newGame({seed:1810,mode:'discovery'});
+ assert.ok(S.setProgram(s,'festive'));assert.ok(S.launchCampaign(s,'local').ok);
+ const raw=SV.serialize(s),copy=SV.deserialize(raw);
+ assert.equal(copy.program,'festive');
+ assert.equal(copy.campaign.kind,'local');
+ assert.equal(copy.stats.marketingCampaigns,1);
+ assert.equal(copy.commercialHistory.length,1);
+ assert.equal(copy.mode,'discovery');
+ assert.equal(S.campaignStatus(copy).kind,'local');
+});
+test('V1.8 : les anciennes parties reçoivent les nouvelles valeurs par défaut',()=>{
+ const s=S.newGame({seed:1811});
+ delete s.program;delete s.campaign;delete s.commercialHistory;
+ const copy=SV.deserialize(SV.serialize(s));
+ assert.equal(copy.program,'family');
+ assert.equal(copy.campaign,null);
+ assert.deepEqual(copy.commercialHistory,[]);
+ assert.equal(copy.stats.programEvents,0);
+ assert.equal(copy.stats.marketingCampaigns,0);
+});
+test('V1.8 : bilan de fin de saison archive les actions commerciales et la programmation',()=>{
+ const s=S.newGame({seed:1812,mode:'discovery'});
+ assert.ok(S.launchCampaign(s,'local').ok);
+ s.stats.programEvents=4;s.stats.programCost=140;
+ S.step(s,1440*9);
+ const result=S.endSeason(s);
+ assert.equal(result.marketingCampaigns,1);
+ assert.equal(result.marketingSpent,350);
+ assert.equal(result.programEvents,4);
+ assert.equal(result.programCost,140);
+ assert.ok(S.startSeason(s));
+ assert.equal(s.campaign,null);
+ assert.equal(s.stats.marketingSpent,0);
+ assert.equal(s.stats.programEvents,0);
+});
+test('V1.8 : simulations longues restent finies et cohérentes',()=>{
+ for(const mode of ['normal','discovery']){
+   const s=S.newGame({seed:1813,mode});
+   assert.ok(S.launchCampaign(s,'families').ok);
+   S.step(s,1440*60);
+   assert.ok(Number.isFinite(s.fin.cash));
+   assert.ok(Number.isFinite(s.reputation));
+   assert.ok(s.reputation>=0&&s.reputation<=100);
+   assert.ok(s.stats.requests>0);
+   assert.ok(s.stats.leisureRevenue===S.r2((s.fin.season['Activités & loisirs']||0)+(s.fin.season['Frais activités']||0)));
+ }
+});
