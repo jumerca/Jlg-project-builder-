@@ -61,7 +61,7 @@
   function newGame(opts = {}) {
     const s = {
       version: 1, game: 'camping-tycoon', seed: opts.seed ?? 12345, rng: opts.seed ?? 12345,
-      name: opts.name || 'Camping Les Flots Bleus', year: 1, day: 0, minute: 7 * 60, phase: 'season',
+      name: opts.name || 'Camping Les Flots Bleus', guestRng: ((opts.seed ?? 12345) ^ 0x9e3779b9) >>> 0, year: 1, day: 0, minute: 7 * 60, phase: 'season',
       w: W, h: H, tiles: new Array(W * H).fill(TERRAIN.GRASS), deco: new Array(W * H).fill(DECO.NONE),
       buildings: [], nextId: 1, bookings: [], staff: [],
       prices: Object.assign({}, D.DEFAULT_PRICES), shopMarkup: 1.0,
@@ -81,7 +81,7 @@
   }
 
   function newSeasonStats() {
-    return { groups: 0, nights: 0, persons: 0, shows: 0, ratings: [], occ: [], peakOcc: 0, lostFull: 0, lostPrice: 0, requests: 0, waits: 0, breakdowns: 0, repStart: null };
+    return { groups: 0, nights: 0, persons: 0, shows: 0, ratings: [], occ: [], peakOcc: 0, lostFull: 0, lostPrice: 0, requests: 0, waits: 0, breakdowns: 0, guestTrips: 0, escortedTrips: 0, guestActivities: {}, guestMood: [], repStart: null };
   }
 
   const idx = (x, y) => y * W + x;
@@ -133,6 +133,7 @@
 
   /* ---------- Runtime ---------- */
   function initRuntime(s) {
+    if (!Number.isFinite(s.guestRng)) s.guestRng = ((s.seed || 12345) ^ 0x9e3779b9) >>> 0;
     s.rt = { agents: [], agentMap: new Map(), nextAgent: 1, fields: new Map(), ver: 0, bstate: new Map(), groups: new Map(), staffAgents: new Map(), events: [], pathTiles: null, grid: null };
     refreshAccess(s);
     for (const bk of s.bookings) if (bk.status === 'onsite') makeGroupHome(s, bk);
@@ -499,6 +500,7 @@
     let sp = a.speed;
     while (sp > 0) {
       const dx = a.nx - a.x, dy = a.ny - a.y, dist = Math.abs(dx) + Math.abs(dy);
+      if (dx !== 0) a.face = dx < 0 ? -1 : 1;
       if (dist <= sp) {
         a.x = a.nx; a.y = a.ny; a.cx = a.nx; a.cy = a.ny; sp -= dist;
         const c = idx(a.cx, a.cy);
@@ -518,16 +520,99 @@
     }
   }
 
+
+  /* Les décisions des vacanciers utilisent leur propre flux aléatoire :
+     pas d'effet parasite sur la demande, le calendrier ou l'économie. */
+  function guestRand(s) {
+    if (!Number.isFinite(s.guestRng)) s.guestRng = ((s.seed || 12345) ^ 0x9e3779b9) >>> 0;
+    let t = s.guestRng = (s.guestRng + 0x6d2b79f5) >>> 0;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+  const guestRint = (s, a, b) => a + Math.floor(guestRand(s) * (b - a + 1));
+
+  /* ---------- Vacanciers V1.4 : besoins persistants entre sauvegardes ---------- */
+  const NEED_KEYS = ['energy', 'hunger', 'hygiene', 'fun', 'social'];
+  const NEED_ACTIVITY = { use: 'sanitary', buy: 'shop', eat: 'snack', swim: 'pool', play: 'playground', show: 'stage', stroll: 'walk' };
+
+  function guestStates(bk) {
+    if (!Array.isArray(bk.guests)) bk.guests = [];
+    for (let i = 0; i < bk.size; i++) {
+      const kid = i >= bk.size - bk.kids && bk.kids > 0;
+      if (!bk.guests[i] || !bk.guests[i].needs) {
+        const hash = (bk.id * 131 + i * 47) >>> 0;
+        bk.guests[i] = { kid, style: hash % 9, temperament: (hash % 13) / 12,
+          needs: { energy: 78 + hash % 18, hunger: 68 + hash % 22,
+            hygiene: 70 + hash % 22, fun: 54 + hash % 26, social: 55 + hash % 26 },
+          last: 'arrivee', nextDecision: 0, trips: 0 };
+      } else {
+        const g = bk.guests[i];
+        g.kid = kid;
+        if (!Number.isFinite(g.nextDecision)) g.nextDecision = 0;
+        if (!Number.isFinite(g.trips)) g.trips = 0;
+        if (!Number.isFinite(g.style)) g.style = (bk.id * 131 + i * 47) % 9;
+        if (!Number.isFinite(g.temperament)) g.temperament = 0.5;
+        for (const k of NEED_KEYS) if (!Number.isFinite(g.needs[k])) g.needs[k] = 65;
+      }
+    }
+    bk.guests.length = bk.size;
+    return bk.guests;
+  }
+  function needAdjust(guest, changes) {
+    if (!guest) return;
+    for (const [k, v] of Object.entries(changes))
+      if (NEED_KEYS.includes(k)) guest.needs[k] = clamp(guest.needs[k] + v, 0, 100);
+  }
+  function guestChildNeedsEscort(s, a) {
+    if (!a.companion || a.kid) return false;
+    return s.rt.agents.some((other) => !other.dead && other.id !== a.id && other.bk === a.bk &&
+      other.kid && other.companion === a.companion);
+  }
+  function guestStateForAgent(s, a) {
+    const bk = bookingById(s, a.bk);
+    return bk && Number.isInteger(a.memberIndex) ? guestStates(bk)[a.memberIndex] : null;
+  }
+  function guestNeedsStep(s) {
+    const h = s.minute / 60, night = h >= 22.5 || h < 7;
+    for (const bk of s.bookings) {
+      if (bk.status !== 'onsite') continue;
+      const states = guestStates(bk), group = s.rt.groups.get(bk.id);
+      for (let i = 0; i < states.length; i++) {
+        const v = states[i], member = group && group.members[i];
+        const agent = member && member.aid ? s.rt.agentMap.get(member.aid) : null;
+        const busy = agent && (agent.state === 'walk' || agent.state === 'queue' || agent.state === 'use');
+        if (night) needAdjust(v, { energy: 2.5, hunger: -0.3, hygiene: -0.12, fun: -0.08 });
+        else {
+          needAdjust(v, { energy: busy ? -0.94 : v.needs.energy < 50 ? 0.86 : -0.48, hunger: busy ? -1.48 : -1.23,
+            hygiene: busy ? -0.58 : -0.34, fun: busy ? -0.18 : -0.38,
+            social: busy && agent && agent.companion ? 0.28 : -0.18 });
+          // Repas à l'emplacement : un camping sans snack reste viable.
+          if (!busy && (s.minute === 8 * 60 || s.minute === 13 * 60 || s.minute === 19 * 60))
+            needAdjust(v, { hunger: 26, energy: 3 });
+        }
+      }
+    }
+  }
+  function guestMood(s, bk) {
+    const states = guestStates(bk);
+    if (!states.length) return 65;
+    return states.reduce((sum, v) => {
+      const n = v.needs;
+      return sum + n.energy * 0.2 + n.hunger * 0.26 + n.hygiene * 0.18 + n.fun * 0.25 + n.social * 0.11;
+    }, 0) / states.length;
+  }
+
   /* ---------- Groupes de vacanciers ---------- */
   function makeGroupHome(s, bk) {
     const members = [];
-    for (let i = 0; i < bk.size; i++) members.push({ kid: i >= bk.size - bk.kids && bk.kids > 0, aid: 0 });
+    for (const v of guestStates(bk)) members.push({ kid: v.kid, aid: 0 });
     s.rt.groups.set(bk.id, { phase: 'home', members });
   }
 
   function spawnArrival(s, bk) {
     const unit = byId(s, bk.unit);
-    const members = [];
+    const members = [], states = guestStates(bk);
     const g = { phase: 'arriving', members };
     s.rt.groups.set(bk.id, g);
     const rec = services(s, 'reception')[0];
@@ -535,6 +620,7 @@
       const kid = i >= bk.size - bk.kids && bk.kids > 0;
       const a = newAgent(s, {
         kind: 'guest', bk: bk.id, kid, leader: i === 0, profile: bk.profile, carry: i < 2,
+        memberIndex: i, shirt: states[i].style,
         x: s.entrance.x - 1.5 - i * 0.35, y: s.entrance.y, speed: kid ? 0.62 : 0.55
       });
       a.cx = s.entrance.x; a.cy = s.entrance.y; a.nx = s.entrance.x; a.ny = s.entrance.y;
@@ -563,6 +649,7 @@
     if (unit.clean) { sat -= 18; unit.clean = false; note(bk, 'mhdirty', 3); log(s, `Famille ${bk.name} : mobil-home n°${unit.num} pas nettoyé à l’arrivée !`, 'bad'); }
     if (unit.broken) { sat -= 12; note(bk, 'broken', 2); }
     bk.sat = clamp(sat, 0, 100);
+    guestStates(bk);
     s.stats.groups++; s.totals.groups++; s.stats.persons += bk.size;
     const g = s.rt.groups.get(bk.id);
     if (g) {
@@ -599,7 +686,10 @@
       let a = m.aid ? s.rt.agentMap.get(m.aid) : null;
       if (!a) {
         if (!unit || unit.ax < 0) continue;
-        a = newAgent(s, { kind: 'guest', bk: bk.id, kid: m.kid, profile: bk.profile, x: unit.ax, y: unit.ay, speed: m.kid ? 0.62 : 0.55, carry: !m.kid });
+        const i = g.members.indexOf(m);
+        a = newAgent(s, { kind: 'guest', bk: bk.id, kid: m.kid, profile: bk.profile,
+          memberIndex: i, shirt: guestStates(bk)[i].style, x: unit.ax, y: unit.ay,
+          speed: m.kid ? 0.62 : 0.55, carry: !m.kid });
         m.aid = a.id;
       } else {
         const st = a.inB ? bs(s, byId(s, a.inB)) : null;
@@ -629,7 +719,13 @@
     }
     if (d.kind === 'home') return goneHomeOrOut(s, a, 'home');
     if (d.kind === 'exit') return goneHomeOrOut(s, a, 'exit');
-    if (d.kind === 'tile') { sendTo(s, a, { kind: 'home', id: bk.unit }); return; }
+    if (d.kind === 'tile') {
+      const guest = guestStateForAgent(s, a);
+      needAdjust(guest, { fun: 10, social: a.companion ? 8 : 2, energy: -3 });
+      if (guest) guest.last = 'promenade';
+      a.state = 'rest'; a.until = s.day * DAY + s.minute + guestRint(s, 12, 26);
+      return;
+    }
     if (d.kind === 'b') {
       const b = byId(s, d.id);
       if (!b) return sendTo(s, a, { kind: 'home', id: bk.unit });
@@ -677,46 +773,128 @@
     return best;
   }
 
+
+  /* ---------- Routines, décisions et excursions en petit groupe ---------- */
+  function scenicDestination(s, home) {
+    const paths = pathTiles(s);
+    if (!paths.length) return null;
+    const from = field(s, home.ax, home.ay);
+    let best = null, bestScore = -1e9;
+    for (let i = 0; i < Math.min(20, paths.length); i++) {
+      const tile = paths[Math.floor(guestRand(s) * paths.length)], x = tile % W, y = (tile / W) | 0;
+      const distance = from[tile];
+      if (distance < 4 || distance > 28) continue;
+      let scenery = (x > 28 ? 8 : 0) + (x > 35 ? 6 : 0);
+      for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+        const nx = x + dx, ny = y + dy;
+        if (!inMap(nx, ny)) continue;
+        const d = s.deco[idx(nx, ny)], t = s.tiles[idx(nx, ny)];
+        if (d === DECO.TREE || d === DECO.PINE || d === DECO.FLOWERS) scenery += 3;
+        if (t === TERRAIN.WATER) scenery += 10;
+      }
+      const score = scenery + Math.min(18, distance) * 0.6 - Math.max(0, distance - 18) * 2;
+      if (score > bestScore) { bestScore = score; best = { kind: 'tile', x, y, purpose: 'stroll' }; }
+    }
+    return best;
+  }
+  function chooseGuestActivity(s, bk, guest, home, idxMember) {
+    const h = s.minute / 60, needs = guest.needs, P = PROFILES[bk.profile];
+    const wx = s.weather.type, outdoors = wx !== 'rain' && wx !== 'storm';
+    const actions = [], gap = (k) => 100 - needs[k];
+    const consider = (service, purpose, score, allowed = true) => {
+      if (!allowed || score < 20) return;
+      const b = nearestService(s, service, home);
+      if (!b) return;
+      if (service === 'pool' && !poolOpen(s, b)) return;
+      if (service === 'stage' && !stageLive(s, b)) return;
+      if (service === 'snack' && !snackOpen(s, b)) return;
+      // La proximité et la queue comptent plus qu'un simple tirage au sort.
+      const distance = field(s, b.ax, b.ay)[idx(home.ax, home.ay)];
+      const queue = bs(s, b).queue.length;
+      const utility = score + guestRand(s) * 13 - Math.min(18, distance * 0.6 + queue * 2.5);
+      actions.push({ purpose, target: { kind: 'b', id: b.id, purpose }, utility });
+    };
+    consider('sanitary', 'use',
+      gap('hygiene') * 1.45 + ((h < 10 || h > 19) ? 20 : 0), h >= 7 && h < 22);
+    consider('snack', 'eat', gap('hunger') * 1.45 + 23,
+      (h >= 11.5 && h < 14) || (h >= 18.5 && h < 21.5));
+    consider('shop', 'buy', gap('hunger') * 0.82 + 33,
+      !guest.kid && bk.shopDay !== s.day && h >= 8 && h < 19);
+    consider('pool', 'swim', gap('fun') * 0.9 + (wx === 'heat' ? 34 : wx === 'sun' ? 22 : 4)
+      + (P.wants.pool || 0.5) * 10, h >= 10 && h < 19 && wx !== 'storm' && needs.energy > 30);
+    consider('playground', 'play', gap('fun') * 0.95 + 34,
+      guest.kid && outdoors && h >= 9 && h < 19 && needs.energy > 32);
+    consider('stage', 'show', gap('fun') * 0.9 + 32 + (P.wants.anim || 0.5) * 9,
+      (h >= 15 && h < 17) || (h >= 20 && h < 22));
+    if (outdoors && h >= 9 && h < 20.5 && needs.energy >= 33) {
+      const walk = scenicDestination(s, home);
+      if (walk) actions.push({ purpose: 'stroll', target: walk,
+        utility: 25 + gap('fun') * 0.52 + gap('social') * 0.22
+          + (bk.profile === 'couple' ? 14 : 0) + guestRand(s) * 13 });
+    }
+    actions.sort((a, b) => b.utility - a.utility);
+    return actions[0] && actions[0].utility >= 48 ? actions[0] : null;
+  }
   function guestTrips(s) {
-    const h = s.minute / 60, wx = s.weather.type, temp = s.weather.temp;
-    if (h < 6.5 || h >= 23) return;
-    const sanMult = (h < 10 ? 2.3 : h >= 19 && h < 22.5 ? 1.7 : h < 12 ? 0.9 : 0.6) * (wx === 'heat' ? 1.4 : 1);
-    const pSan = 3 / (16 * 60) * sanMult;
-    const poolF = wx === 'heat' ? 2.4 : wx === 'sun' ? (temp >= 24 ? 1.5 : 0.8) : wx === 'cloud' ? 0.35 : 0.04;
-    const stage = ofType(s, 'stage').some((b) => stageLive(s, b));
-    const snack = ofType(s, 'snack').some((b) => snackOpen(s, b));
-    for (const [bid, g] of s.rt.groups) {
-      if (g.phase !== 'home') continue;
-      const bk = bookingById(s, bid);
+    const hour = s.minute / 60;
+    if (hour < 7.5 || hour >= 22 || s.minute % 10) return;
+    const now = s.day * DAY + s.minute;
+    s.stats.guestActivities = s.stats.guestActivities || {};
+    for (const [id, group] of s.rt.groups) {
+      if (group.phase !== 'home') continue;
+      const bk = bookingById(s, id);
       if (!bk || bk.status !== 'onsite') continue;
       const home = byId(s, bk.unit);
-      if (!home || home.ax < 0) continue;
-      const P = PROFILES[bk.profile];
-      for (let i = 0; i < g.members.length; i++) {
-        const m = g.members[i];
-        if (m.aid) continue;
-        const r = rand(s);
-        let target = null, purpose = null;
-        if (r < pSan) { target = nearestService(s, 'sanitary', home); purpose = 'use'; if (!target) { if (rand(s) < 0.05) { adj(bk, -(1)); note(bk, 'nosan', 0.2); } continue; } }
-        else if (!m.kid && bk.shopDay !== s.day && h >= 8 && h < 11 && i === 0 && r < pSan + 1 / 90) { target = nearestService(s, 'shop', home); purpose = 'buy'; bk.shopDay = s.day; }
-        else if (h >= 16 && h < 19.5 && !m.kid && r < pSan + (wx === 'rain' ? 1 / 500 : 1 / 1100) * (P.wants.shop || 1)) { target = nearestService(s, 'shop', home); purpose = 'buy'; }
-        else if (h >= 10 && h < 18.5 && wx !== 'storm' && r < pSan + poolF * (P.wants.pool || 0.6) * (m.kid ? 1.4 : 1) / 420) { target = nearestService(s, 'pool', home); purpose = 'swim'; }
-        else if (m.kid && h >= 9.5 && h < 19 && wx !== 'rain' && wx !== 'storm' && r < pSan + 1 / 350) { target = nearestService(s, 'playground', home); purpose = 'play'; }
-        else if (snack && ((h >= 12 && h < 13.5) || (h >= 19 && h < 20.75)) && r < pSan + (bk.profile === 'nomad' ? 1 / 160 : 1 / 260)) { target = nearestService(s, 'snack', home); purpose = 'eat'; if (target && !snackOpen(s, target)) target = null; }
-        else if (stage && ((m.kid && h >= 15 && h < 16.5) || (h >= 20 && h < 21.25)) && r < pSan + (h >= 20 ? (m.kid ? 1 / 45 : 1 / 60) : 1 / 90) * (P.wants.anim || 0.5)) { target = nearestService(s, 'stage', home); purpose = 'show'; if (target && !stageLive(s, target)) target = null; }
-        else if (!m.kid && h >= 9 && h < 21.5 && wx !== 'rain' && wx !== 'storm' && r < pSan + (bk.profile === 'couple' ? 1 / 450 : 1 / 1200)) {
-          const pt = pathTiles(s); const tile = pt[Math.floor(rand(s) * pt.length)];
-          if (tile !== undefined) {
-            const a = newAgent(s, { kind: 'guest', bk: bk.id, kid: false, profile: bk.profile, x: home.ax, y: home.ay, speed: 0.4 });
-            m.aid = a.id; sendTo(s, a, { kind: 'tile', x: tile % W, y: (tile / W) | 0 });
-            adj(bk, (0.2 + Math.min(10, avgBeauty(s)) * 0.06)); if (avgBeauty(s) > 6) note(bk, 'beauty', 0.3);
-          }
+      if (!home || home.ax < 0 || !accessible(s, home)) continue;
+      const guests = guestStates(bk);
+      for (let i = 0; i < group.members.length; i++) {
+        if (group.members[i].aid || guests[i].nextDecision > now) continue;
+        const guest = guests[i];
+        if (guest.needs.energy < 27) {
+          needAdjust(guest, { energy: 6, fun: 1 });
+          guest.nextDecision = now + 30;
           continue;
         }
-        if (target) {
-          const a = newAgent(s, { kind: 'guest', bk: bk.id, kid: m.kid, profile: bk.profile, x: home.ax, y: home.ay, speed: m.kid ? 0.62 : 0.55, towel: purpose === 'swim' });
-          m.aid = a.id; sendTo(s, a, { kind: 'b', id: target.id, purpose });
+        const chosen = chooseGuestActivity(s, bk, guest, home, i);
+        if (!chosen) { guest.nextDecision = now + 20; continue; }
+        const fellow = [];
+        const idle = (index) => index !== i && !group.members[index].aid && guests[index].nextDecision <= now
+          && guests[index].needs.energy >= 25;
+        if (guest.kid && chosen.purpose !== 'use') {
+          // Les mineurs ne partent pas seuls vers les loisirs :
+          // exception pour le club enfants quand l'animation est encadrée.
+          const supervisedClub = chosen.purpose === 'show' && hour >= 15 && hour < 17;
+          if (!supervisedClub) {
+            const adult = guests.findIndex((v, j) => !v.kid && idle(j));
+            if (adult === -1) { guest.nextDecision = now + 20; continue; }
+            fellow.push(adult);
+          }
+        } else if (!guest.kid && ['stroll', 'swim', 'play', 'show', 'eat'].includes(chosen.purpose)) {
+          const kid = bk.profile === 'family' && guestRand(s) < 0.55
+            ? guests.findIndex((v, j) => v.kid && idle(j)) : -1;
+          if (kid >= 0) fellow.push(kid);
+          else if ((bk.profile === 'couple' || bk.profile === 'family') && guestRand(s) < 0.52) {
+            const partner = guests.findIndex((v, j) => !v.kid && idle(j));
+            if (partner >= 0) fellow.push(partner);
+          }
         }
+        const party = [i, ...fellow], tripId = party.length > 1 ? 'g' + id + '-' + now + '-' + i : null;
+        for (const memberIndex of party) {
+          const g = guests[memberIndex], m = group.members[memberIndex];
+          const a = newAgent(s, { kind: 'guest', bk: bk.id, kid: m.kid, memberIndex,
+            shirt: g.style, profile: bk.profile, x: home.ax, y: home.ay,
+            speed: m.kid ? 0.53 : 0.51, companion: tripId, act: chosen.purpose,
+            towel: chosen.purpose === 'swim' });
+          m.aid = a.id;
+          sendTo(s, a, Object.assign({}, chosen.target));
+          g.nextDecision = now + (chosen.purpose === 'stroll' ? 110 : 75) + Math.floor(guestRand(s) * 38);
+          g.trips++;
+        }
+        if (chosen.purpose === 'buy') bk.shopDay = s.day;
+        s.stats.guestTrips = (s.stats.guestTrips || 0) + 1;
+        if (party.length > 1) s.stats.escortedTrips = (s.stats.escortedTrips || 0) + 1;
+        const activity = NEED_ACTIVITY[chosen.purpose] || chosen.purpose;
+        s.stats.guestActivities[activity] = (s.stats.guestActivities[activity] || 0) + party.length;
       }
     }
   }
@@ -742,7 +920,7 @@
         for (const u of st.users) {
           const a = s.rt.agentMap.get(u.aid);
           if (!a) continue;
-          const closing = (b.type === 'pool' && !poolOpen(s, b)) || (b.type === 'stage' && !stageLive(s, b)) || (b.type === 'snack' && !snackOpen(s, b) && s.minute > 21 * 60 + 50);
+          const closing = (b.type === 'pool' && !poolOpen(s, b)) || (b.type === 'stage' && (!stageLive(s, b) || (stageWindow(s) && stageWindow(s).to - s.minute <= 1))) || (b.type === 'snack' && !snackOpen(s, b) && s.minute > 21 * 60 + 50);
           if (u.until <= now || closing) finishUse(s, b, a, u);
           else keep.push(u);
         }
@@ -755,7 +933,7 @@
       if (b.type === 'reception') { const n = receptionServers(s, b); staffed = n > 0; slots = Math.max(1, n) + (b.level === 2 ? 1 : 0); }
       if (b.broken && b.type !== 'reception') slots = 0;
       if (b.type === 'pool' && !poolOpen(s, b)) slots = 0;
-      if (b.type === 'stage' && !stageLive(s, b)) slots = 0;
+      if (b.type === 'stage' && (!stageLive(s, b) || (stageWindow(s) && stageWindow(s).to - s.minute <= 2))) slots = 0;
       if (b.type === 'snack' && !snackOpen(s, b)) slots = 0;
       while (st.queue.length && st.users.length < slots) {
         const aid = st.queue.shift();
@@ -824,9 +1002,23 @@
       }
       if (a.purpose === 'checkout') { sendTo(s, a, { kind: 'exit' }); return; }
     }
+    const guest = guestStateForAgent(s, a);
+    if (guest) {
+      const effects = {
+        sanitary: { hygiene: 46, energy: 2 }, shop: { hunger: 17, fun: 2 },
+        snack: { hunger: 54, energy: 7, social: 7 }, pool: { fun: 44, energy: -10, social: 9, hygiene: -5 },
+        playground: { fun: 43, energy: -8, social: 9 }, stage: { fun: 40, social: 18, energy: -3 }
+      };
+      const activity = NEED_ACTIVITY[a.purpose] || a.purpose;
+      if (effects[activity]) needAdjust(guest, effects[activity]);
+      guest.last = activity || 'retour';
+    }
     const g = s.rt.groups.get(a.bk);
     if (g && g.phase === 'leaving') sendTo(s, a, { kind: 'exit' });
-    else sendTo(s, a, { kind: 'home', id: bk.unit });
+    else if (guestChildNeedsEscort(s, a)) {
+      // L'adulte reste sur les lieux tant que l'enfant profite du service.
+      a.state = 'rest'; a.until = s.day * DAY + s.minute + 2;
+    } else sendTo(s, a, { kind: 'home', id: bk.unit });
   }
 
   /* ---------- Personnel ---------- */
@@ -984,11 +1176,19 @@
       }
     }
     if ((s.day === FIREWORKS[0] || s.day === FIREWORKS[1]) && s.minute === 22 * 60 + 30) fireworks(s);
-    guestTrips(s);
+    if (s.minute % 10 === 0) { guestNeedsStep(s); guestTrips(s); }
     staffStep(s);
     for (const a of rt.agents) {
       if (a.dead) continue;
       if (a.state === 'walk') moveAgent(s, a);
+      else if (a.kind === 'guest' && a.state === 'rest' && s.day * DAY + s.minute >= a.until) {
+        if (guestChildNeedsEscort(s, a)) {
+          a.until = s.day * DAY + s.minute + 5;
+        } else {
+          const bk = bookingById(s, a.bk);
+          sendTo(s, a, bk && bk.status === 'onsite' ? { kind: 'home', id: bk.unit } : { kind: 'exit' });
+        }
+      }
     }
     serviceStep(s);
     // suiveurs : quand le leader a fini, ils partent avec lui (géré par checkIn) ; nettoyage
@@ -1066,6 +1266,12 @@
       if (bk.kids && !hasPlay) d -= 1;
       if (!hasPool) d -= bk.profile === 'family' ? 1.5 : bk.profile === 'couple' ? 0.6 : 0;
       if (!hasShop) d -= bk.profile === 'nomad' ? 1.5 : 0.7;
+      const mood = guestMood(s, bk);
+      s.stats.guestMood = s.stats.guestMood || [];
+      s.stats.guestMood.push(Math.round(mood));
+      if (s.stats.guestMood.length > 200) s.stats.guestMood.shift();
+      if (mood < 35) { d -= 2; note(bk, 'needs', 0.5); }
+      else if (mood >= 78) d += 0.7;
       bk.sat = clamp(bk.sat + d, 0, 100);
     }
     // jour suivant
@@ -1210,7 +1416,8 @@
   const COMPLAINT = {
     mhdirty: 'Mobil-home sale à notre arrivée, inadmissible.', dirty: 'Sanitaires sales, ça gâche tout.', queue: 'Des files d’attente interminables.',
     price: 'Beaucoup trop cher pour ce que c’est.', rain: 'Trempés sous la tente, rien pour s’abriter.', heat: 'Fournaise et pas de piscine pour se rafraîchir.',
-    broken: 'Équipement en panne pendant notre séjour.', nosan: 'Pas assez de sanitaires.', greenpool: 'Eau de la piscine douteuse…', noise: 'Bruyant jusque tard le soir.'
+    broken: 'Équipement en panne pendant notre séjour.', nosan: 'Pas assez de sanitaires.', greenpool: 'Eau de la piscine douteuse…', noise: 'Bruyant jusque tard le soir.',
+    needs: 'Peu de repos et de confort pendant notre séjour, nous étions fatigués.'
   };
   function writeReview(s, bk, rating) {
     const n = bk.n || {};
@@ -1388,6 +1595,9 @@
       year: s.year, groups: st.groups, nights: st.nights, persons: st.persons, inc, exp, totalInc: r2(totalInc), totalExp: r2(totalExp), result,
       operating, invest, avgRating: Math.round(avgRating * 10) / 10, avgOcc, peakOcc: st.peakOcc, summerOcc: peakDays.length ? peakDays.reduce((a, b) => a + b, 0) / peakDays.length : 0,
       lostFull: st.lostFull, lostPrice: st.lostPrice, requests: st.requests, breakdowns: st.breakdowns,
+      guestTrips: st.guestTrips || 0, escortedTrips: st.escortedTrips || 0,
+      guestActivities: Object.assign({}, st.guestActivities || {}),
+      avgGuestMood: st.guestMood && st.guestMood.length ? Math.round(st.guestMood.reduce((a,b)=>a+b,0)/st.guestMood.length) : 0,
       repStart: st.repStart ?? 42, repEnd: Math.round(s.reputation), stars: s.stars, units: units(s).length, cash: s.fin.cash,
       objectives: Object.keys(s.objectives).filter((k) => !k.startsWith('_') && s.objectives[k] === s.year)
     };
@@ -1596,6 +1806,26 @@
       fixedCosts, loanCosts, riskBookings, unbookedNights: Math.max(0, capacityNights - bookedNights) };
   }
 
+  function guestSnapshot(s) {
+    const onsite = s.bookings.filter((bk) => bk.status === 'onsite');
+    let persons = 0, outside = 0, mood = 0, hungry = 0, tired = 0, unhappy = 0;
+    for (const bk of onsite) {
+      const guests = guestStates(bk), group = s.rt.groups.get(bk.id);
+      for (let i = 0; i < guests.length; i++) {
+        persons++;
+        const n = guests[i].needs;
+        mood += n.energy * 0.2 + n.hunger * 0.26 + n.hygiene * 0.18 + n.fun * 0.25 + n.social * 0.11;
+        if (n.hunger < 30) hungry++;
+        if (n.energy < 30) tired++;
+        if (n.fun < 30) unhappy++;
+        if (group && group.members[i] && group.members[i].aid) outside++;
+      }
+    }
+    return { persons, outside, atHome: Math.max(0, persons - outside), mood: persons ? mood / persons : 0,
+      hungry, tired, unhappy, activities: s.stats.guestActivities || {},
+      groupOutings: s.stats.escortedTrips || 0, trips: s.stats.guestTrips || 0 };
+  }
+
   /* ---------- Vue d'ensemble pour l'UI ---------- */
   function summary(s) {
     const o = occupancy(s);
@@ -1607,6 +1837,7 @@
   const api = {
     W, H, DAY, newGame, initRuntime, step, tick, rand, fmtDate, fmtTime, dateParts, dow, seasonCurve,
     requestBooking, isBooked, occupancy, classement, units, built, ofType, services, accessible, beautyAt, avgBeauty,
+    guestStates, guestMood, guestNeedsStep, guestStateForAgent, guestSnapshot,
     hire, fire, build, buildPath, placeDeco, demolish, canPlace, buildingAt, byId, setPrice, setMarkup,
     startSeason, endSeason, endOfDay, checkIn, checkOut, money, summary, bookingOutlook, field, idx, bs, mapChanged, attractiveness, weatherAt,
     occupancyGrid, poolOpen, INCOME, FINANCING, r2, stageLive, stageWindow, borrow, repayLoan, loanCapacity,

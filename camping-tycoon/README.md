@@ -20,7 +20,7 @@ Aucune installation, aucune compilation : HTML, CSS et JavaScript.
 node --test tests/*.test.js      # ou : npm test   (Node 18+)
 ```
 
-23 tests (dont emprunt, animations, améliorations, snack-bar, événements, avis) : réservations simultanées (pas de double attribution), capacité maximale, arrivées/départs et rotation le même jour, facturation (acompte 30 % + solde, tarif verrouillé, annulation), salaires, cohérence trésorerie/grand livre, déplacements sur les allées uniquement, capacité des équipements, sauvegarde/reprise, migration et rejet de fichiers invalides, saison complète avec bilan, construction et démolition protégée.
+31 tests (dont emprunt, animations, améliorations, snack-bar, événements, avis) : réservations simultanées (pas de double attribution), capacité maximale, arrivées/départs et rotation le même jour, facturation (acompte 30 % + solde, tarif verrouillé, annulation), salaires, cohérence trésorerie/grand livre, déplacements sur les allées uniquement, capacité des équipements, sauvegarde/reprise, migration et rejet de fichiers invalides, saison complète avec bilan, construction et démolition protégée.
 
 ## Architecture
 
@@ -42,6 +42,19 @@ L’état persistant est un simple objet JSON ; tout ce qui est transitoire (per
 - Scène d’animation + métier d’animateur : club enfants 15h–17h, spectacle 20h–22h (annulé s’il pleut), objectif « Ambiance du soir », exigé pour le 5★.
 - Banque : emprunts de 10 000 à 100 000 € (capacité = 20 000 € + 50 % de la valeur des installations), 4,5 %/an, remboursement quotidien sur 300 jours d’ouverture, remboursement anticipé (+1 %).
 - Sons et ambiance sonore, coupables (bouton 🔊 ou menu).
+
+## Nouveautés v1.4 — The Living Camping
+
+- **IA comportementale** : les besoins de chaque vacancier (énergie, faim, hygiène, loisirs, vie sociale) évoluent réellement selon l'heure, la météo et ses activités.
+- **Choix de destinations par utilité** : services ouverts, durée d'attente, distance, profils familiaux et intérêt de la promenade influencent la décision.
+- **Familles accompagnées** : un enfant qui rejoint un loisir part avec un adulte (sauf club enfants encadré). L'adulte reste jusqu'à ce que l'enfant termine son activité.
+- **Promenades** : choix de chemins reliés selon les vues et aménagements, temps de contemplation avant le retour.
+- **Satisfaction et avis** : les besoins non satisfaits affectent l'expérience vécue et les avis.
+- **Personnages animés** : tenue persistante, balancement des bras à la marche, orientation, assise au repos, réactions à une longue file d'attente.
+- **Indicateurs vivants** : humeur moyenne, vacanciers en activité, faim/fatigue, activité des services et sorties en groupe dans les réservations ; historique dans le bilan de saison.
+- **Correctifs V1.3.1 intégrés** : version du menu correcte, vérification des mises à jour PWA, fermeture ponctuelle de la scène, reprise des anciennes sauvegardes.
+- **Hasard indépendant de l'économie** : la vie quotidienne ne modifie pas les tirages de demande des futurs clients.
+- **31 tests moteur** (23 historiques + 8 nouveaux), simulations intégrales de deux saisons, conservation de la clé de sauvegarde et de l'identité de la PWA.
 
 ## Nouveautés v1.3
 

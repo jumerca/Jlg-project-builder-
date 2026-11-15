@@ -19,4 +19,4 @@ Le jeu doit être servi **à la racine de son propre site** (ex. `https://campin
 2. Publier ce dossier comme site statique (Netlify, Vercel, Cloudflare Pages…), sans commande de build, répertoire de publication = racine du dossier.
 3. Vérifier : la page s'ouvre sur l'écran titre « Camping Tycoon », Chrome propose « Installer l'application », l'icône est la tente rouge sur fond bleu.
 
-Tests (facultatif) : `node --test tests/*.test.js` (Node 18+), 23 tests.
+Tests (facultatif) : `node --test tests/*.test.js` (Node 18+), 31 tests.

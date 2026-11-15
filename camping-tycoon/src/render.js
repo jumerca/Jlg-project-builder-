@@ -344,23 +344,62 @@
   function drawPerson(g, x, y, a, t, scale) {
     const kid = a.kid, sc = (kid ? 0.72 : 1) * scale;
     const skin = SKIN[a.id % SKIN.length];
-    let shirt = SHIRT[(a.id * 7 + (a.bk || 0)) % SHIRT.length];
+    let shirt = SHIRT[Number.isInteger(a.shirt) ? a.shirt % SHIRT.length : (a.id * 7 + (a.bk || 0)) % SHIRT.length];
     if (a.kind === 'staff') shirt = D.STAFF[a.role].color;
-    const walking = a.state === 'walk';
-    const ph = walking ? Math.sin(t * 0.018 + a.id) : 0;
-    g.save(); g.translate(x, y); g.scale(sc, sc);
+    const walking = a.state === 'walk', seated = a.state === 'rest' || a.state === 'idle';
+    const ph = walking ? Math.sin(t * 0.016 + a.id * 1.1) : 0;
+    const bob = walking ? Math.abs(ph) * 0.8 : seated ? Math.sin(t * 0.003 + a.id) * 0.4 : 0;
+    g.save(); g.translate(x, y - bob); g.scale(sc * (a.face === -1 ? -1 : 1), sc);
     shadow(g, 0, 0, 5, 2);
     g.strokeStyle = INK; g.lineWidth = 2.2; g.lineCap = 'round';
-    g.beginPath(); g.moveTo(-1.6, -6); g.lineTo(-1.6 + ph * 2, 0); g.moveTo(1.6, -6); g.lineTo(1.6 - ph * 2, 0); g.stroke();
+    g.beginPath();
+    if (seated) {
+      g.moveTo(-1.7, -5); g.lineTo(-4, -1); g.lineTo(-5.5, 0);
+      g.moveTo(1.7, -5); g.lineTo(4, -1); g.lineTo(5.5, 0);
+    } else {
+      g.moveTo(-1.6, -6); g.lineTo(-1.6 + ph * 2, 0);
+      g.moveTo(1.6, -6); g.lineTo(1.6 - ph * 2, 0);
+    }
+    g.stroke();
     g.strokeStyle = a.kind === 'staff' ? '#33384d' : '#4a5a8a'; g.lineWidth = 1.6;
     g.beginPath(); g.moveTo(-1.6, -6); g.lineTo(-1.6 + ph * 2, -0.6); g.moveTo(1.6, -6); g.lineTo(1.6 - ph * 2, -0.6); g.stroke();
-    rr(g, -4, -13, 8, 8, 3); fillStroke(g, shirt, 1.4);
-    ell(g, 0, -16.5, 3.7, 3.7, skin, 1.3);
-    if (a.kind === 'staff') { g.beginPath(); g.arc(0, -17.5, 3.9, Math.PI, 0); g.fillStyle = shirt; g.fill(); g.strokeStyle = INK; g.lineWidth = 1.1; g.stroke(); }
-    else { g.beginPath(); g.arc(0, -17.4, 3.8, Math.PI * 1.05, Math.PI * 1.95); g.strokeStyle = ['#3b2a20', '#8a5a2b', '#e0b84f', '#222', '#b6532f'][a.id % 5]; g.lineWidth = 2; g.stroke(); }
+    rr(g, -4, seated ? -11 : -13, 8, 8, 3); fillStroke(g, shirt, 1.4);
+    // Bras et attitude : alternance de la marche, détente assise, attente.
+    g.strokeStyle = skin; g.lineWidth = 2.1; g.beginPath();
+    if (seated) {
+      g.moveTo(-4, -9); g.lineTo(-5, -3); g.lineTo(-1, -2);
+      g.moveTo(4, -9); g.lineTo(5, -3); g.lineTo(1, -2);
+    } else if (a.state === 'queue') {
+      g.moveTo(-4, -11); g.lineTo(-5, -6); g.lineTo(-1, -6);
+      g.moveTo(4, -11); g.lineTo(5, -6); g.lineTo(2, -6);
+    } else {
+      g.moveTo(-4, -11); g.lineTo(-5 + ph * 1.3, -5);
+      g.moveTo(4, -11); g.lineTo(5 - ph * 1.3, -5);
+    }
+    g.stroke();
+    ell(g, 0, seated ? -14.5 : -16.5, 3.7, 3.7, skin, 1.3);
+    if (a.kind === 'staff') {
+      g.beginPath(); g.arc(0, seated ? -15.5 : -17.5, 3.9, Math.PI, 0);
+      g.fillStyle = shirt; g.fill(); g.strokeStyle = INK; g.lineWidth = 1.1; g.stroke();
+    } else {
+      g.beginPath(); g.arc(0, seated ? -15.4 : -17.4, 3.8, Math.PI * 1.05, Math.PI * 1.95);
+      g.strokeStyle = ['#3b2a20', '#8a5a2b', '#e0b84f', '#222', '#b6532f'][a.id % 5];
+      g.lineWidth = 2; g.stroke();
+    }
     if (a.carry && walking) box(g, 3.5, -9, 5, 5, ['#e8553d', '#2a9dd8', '#7a4b2a'][a.id % 3], 1, 1);
     if (a.towel && walking) { g.fillStyle = ['#ffd23f', '#ff7fa3', '#3ccfc0'][a.id % 3]; g.fillRect(-5.5, -13, 2.5, 8); }
-    if (a.kind === 'staff' && a.state === 'work') { g.fillStyle = '#fff'; g.font = '700 7px system-ui'; g.textAlign = 'center'; g.fillText(a.role === 'cleaning' ? '🧽' : a.role === 'maintenance' ? '🔧' : '', 0, -24); }
+    if (a.kind === 'staff' && a.state === 'work') {
+      g.fillStyle = '#fff'; g.font = '700 7px system-ui'; g.textAlign = 'center';
+      g.fillText(a.role === 'cleaning' ? '🧽' : a.role === 'maintenance' ? '🔧' : '', 0, -24);
+    }
+    if (a.kind === 'guest' && a.state === 'queue' && a.wait >= 15 && a.id % 3 === 0) {
+      g.fillStyle = '#fff7df'; g.strokeStyle = '#7a4b2a'; g.lineWidth = 0.9;
+      rr(g, 4, -30, 15, 12, 4); g.fill(); g.stroke();
+      g.fillStyle = '#7a4b2a'; g.font = 'bold 8px system-ui'; g.fillText('…', 11.5, -22);
+    }
+    if (a.kind === 'guest' && seated && a.act === 'stroll') {
+      g.fillStyle = '#66b6a8'; g.beginPath(); g.arc(0, -23, 2.2, 0, Math.PI * 2); g.fill();
+    }
     g.restore();
   }
   function drawSwimmer(g, x, y, a, t) {
@@ -538,7 +577,9 @@
         gr.members.forEach((m, i) => {
           if (m.aid || n >= 3) return;
           n++;
-          const fake = { id: bid * 10 + i, kid: m.kid, bk: bid, kind: 'guest', state: 'idle' };
+          const guests = bk.guests || [];
+          const fake = { id: bid * 10 + i, kid: m.kid, bk: bid, kind: 'guest', state: 'idle',
+            shirt: guests[i] && Number.isFinite(guests[i].style) ? guests[i].style : undefined };
           const pos = homeSpot(u, i);
           list.push({ z: pos.y, kind: 'p', a: fake, x: pos.x, y: pos.y, sit: true });
         });

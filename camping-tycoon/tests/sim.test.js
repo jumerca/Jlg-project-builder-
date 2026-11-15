@@ -360,3 +360,64 @@ test('classement 4 et 5 étoiles : quatre métiers et objectif équipe compatibl
   add('sanitary');add('stage');s.deco.fill(D.DECO.FLOWERS);
   assert.equal(S.classement(s).stars,5);
 });
+
+test('V1.4 : besoins individuels, styles stables et hasard économique préservé', () => {
+  const s=fresh(501),bk=S.requestBooking(s,{profile:'family',type:'tent',arrive:0,nights:3,size:4,force:true}).booking;
+  assert.ok(bk);const rng=s.rng,guests=S.guestStates(bk);
+  assert.equal(guests.length,4);assert.equal(guests.filter(g=>g.kid).length,bk.kids);
+  assert.ok(guests.every(g=>g.needs.hunger>=0&&g.needs.hunger<=100));
+  assert.equal(s.rng,rng);assert.equal(S.guestStates(bk)[0].style,guests[0].style);
+});
+test('V1.4 : besoins et hasard des vacanciers survivent à une sauvegarde', () => {
+  const s=fresh(502),bk=S.requestBooking(s,{profile:'couple',type:'tent',arrive:0,nights:4,size:2,force:true}).booking;
+  S.checkIn(s,bk,false);S.guestStates(bk)[0].needs.fun=16;
+  const restored=SV.deserialize(SV.serialize(s)),re=restored.bookings.find(b=>b.id===bk.id);
+  assert.equal(re.guests[0].needs.fun,16);assert.equal(restored.guestRng,s.guestRng);
+  assert.equal(S.guestSnapshot(restored).persons,2);
+});
+test('V1.4 : migration des parties V1.3 sans nouvelle clé ni données vacancier', () => {
+  const s=fresh(503),bk=S.requestBooking(s,{profile:'couple',type:'tent',arrive:0,nights:4,size:2,force:true}).booking;
+  S.checkIn(s,bk,false);delete s.guestRng;delete bk.guests;delete s.stats.guestTrips;delete s.stats.guestActivities;
+  const re=SV.deserialize(SV.serialize(s));
+  assert.equal(re.bookings.find(x=>x.id===bk.id).guests.length,2);
+  assert.ok(Number.isFinite(re.guestRng));S.step(re,30);assert.ok(re.fin.cash>0);
+});
+test('V1.4 : besoins bornés et observation sans effet sur réservations', () => {
+  const s=fresh(504),bk=S.requestBooking(s,{profile:'family',type:'tent',arrive:0,nights:3,size:4,force:true}).booking;
+  S.checkIn(s,bk,false);S.initRuntime(s);s.minute=14*60;
+  const before=s.rng;S.guestNeedsStep(s);assert.equal(s.rng,before);
+  assert.ok(bk.guests.every(g=>Object.values(g.needs).every(n=>n>=0&&n<=100)));
+  const snap=S.guestSnapshot(s);assert.equal(snap.persons,4);
+  assert.ok(snap.mood>=0&&snap.mood<=100);
+});
+test('V1.4 : promenades et sorties accompagnées réellement exécutées', () => {
+  const s=fresh(64);S.step(s,1440*14);
+  assert.ok(s.stats.guestTrips>40);assert.ok(s.stats.escortedTrips>2);
+  assert.ok((s.stats.guestActivities.sanitary||0)>0);
+  assert.ok((s.stats.guestActivities.walk||0)>0);
+  assert.equal(S.guestSnapshot(s).groupOutings,s.stats.escortedTrips);
+});
+test('V1.4 : enfants en sortie sous accompagnement, adulte reste présent', () => {
+  const s=fresh(65);let seen=0;
+  for(let t=0;t<1440*9;t++){
+    S.tick(s);
+    for(const a of s.rt.agents){
+      if(a.dead||a.kind!=='guest'||!a.kid||!a.act||a.act==='use')continue;
+      if(a.act==='show'&&s.minute>=15*60&&s.minute<17*60)continue;
+      seen++;assert.ok(a.companion,'mineur sans accompagnateur pour '+a.act);
+      assert.ok(s.rt.agents.some(x=>!x.dead&&x.bk===a.bk&&x.companion===a.companion&&!x.kid),'adulte accompagnateur absent');
+    }
+  }
+  assert.ok(seen>0);
+});
+test('V1.4 : orage empêche les promenades et baignades', () => {
+  const s=fresh(66);s.weather={type:'storm',temp:17};s.forecast=Array.from({length:3},()=>({type:'storm',temp:17}));
+  S.step(s,1440*2);assert.equal(s.stats.guestActivities.walk||0,0);
+  assert.equal(s.stats.guestActivities.pool||0,0);
+});
+test('V1.4 : bilan et saison suivante conservent l’historique comportemental', () => {
+  const s=fresh(67);S.step(s,1440*5);const r=S.endSeason(s);
+  assert.equal(r.guestTrips,s.stats.guestTrips);assert.equal(r.escortedTrips,s.stats.escortedTrips);
+  assert.ok(typeof r.guestActivities==='object');assert.ok(Number.isFinite(r.avgGuestMood));
+  assert.ok(S.startSeason(s));assert.equal(s.reports[0].guestTrips,r.guestTrips);
+});

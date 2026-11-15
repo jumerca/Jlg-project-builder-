@@ -43,7 +43,7 @@ for (let season = 0; season < seasons; season++) {
     S.tick(s);
   }
   const r = s.reports[s.reports.length - 1];
-  console.log(`An ${r.year} | exploitation ${Math.round(r.operating)} € | invest ${Math.round(r.invest)} | résultat ${Math.round(r.result)} € | tréso ${Math.round(r.cash)} € | rép ${r.repStart}->${r.repEnd} ${'★'.repeat(r.stars)} | note ${r.avgRating} | occ ${Math.round(r.avgOcc * 100)}% été ${Math.round(r.summerOcc * 100)}% | unités ${r.units} | groupes ${r.groups} | refus plein ${r.lostFull} prix ${r.lostPrice}/${r.requests}`);
+  console.log(`An ${r.year} | exploitation ${Math.round(r.operating)} € | invest ${Math.round(r.invest)} | résultat ${Math.round(r.result)} € | tréso ${Math.round(r.cash)} € | rép ${r.repStart}->${r.repEnd} ${'★'.repeat(r.stars)} | note ${r.avgRating} | occ ${Math.round(r.avgOcc * 100)}% été ${Math.round(r.summerOcc * 100)}% | unités ${r.units} | groupes ${r.groups} | sorties ${r.guestTrips||0} dont ${r.escortedTrips||0} accompagnées | humeur ${r.avgGuestMood||0}/100 | refus plein ${r.lostFull} prix ${r.lostPrice}/${r.requests}`);
   if (verbose) {
     console.log('  recettes', JSON.stringify(r.inc), '\n  dépenses', JSON.stringify(r.exp));
     const cnt = {}; for (const rv of s.reviews) cnt[rv.text.slice(0, 40)] = (cnt[rv.text.slice(0, 40)] || 0) + 1;

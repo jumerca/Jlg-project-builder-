@@ -393,9 +393,10 @@
         <button class="btn" data-act="night">🌙 Nuits accélérées : ${s.settings.nightFast ? 'oui' : 'non'}</button>
         <button class="btn" data-act="sound">${s.settings.sound === false ? '🔇' : '🔊'} Sons : ${s.settings.sound === false ? 'non' : 'oui'}</button>
         <button class="btn" data-act="help">❓ Comment jouer</button>
+        <button class="btn" data-act="updates">🔄 Rechercher une mise à jour</button>
         <button class="btn red" data-act="new">⛺ Nouvelle partie</button>
       </div>
-      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v1.2 · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
+      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v1.4 · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
       resume: () => { closeModal(); setSpeed(1); },
       save: () => { toast(SV.autosave(s) ? 'Partie sauvegardée.' : 'Stockage local indisponible : utilisez l’export.', SV.hasAuto() ? 'good' : 'warn'); closeModal(); },
       export: exportDialog,
@@ -404,6 +405,17 @@
       night: () => { s.settings.nightFast = !s.settings.nightFast; menu(); },
       sound: () => { s.settings.sound = s.settings.sound === false; CT.sfx.setEnabled(s.settings.sound); menu(); },
       help: () => helpDialog(menu),
+      updates: () => {
+        if (!('serviceWorker' in navigator)) {
+          toast('Mise à jour automatique indisponible dans ce navigateur.', 'warn'); return;
+        }
+        navigator.serviceWorker.getRegistration().then((reg) => {
+          if (!reg) throw Error('L’application n’est pas enregistrée pour les mises à jour.');
+          return reg.update();
+        }).then(() => toast('Recherche effectuée. Rechargez le jeu pour utiliser les nouveaux fichiers.', 'good', 8000))
+          .catch((err) => toast('Recherche impossible : ' + err.message, 'warn', 8000));
+        closeModal();
+      },
       new: newGameDialog
     });
   }
@@ -468,6 +480,13 @@
     const today = s.bookings.filter((b) => b.arrive === s.day && (b.status === 'booked' || b.status === 'onsite'));
     const leaving = s.bookings.filter((b) => b.depart === s.day && (b.status === 'onsite' || b.status === 'done'));
     let h = `<div class="kpis"><div class="kpi"><b>${o.used}/${o.total}</b><small>occupés ce soir</small></div><div class="kpi"><b>${sum.persons}</b><small>vacanciers / ${o.cap} places</small></div><div class="kpi"><b style="color:${sum.satAvg == null ? 'inherit' : satColor(sum.satAvg)}">${sum.satAvg == null ? '—' : Math.round(sum.satAvg)}</b><small>satisfaction</small></div></div>`;
+    const pulse = S.guestSnapshot(s);
+    h += `<h3>🌿 La vie du camping</h3>
+      <div class="kpis"><div class="kpi"><b>${pulse.outside}/${pulse.persons}</b><small>vacanciers en activité</small></div>
+      <div class="kpi"><b style="color:${satColor(pulse.mood)}">${pulse.persons ? Math.round(pulse.mood) : '—'}/100</b><small>bien-être moyen</small></div>
+      <div class="kpi"><b>${pulse.groupOutings}</b><small>sorties accompagnées saison</small></div></div>
+      <p class="note">${pulse.hungry ? '🥪 ' + pulse.hungry + ' ont faim · ' : ''}${pulse.tired ? '😴 ' + pulse.tired + ' fatigués · ' : ''}${pulse.unhappy ? '🎲 ' + pulse.unhappy + ' manquent de loisirs · ' : ''}
+      ${Object.entries(pulse.activities).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v]) => ({sanitary:'douches',shop:'épicerie',snack:'snack',pool:'piscine',playground:'jeux',stage:'animations',walk:'promenades'}[k] || k) + ' : ' + v).join(' · ') || 'Premières activités en préparation…'}</p>`;
     const outlook = S.bookingOutlook(s, 14);
     h += `<p class="note">📊 Sur les ${outlook.days} prochains jours : <b>${pct(outlook.occupancy)} d'occupation confirmée</b> · <b>${eur(outlook.contracted)}</b> de nuitées contractées · ${outlook.unbookedNights} nuits encore libres.${outlook.riskBookings ? ' ⚠️ ' + outlook.riskBookings + ' réservation(s) sur un hébergement en panne ou inaccessible.' : ''}</p>`;
     // calendrier 14 jours par type
@@ -741,6 +760,7 @@
         <div class="kpi"><b>${r.groups} groupes · ${r.persons} vacanciers</b><small>${r.nights} nuitées vendues</small></div>
         <div class="kpi"><b>Occupation ${pct(r.avgOcc)} · été ${pct(r.summerOcc)}</b><small>pic ${pct(r.peakOcc)}</small></div>
         <div class="kpi"><b>Réputation ${r.repStart} → ${r.repEnd}</b><small>classement ${'★'.repeat(r.stars)}</small></div>
+        ${r.guestTrips !== undefined ? `<div class="kpi"><b>${r.guestTrips} sorties · ${r.escortedTrips || 0} accompagnées</b><small>Vie du camping · bien-être moyen ${r.avgGuestMood || '—'}/100</small></div>` : ''}
         <div class="kpi"><b>${r.lostFull} refus « complet » · ${r.lostPrice} « trop cher »</b><small>sur ${r.requests} demandes</small></div>
       </div>
       <h3>Recettes</h3><table class="fin">${rows(r.inc, 'pos')}<tr class="tot"><td>Total</td><td>${eur(r.totalInc)}</td></tr></table>
