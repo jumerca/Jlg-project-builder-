@@ -476,7 +476,7 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
       name: opts.name || 'Camping Les Flots Bleus', guestRng: ((opts.seed ?? 12345) ^ 0x9e3779b9) >>> 0, year: 1, day: 0, minute: 7 * 60, phase: 'season',
       w: W, h: H, tiles: new Array(W * H).fill(TERRAIN.GRASS), deco: new Array(W * H).fill(DECO.NONE),
       buildings: [], nextId: 1, bookings: [], staff: [],
-      prices: Object.assign({}, D.DEFAULT_PRICES), shopMarkup: 1.0,
+      prices: Object.assign({}, D.DEFAULT_PRICES), seasonRates: { low: 1, mid: 1, high: 1 }, shopMarkup: 1.0, staffPolicy: { cleaning: 'arrivals', maintenance: 'urgent' },
       reputation: 42, stars: 1,
       fin: { cash: 30000, start: 30000, season: {}, all: {}, history: [] },
       stats: newSeasonStats(), totals: { groups: 0, nights: 0, seasons: 0, shows: 0 },
@@ -520,7 +520,7 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
     s.entrance = { x: 2, y: 16 };
     // Dégager l'entrée
     for (let y = 12; y <= 21; y++) for (let x = 2; x <= 8; x++) Dc[idx(x, y)] = DECO.NONE;
-    const place = (type, x, y) => { const b = addBuilding(s, type, x, y); b.progress = 0; return b; };
+    const place = (type, x, y) => { const b = addBuilding(s, type, x, y); b.progress = 0; b.openDay = 0; return b; };
     place('reception', 4, 14);
     place('sanitary', 13, 14);
     for (const x of [16, 18, 20]) place('tent', x, 14);
@@ -535,7 +535,8 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
 
   function addBuilding(s, type, x, y) {
     const def = BUILDINGS[type];
-    const b = { id: s.nextId++, type, x, y, w: def.w, h: def.h, cond: 100, broken: false, brokenDay: -1, dirt: 0, water: 100, progress: def.build, clean: false, uses: 0, ax: -1, ay: -1 };
+    const b = { id: s.nextId++, type, x, y, w: def.w, h: def.h, cond: 100, broken: false, brokenDay: -1, dirt: 0, water: 100, progress: def.build, clean: false, uses: 0, ax: -1, ay: -1,
+      openYear: s.phase === 'winter' ? s.year + 1 : s.year, openDay: s.phase === 'winter' ? 0 : s.day + def.build };
     b.level = 1; b.buildTotal = def.build;
     if (def.unit) b.num = 1 + s.buildings.filter((o) => BUILDINGS[o.type].unit).reduce((m, o) => Math.max(m, o.num || 0), 0);
     for (let j = y; j < y + def.h; j++) for (let i = x; i < x + def.w; i++) s.deco[idx(i, j)] = DECO.NONE;
@@ -749,12 +750,23 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
 
   /** Traite une demande de réservation de façon atomique. Retourne la réservation ou un motif de refus. */
   const PREMIUM = 1.3;
-  function unitPrice(s, b) { return r2(s.prices[BUILDINGS[b.type].unitType] * (b.level === 2 ? PREMIUM : 1)); }
-  function acceptRate(s, type, profile, tier = 1) {
-    const ref = D.REF_PRICES[type] * starMult(s) * (tier === 2 ? 1.22 : 1);
-    return Math.min(1, Math.pow(ref / (s.prices[type] * (tier === 2 ? PREMIUM : 1)), PROFILES[profile].elasticity));
+  // La saison tarifaire dépend du jour d'arrivée. Le prix est verrouillé à la réservation.
+  function seasonBand(day) {
+    if (day < 61 || day >= 153) return 'low';    // avril-mai et septembre
+    if (day < 91 || day >= 137) return 'mid';   // juin et fin août
+    return 'high';                              // juillet et première quinzaine d'août
   }
-  function priceAccepted(s, req, tier) { return rand(s) <= acceptRate(s, req.type, req.profile, tier); }
+  function seasonMultiplier(s, day) {
+    return (s.seasonRates && s.seasonRates[seasonBand(day)]) || 1;
+  }
+  function unitPrice(s, b, day = s.day) {
+    return r2(s.prices[BUILDINGS[b.type].unitType] * (b.level === 2 ? PREMIUM : 1) * seasonMultiplier(s, day));
+  }
+  function acceptRate(s, type, profile, tier = 1, day = s.day) {
+    const ref = D.REF_PRICES[type] * starMult(s) * (tier === 2 ? 1.22 : 1);
+    return Math.min(1, Math.pow(ref / (s.prices[type] * (tier === 2 ? PREMIUM : 1) * seasonMultiplier(s, day)), PROFILES[profile].elasticity));
+  }
+  function priceAccepted(s, req, tier) { return rand(s) <= acceptRate(s, req.type, req.profile, tier, req.arrive); }
   function requestBooking(s, req) {
     s.stats.requests++;
     const def = Object.keys(BUILDINGS).find((k) => BUILDINGS[k].unitType === req.type);
@@ -778,7 +790,7 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
     if (!unit) { s.stats.lostPrice++; return { refused: 'price' }; }
     void priceOk;
     const extra = req.type === 'mobilhome' ? 0 : Math.max(0, req.size - 2) * (s.prices.extra ?? 5);
-    const price = r2(unitPrice(s, unit) + extra);
+    const price = r2(unitPrice(s, unit, req.arrive) + extra);
     const total = r2(price * req.nights);
     const deposit = r2(total * D.DEPOSIT_RATE);
     const kids = req.profile === 'family' ? Math.max(1, req.size - 2) : 0;
@@ -1492,17 +1504,17 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
     };
     if (a.role === 'cleaning') {
       for (const b of built(s)) {
-        if (b.type === 'sanitary' && b.dirt > 22) consider(b, b.dirt, 'clean', 25);
+        if (b.type === 'sanitary' && b.dirt > 22) consider(b, b.dirt * ((s.staffPolicy || {}).cleaning === 'sanitary' ? 1.8 : 1), 'clean', 25);
         if (b.clean) {
           const occupied = s.rt.groups.has(currentBookingId(s, b));
-          if (!occupied) consider(b, arrivalToday(s, b) ? 150 : 70, 'mh', 50);
+          if (!occupied) consider(b, arrivalToday(s, b) ? ((s.staffPolicy || {}).cleaning === 'sanitary' ? 125 : 185) : ((s.staffPolicy || {}).cleaning === 'sanitary' ? 48 : 78), 'mh', 50);
         }
       }
     } else if (a.role === 'maintenance') {
       for (const b of built(s)) {
         if (b.broken) consider(b, 200, 'repair', 90);
-        else if (b.type === 'pool' && b.water < 75) consider(b, 120 - b.water, 'pool', 35);
-        else if (b.cond < 70) consider(b, 100 - b.cond, 'service', 40);
+        else if (b.type === 'pool' && b.water < 75) consider(b, (120 - b.water) * ((s.staffPolicy || {}).maintenance === 'preventive' ? 1.2 : 1), 'pool', 35);
+        else if (b.cond < 85) consider(b, (100 - b.cond) * ((s.staffPolicy || {}).maintenance === 'preventive' ? 1.7 : 0.85), 'service', 40);
       }
     }
     if (best) {
@@ -2172,6 +2184,40 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
 
   function setPrice(s, type, v) { s.prices[type] = clamp(Math.round(v), type === 'extra' ? 0 : 5, 400); }
   function setMarkup(s, v) { s.shopMarkup = clamp(Math.round(v * 100) / 100, 0.8, 1.6); }
+  function setSeasonRate(s, band, value) {
+    if (!['low', 'mid', 'high'].includes(band) || !Number.isFinite(Number(value))) return false;
+    s.seasonRates = Object.assign({ low: 1, mid: 1, high: 1 }, s.seasonRates || {});
+    s.seasonRates[band] = clamp(Math.round(Number(value) * 100) / 100, 0.7, 1.5);
+    return true;
+  }
+  function setStaffPolicy(s, role, value) {
+    const allowed = { cleaning: ['arrivals', 'sanitary'], maintenance: ['urgent', 'preventive'] };
+    if (!allowed[role] || !allowed[role].includes(value)) return false;
+    s.staffPolicy = Object.assign({ cleaning: 'arrivals', maintenance: 'urgent' }, s.staffPolicy || {});
+    s.staffPolicy[role] = value;
+    return true;
+  }
+  // Indicateur d'exploitation par emplacement : le CA est acquis nuit après nuit,
+  // pas au moment du versement de l'acompte. Hors salaires et frais communs.
+  function unitPerformance(s, unit) {
+    if (!unit || !BUILDINGS[unit.type] || !BUILDINGS[unit.type].unit) return null;
+    const cut = s.phase === 'winter' ? D.SEASON_DAYS : Math.min(D.SEASON_DAYS, s.day);
+    const opening = unit.openYear === s.year ? (unit.openDay || 0) : 0;
+    const days = Math.max(0, cut - opening);
+    let nights = 0, revenue = 0, energy = 0;
+    for (const bk of s.bookings) {
+      if (bk.unit !== unit.id || !['done', 'onsite'].includes(bk.status)) continue;
+      const earned = Math.max(0, Math.min(cut, bk.depart) - Math.max(opening, bk.arrive));
+      nights += earned;
+      revenue += earned * bk.price;
+      energy += earned * bk.size * 1.2;
+    }
+    const upkeep = days * BUILDINGS[unit.type].upkeep;
+    const costs = r2(upkeep + energy);
+    return { days, nights, revenue: r2(revenue), upkeep: r2(upkeep),
+      energyEstimate: r2(energy), costs, margin: r2(revenue - costs),
+      occupancy: days ? Math.min(1, nights / days) : 0 };
+  }
 
 
   /* ---------- Prévisions basées exclusivement sur les contrats ---------- */
@@ -2249,6 +2295,7 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
   const api = {
     W, H, DAY, newGame, initRuntime, step, tick, rand, fmtDate, fmtTime, dateParts, dow, seasonCurve,
     requestBooking, isBooked, occupancy, classement, units, built, ofType, services, accessible, beautyAt, avgBeauty,
+    seasonBand, seasonMultiplier, setSeasonRate, setStaffPolicy, unitPerformance,
     guestStates, guestMood, guestNeedsStep, guestStateForAgent, guestSnapshot,
     hire, fire, build, buildPath, placeDeco, demolish, canPlace, buildingAt, byId, setPrice, setMarkup,
     startSeason, endSeason, endOfDay, checkIn, checkOut, money, summary, bookingOutlook, field, idx, bs, mapChanged, attractiveness, weatherAt,
@@ -2303,6 +2350,8 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
     o.reports = o.reports || [];
     o.objectives = o.objectives || {};
     o.shopMarkup = o.shopMarkup || 1;
+    o.seasonRates = Object.assign({ low: 1, mid: 1, high: 1 }, o.seasonRates || {});
+    o.staffPolicy = Object.assign({ cleaning: 'arrivals', maintenance: 'urgent' }, o.staffPolicy || {});
     for (const b of o.buildings) { if (b.water === undefined) b.water = 100; if (b.uses === undefined) b.uses = 0; }
     o.format = FORMAT;
     return o;
@@ -2845,11 +2894,67 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
       rr(g, 4, -30, 15, 12, 4); g.fill(); g.stroke();
       g.fillStyle = '#7a4b2a'; g.font = 'bold 8px system-ui'; g.fillText('…', 11.5, -22);
     }
+    if (a.kind === 'guest' && seated && a.act === 'eat') {
+      const hand = Math.sin(t * 0.007 + a.id);
+      g.strokeStyle = skin; g.lineWidth = 1.8; g.beginPath();
+      g.moveTo(3, -9); g.lineTo(6 + hand, -10 - Math.max(0, hand) * 4); g.stroke();
+    }
+    if (a.kind === 'guest' && a.act === 'show' && a.state === 'use') {
+      const clap = Math.sin(t * 0.012 + a.id);
+      g.strokeStyle = skin; g.lineWidth = 2; g.beginPath();
+      g.moveTo(-4, -10); g.lineTo(-1 + clap, -16);
+      g.moveTo(4, -10); g.lineTo(1 - clap, -16); g.stroke();
+    }
     if (a.kind === 'guest' && seated && a.act === 'stroll') {
       g.fillStyle = '#66b6a8'; g.beginPath(); g.arc(0, -23, 2.2, 0, Math.PI * 2); g.fill();
     }
     g.restore();
   }
+
+  /* Petit décor vectoriel 2,5D, animé uniquement sur les emplacements occupés visibles. */
+  function drawPitchLife(g, b, t, meal, kids) {
+    const px = b.x * TS, py = b.y * TS, w = b.w * TS, h = b.h * TS;
+    const cx = px + (b.type === 'mobilhome' ? w - 27 : b.type === 'caravan' ? w - 25 : 39);
+    const cy = py + h - 13;
+    g.save();
+    g.fillStyle = 'rgba(37,54,49,.16)';
+    g.beginPath(); g.ellipse(cx, cy + 2, 25, 8, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#d8bd85'; g.strokeStyle = 'rgba(83,67,49,.55)'; g.lineWidth = 1.4;
+    g.beginPath(); g.ellipse(cx, cy - 2, 21, 7, -.08, 0, Math.PI * 2); g.fill(); g.stroke();
+    for (const side of [-1, 1]) {
+      g.fillStyle = '#8c583e'; g.strokeStyle = INK;
+      g.beginPath(); g.rect(cx + side * 15 - 5, cy - 6, 10, 5); g.fill(); g.stroke();
+      g.beginPath(); g.moveTo(cx + side * 15 - 4, cy - 1);
+      g.lineTo(cx + side * 15 - 4, cy + 5); g.moveTo(cx + side * 15 + 4, cy - 1);
+      g.lineTo(cx + side * 15 + 4, cy + 5); g.stroke();
+    }
+    g.fillStyle = '#8b5b3f'; g.fillRect(cx - 2, cy - 5, 4, 11);
+    g.beginPath(); g.moveTo(cx - 10, cy + 5); g.lineTo(cx + 10, cy + 5); g.strokeStyle = '#49352e'; g.lineWidth = 2; g.stroke();
+    g.beginPath(); g.ellipse(cx, cy - 8, 14, 6, 0, 0, Math.PI * 2);
+    g.fillStyle = '#f2dfb1'; g.strokeStyle = '#684635'; g.lineWidth = 1.3; g.fill(); g.stroke();
+    if (meal) {
+      for (const offset of [-7, 7]) {
+        g.fillStyle = '#fffef2'; g.beginPath(); g.ellipse(cx + offset, cy - 9, 3.5, 2, 0, 0, 7); g.fill();
+        g.fillStyle = offset > 0 ? '#e88d4a' : '#72a76a';
+        g.beginPath(); g.ellipse(cx + offset, cy - 9, 1.9, 1, 0, 0, 7); g.fill();
+      }
+      g.fillStyle = '#c5e4f3'; g.fillRect(cx - 2, cy - 13, 3, 5);
+      g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1; g.beginPath();
+      const steam = Math.sin(t * .004 + b.id) * 1.2;
+      g.moveTo(cx, cy - 16); g.quadraticCurveTo(cx + steam, cy - 22, cx, cy - 25); g.stroke();
+    } else {
+      g.fillStyle = '#f4f2e5'; g.fillRect(cx - 7, cy - 13, 8, 5);
+      g.strokeStyle = '#2a6e81'; g.strokeRect(cx - 7, cy - 13, 8, 5);
+      g.fillStyle = '#d75a41'; g.beginPath(); g.ellipse(cx + 5, cy - 10, 2.6, 1.7, 0, 0, 7); g.fill();
+    }
+    if (kids) {
+      const bx = px + 8 + (b.id % 3) * 5, by = py + h - 9;
+      g.fillStyle = '#fff7dc'; g.strokeStyle = '#b64f43'; g.lineWidth = 1.2;
+      g.beginPath(); g.arc(bx, by - Math.abs(Math.sin(t * .002 + b.id)) * 2.2, 3.3, 0, 7); g.fill(); g.stroke();
+    }
+    g.restore();
+  }
+
   function drawSwimmer(g, x, y, a, t) {
     const bob = Math.sin(t * 0.004 + a.id) * 1.2;
     g.beginPath(); g.ellipse(x, y + 2, 6, 2.6, 0, 0, Math.PI * 2); g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 1.2; g.stroke();
@@ -3002,8 +3107,12 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
         if (q.inside === 'snack') { const tabs = b.level === 2 ? [[18, 44], [48, 50], [78, 42], [30, 58], [62, 58]] : [[18, 44], [48, 50], [78, 42]]; const tb = tabs[a.id % tabs.length]; const k = (a.id >> 2) % 4; x = b.x * TS + tb[0] + [-9, 9, -9, 9][k]; y = b.y * TS + tb[1] + [0, 0, 8, 8][k]; }
         else if (q.inside === 'stage') { x = b.x * TS + 12 + hash(a.id, 3) * (w - 24); y = b.y * TS + 60 + hash(3, a.id) * (h - 66) - (S.stageWindow(s) && S.stageWindow(s).show ? Math.abs(Math.sin(t * 0.008 + a.id)) * 2 : 0); }
         else { x = b.x * TS + 10 + hash(a.id, 2) * (w - 20) + Math.sin(t * 0.002 + a.id) * 5; y = b.y * TS + 22 + hash(2, a.id) * (h - 26); }
+        if (q.inside === 'playground' && a.kid) y -= Math.max(0, Math.sin(t * 0.009 + a.id)) * 5;
         if (!vis(x, y)) continue;
-        list.push({ z: b.y * TS + h + 0.5 + y * 0.0001, kind: 'p', a, x, y });
+        const activityAgent = q.inside === 'snack' ? Object.assign({}, a, { state: 'rest', act: 'eat' }) :
+          q.inside === 'playground' ? Object.assign({}, a, { state: 'walk', act: 'play' }) :
+          q.inside === 'stage' ? Object.assign({}, a, { state: 'use', act: 'show' }) : a;
+        list.push({ z: b.y * TS + h + 0.5 + y * 0.0001, kind: 'p', a: activityAgent, x, y });
         continue;
       } else if (q) { x = q.x; y = q.y; }
       else {
@@ -3015,7 +3124,18 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
       if (!vis(x, y)) continue;
       list.push({ z: y, kind: 'p', a, x, y });
     }
-    // vacanciers chez eux (journée)
+    const h = s.minute / 60;
+    const meal = (h >= 11.6 && h <= 14) || (h >= 18.4 && h <= 20.6);
+    if (daylight > 0.5 && !['storm', 'rain'].includes(s.weather.type) && h >= 8.5 && h < 21.2) {
+      for (const [bid, gr] of rt.groups) {
+        if (gr.phase !== 'home' || !gr.members.some((m) => !m.aid)) continue;
+        const bk = s.bookings.find((v) => v.id === bid);
+        const b = bk && S.byId(s, bk.unit);
+        if (!b || !vis((b.x + b.w / 2) * TS, (b.y + b.h / 2) * TS)) continue;
+        list.push({ kind: 'life', z: b.y * TS + b.h * TS + 1, b, meal, kids: !!bk.kids });
+      }
+    }
+    // Vacanciers sur leur terrasse, assis ou discutant.
     if (daylight > 0.55) {
       for (const [bid, gr] of rt.groups) {
         if (gr.phase !== 'home') continue;
@@ -3143,6 +3263,8 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
           if (!BUILDINGS[b.type].unit) lamps.push([cx, b.y * TS + b.h * TS - 6, 70]);
           if (b.type === 'stage' && S.stageLive(s, b)) lamps.push([cx, b.y * TS + 20, 150]);
         }
+      } else if (o.kind === 'life') {
+        drawPitchLife(g, o.b, now, o.meal, o.kids);
       } else if (o.kind === 'arch') {
         g.drawImage(sprite('arch' + s.name, 110, 100, 26, 44, (gg) => { gg.scale(1.4, 1.4); drawArch(gg, s.name); }), o.x - 26 + 10, o.y - 44 - 14, 110, 100);
       } else if (o.kind === 'p') drawPerson(g, o.x, o.y, o.a, now, o.sit ? 0.95 : 1);
@@ -3658,7 +3780,7 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
         <button class="btn" data-act="updates">🔄 Rechercher une mise à jour</button>
         <button class="btn red" data-act="new">⛺ Nouvelle partie</button>
       </div>
-      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v1.4 · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
+      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v1.5 · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
       resume: () => { closeModal(); setSpeed(1); },
       save: () => { toast(SV.autosave(s) ? 'Partie sauvegardée.' : 'Stockage local indisponible : utilisez l’export.', SV.hasAuto() ? 'good' : 'warn'); closeModal(); },
       export: exportDialog,
@@ -3800,6 +3922,19 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
       <input type="range" min="0" max="15" value="${s.prices.extra}" data-price="extra"><small>Les familles y sont sensibles ; les couples ne le paient pas.</small></div>`;
     h += `<div class="price"><div class="top"><span>Marge de l’épicerie</span><span class="val" id="pv-shop">×${s.shopMarkup.toFixed(2)}</span></div>
       <input type="range" min="80" max="160" value="${Math.round(s.shopMarkup * 100)}" data-markup="1"><small>Au-delà de ×1,35 les clients râlent ; en dessous de ×1,05 ils apprécient.</small></div>`;
+    h += '<h3>📅 Tarifs selon la période d’arrivée</h3><p class="note">Les prix d’un séjour sont calculés selon sa date d’arrivée et restent garantis après réservation. Les changements de période ne modifient pas les contrats signés.</p>';
+    const bands = [
+      ['low', 'Basse saison', 'Avril, mai et septembre', 12],
+      ['mid', 'Moyenne saison', 'Juin et deuxième quinzaine d’août', 75],
+      ['high', 'Haute saison', 'Juillet et première quinzaine d’août', 110]
+    ];
+    for (const [band, label, dates, day] of bands) {
+      const value = (s.seasonRates && s.seasonRates[band]) || 1;
+      const ex = S.unitPrice(s, {type:'tent',level:1}, day);
+      h += `<div class="price"><div class="top"><span><b>${label}</b> <small>${dates}</small></span><span class="val" id="sr-${band}">×${value.toFixed(2)}</span></div>
+        <input type="range" min="70" max="150" step="5" value="${Math.round(value*100)}" data-season="${band}">
+        <small>Exemple : tente à ${eur2(ex)}/nuit avec le tarif de base actuel.</small></div>`;
+    }
     void cl;
     return h;
   }
@@ -3824,6 +3959,15 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
     const rec = S.ofType(s, 'reception')[0]; const q = rec && s.rt.bstate.get(rec.id);
     if (q && q.queue.length > 3) adv.push('File d’attente à l’accueil : un(e) réceptionniste de plus ?');
     if (adv.length) h += `<p class="note">💡 ${adv.join('<br>💡 ')}</p>`;
+    const pol = s.staffPolicy || { cleaning: 'arrivals', maintenance: 'urgent' };
+    h += `<h3>🛠️ Priorités opérationnelles</h3>
+      <p class="note">Les équipes choisissent automatiquement leurs tâches selon tes priorités. Une panne reste urgente dans tous les cas.</p>
+      <div class="price"><b>Équipe d’entretien</b><div class="acts">
+      <button class="btn small ${pol.cleaning === 'arrivals' ? 'primary' : ''}" data-policy-role="cleaning" data-policy-value="arrivals">Arrivées & mobil-homes</button>
+      <button class="btn small ${pol.cleaning === 'sanitary' ? 'primary' : ''}" data-policy-role="cleaning" data-policy-value="sanitary">Sanitaires d’abord</button></div></div>
+      <div class="price"><b>Maintenance</b><div class="acts">
+      <button class="btn small ${pol.maintenance === 'urgent' ? 'primary' : ''}" data-policy-role="maintenance" data-policy-value="urgent">Réparations urgentes</button>
+      <button class="btn small ${pol.maintenance === 'preventive' ? 'primary' : ''}" data-policy-role="maintenance" data-policy-value="preventive">Prévenir l’usure</button></div></div>`;
     h += `<h3>L’équipe</h3><div class="list">`;
     h += s.staff.map((x) => {
       const aid = s.rt.staffAgents.get(x.id); const a = aid && s.rt.agentMap.get(aid);
@@ -3853,6 +3997,21 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
         <p class="note"><b>Engagements connus sur la période :</b> soldes à recevoir ${eur(outlook.balancesDue)} ; charges fixes estimées ${eur(outlook.fixedCosts)}${outlook.loanCosts ? ' ; échéances d’emprunt ' + eur(outlook.loanCosts) : ''}.
         ${outlook.riskBookings ? '<br>⚠️ ' + outlook.riskBookings + ' séjour(s) à risque : hébergement en panne ou non relié.' : ''}
         <br>* La valeur contractée inclut les acomptes déjà encaissés. Les soldes restent soumis aux annulations. Les réservations nouvelles, dépenses variables, achats, incidents et investissements ne sont pas prévus.</p>`;
+    }
+    if (s.phase === 'season') {
+      const performances = S.units(s).filter((b) => b.progress === 0).map((b) => ({ b, perf: S.unitPerformance(s, b) }))
+        .filter((o) => o.perf && o.perf.days > 0)
+        .sort((a, b) => b.perf.margin - a.perf.margin);
+      if (performances.length) {
+        const gross = performances.reduce((a, o) => a + o.perf.revenue, 0);
+        const margin = performances.reduce((a, o) => a + o.perf.margin, 0);
+        h += `<h3>🏕️ Rentabilité des hébergements</h3>
+          <div class="kpis"><div class="kpi"><b>${eur(gross)}</b><small>CA des nuits déjà effectuées</small></div>
+          <div class="kpi"><b class="${margin >= 0 ? 'pos' : 'neg'}">${eur(margin)}</b><small>marge indicative</small></div></div>
+          <table class="fin"><tr><th>Hébergement</th><th>Occupation</th><th>Marge*</th></tr>${performances.slice(0, 12).map(({b,perf}) =>
+            `<tr><td>${TYPE_NAME[b.type]} n°${b.num}</td><td>${perf.nights}/${perf.days} · ${pct(perf.occupancy)}</td><td class="${perf.margin >= 0 ? 'pos' : 'neg'}">${eur(perf.margin)}</td></tr>`).join('')}</table>
+          <p class="note">* Estimation : recettes des nuits déjà passées, moins entretien propre à l’hébergement et consommation d’eau/énergie estimée. Personnel, assurances, impôts, investissements et amortissements ne sont pas affectés par parcelle. Ce n’est pas un résultat net comptable.</p>`;
+      }
     }
     h += `<h3>Trésorerie — 60 derniers jours</h3><canvas class="spark" id="spark"></canvas>`;
     const capL = S.loanCapacity(s);
@@ -3914,6 +4073,15 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
   function bindPanel() {
     const body = $('pbody');
     body.querySelectorAll('[data-hire]').forEach((b) => (b.onclick = () => { S.hire(s, b.dataset.hire); CT.sfx.play('hire'); renderPanel(true); }));
+    body.querySelectorAll('[data-policy-role]').forEach((b) => (b.onclick = () => {
+      if (S.setStaffPolicy(s, b.dataset.policyRole, b.dataset.policyValue)) { CT.sfx.play('click'); renderPanel(true); SV.autosave(s); }
+    }));
+    body.querySelectorAll('[data-season]').forEach((inp) => (inp.oninput = () => {
+      S.setSeasonRate(s, inp.dataset.season, +inp.value / 100);
+      const out = $('sr-' + inp.dataset.season);
+      if (out) out.textContent = '×' + (s.seasonRates[inp.dataset.season]).toFixed(2);
+    }));
+    body.querySelectorAll('[data-season]').forEach((inp) => (inp.onchange = () => { renderPanel(true); SV.autosave(s); }));
     body.querySelectorAll('[data-borrow]').forEach((b) => (b.onclick = () => { const r = S.borrow(s, +b.dataset.borrow); if (r.ok) CT.sfx.play('coin'); else { CT.sfx.play('error'); toast(r.why, 'bad'); } renderPanel(true); }));
     body.querySelectorAll('[data-repay]').forEach((b) => (b.onclick = () => { const r = S.repayLoan(s); if (r.ok) { CT.sfx.play('coin'); toast('Emprunt soldé.', 'good'); } else toast(r.why, 'bad'); renderPanel(true); }));
     body.querySelectorAll('[data-fire]').forEach((b) => (b.onclick = () => { S.fire(s, +b.dataset.fire); renderPanel(true); }));
@@ -3950,6 +4118,13 @@ canvas.spark { width: 100%; height: 110px; background: #fff; border: 2px solid v
       if (b.type === 'reception') { let n = 0; for (const a of s.rt.agents) if (!a.dead && a.kind === 'staff' && a.role === 'reception' && a.state === 'work') n++; h += `<div class="stat"><span>Au comptoir</span><b>${n ? n + ' réceptionniste' + (n > 1 ? 's' : '') : 'vous (lent)'}</b></div>`; }
       if (def.unit) {
         h += `<div class="stat"><span>Capacité</span><b>${def.cap} pers. · ${eur2(S.unitPrice(s, b))}/nuit</b></div>`;
+        if (s.phase === 'season') {
+          const perf = S.unitPerformance(s, b);
+          h += `<div class="stat"><span>Nuits réalisées</span><b>${perf.nights} / ${perf.days}</b></div>
+            <div class="stat"><span>Chiffre d’affaires acquis</span><b>${eur(perf.revenue)}</b></div>
+            <div class="stat"><span>Marge indicative*</span><b class="${perf.margin >= 0 ? 'pos' : 'neg'}">${eur(perf.margin)}</b></div>
+            <small>* Hors personnel, frais communs et investissements.</small>`;
+        }
         h += `<div class="stat"><span>Paysage alentour</span><b>${'🌿'.repeat(Math.min(5, Math.round(S.beautyAt(s, b) / 3))) || '—'}</b></div>`;
         if (b.clean) h += `<p class="note">🧹 Ménage à faire avant la prochaine arrivée.</p>`;
         const cur = s.bookings.find((k) => k.unit === b.id && k.status === 'onsite');

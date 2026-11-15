@@ -20,7 +20,7 @@ Aucune installation, aucune compilation : HTML, CSS et JavaScript.
 node --test tests/*.test.js      # ou : npm test   (Node 18+)
 ```
 
-31 tests (dont emprunt, animations, améliorations, snack-bar, événements, avis) : réservations simultanées (pas de double attribution), capacité maximale, arrivées/départs et rotation le même jour, facturation (acompte 30 % + solde, tarif verrouillé, annulation), salaires, cohérence trésorerie/grand livre, déplacements sur les allées uniquement, capacité des équipements, sauvegarde/reprise, migration et rejet de fichiers invalides, saison complète avec bilan, construction et démolition protégée.
+37 tests (dont emprunt, animations, améliorations, snack-bar, événements, avis) : réservations simultanées (pas de double attribution), capacité maximale, arrivées/départs et rotation le même jour, facturation (acompte 30 % + solde, tarif verrouillé, annulation), salaires, cohérence trésorerie/grand livre, déplacements sur les allées uniquement, capacité des équipements, sauvegarde/reprise, migration et rejet de fichiers invalides, saison complète avec bilan, construction et démolition protégée.
 
 ## Architecture
 
@@ -83,3 +83,16 @@ L’état persistant est un simple objet JSON ; tout ce qui est transitoire (per
 ## Sauvegardes
 
 Sauvegarde automatique chaque jour de jeu, toutes les 45 s et à la fermeture de l’onglet (avec une copie de la précédente). Menu ☰ → Exporter (fichier `.json` ou texte à copier) / Importer (fichier ou texte collé).
+
+## Nouveautés v1.5 — Le Camping Vivant
+
+- **2,5D enrichie sans changer de caméra** : mobilier et scènes de vie vectorielles sur les emplacements occupés (table, repas, détente, accessoires), animations de service au snack, jeux d'enfants et réactions pendant les spectacles.
+- **Tarification selon la saison** : coefficients basse saison (avril-mai, septembre), moyenne saison (juin et fin août) et haute saison (juillet et début août). Plage ajustable ×0,70 à ×1,50, réservation calculée au jour d'arrivée et tarif garanti après confirmation.
+- **Marge indicative par hébergement** : chiffre d'affaires des seules nuits réalisées, occupation, entretien propre à la parcelle et eau/énergie estimée. Ces chiffres ne constituent pas un bénéfice net : coûts communs, personnel, amortissements et taxes non attribués.
+- **Pilotage du personnel** : stratégie de l'entretien (mobil-homes avant les arrivées ou sanitaires d'abord), maintenance urgente ou préventive ; les pannes restent prioritaires.
+- **Anciennes parties compatibles** : les nouveaux réglages sont ajoutés à la migration, sans modifier la clé de sauvegarde ni imposer une réinstallation.
+- **6 tests de non-régression supplémentaires**, 37 tests au total, plus validation de syntaxe Canvas et synchronisation de la version HTML autonome.
+
+### Limites restant à valider
+
+Les animations sont un enrichissement progressif du Canvas 2,5D existant, et non une nouvelle caméra isométrique. Les tests fonctionnels automatisés ne remplacent pas une vérification visuelle et une mesure de FPS sur téléphone physique. Le rendement par hébergement est analytique et indicatif, pas un compte de résultat comptable complet.

@@ -396,7 +396,7 @@
         <button class="btn" data-act="updates">🔄 Rechercher une mise à jour</button>
         <button class="btn red" data-act="new">⛺ Nouvelle partie</button>
       </div>
-      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v1.4 · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
+      <p style="font-size:12px;opacity:.7;margin-top:12px">Camping Tycoon v1.5 · JLG Creative · sauvegarde automatique chaque jour de jeu.</p>`, {
       resume: () => { closeModal(); setSpeed(1); },
       save: () => { toast(SV.autosave(s) ? 'Partie sauvegardée.' : 'Stockage local indisponible : utilisez l’export.', SV.hasAuto() ? 'good' : 'warn'); closeModal(); },
       export: exportDialog,
@@ -538,6 +538,19 @@
       <input type="range" min="0" max="15" value="${s.prices.extra}" data-price="extra"><small>Les familles y sont sensibles ; les couples ne le paient pas.</small></div>`;
     h += `<div class="price"><div class="top"><span>Marge de l’épicerie</span><span class="val" id="pv-shop">×${s.shopMarkup.toFixed(2)}</span></div>
       <input type="range" min="80" max="160" value="${Math.round(s.shopMarkup * 100)}" data-markup="1"><small>Au-delà de ×1,35 les clients râlent ; en dessous de ×1,05 ils apprécient.</small></div>`;
+    h += '<h3>📅 Tarifs selon la période d’arrivée</h3><p class="note">Les prix d’un séjour sont calculés selon sa date d’arrivée et restent garantis après réservation. Les changements de période ne modifient pas les contrats signés.</p>';
+    const bands = [
+      ['low', 'Basse saison', 'Avril, mai et septembre', 12],
+      ['mid', 'Moyenne saison', 'Juin et deuxième quinzaine d’août', 75],
+      ['high', 'Haute saison', 'Juillet et première quinzaine d’août', 110]
+    ];
+    for (const [band, label, dates, day] of bands) {
+      const value = (s.seasonRates && s.seasonRates[band]) || 1;
+      const ex = S.unitPrice(s, {type:'tent',level:1}, day);
+      h += `<div class="price"><div class="top"><span><b>${label}</b> <small>${dates}</small></span><span class="val" id="sr-${band}">×${value.toFixed(2)}</span></div>
+        <input type="range" min="70" max="150" step="5" value="${Math.round(value*100)}" data-season="${band}">
+        <small>Exemple : tente à ${eur2(ex)}/nuit avec le tarif de base actuel.</small></div>`;
+    }
     void cl;
     return h;
   }
@@ -562,6 +575,15 @@
     const rec = S.ofType(s, 'reception')[0]; const q = rec && s.rt.bstate.get(rec.id);
     if (q && q.queue.length > 3) adv.push('File d’attente à l’accueil : un(e) réceptionniste de plus ?');
     if (adv.length) h += `<p class="note">💡 ${adv.join('<br>💡 ')}</p>`;
+    const pol = s.staffPolicy || { cleaning: 'arrivals', maintenance: 'urgent' };
+    h += `<h3>🛠️ Priorités opérationnelles</h3>
+      <p class="note">Les équipes choisissent automatiquement leurs tâches selon tes priorités. Une panne reste urgente dans tous les cas.</p>
+      <div class="price"><b>Équipe d’entretien</b><div class="acts">
+      <button class="btn small ${pol.cleaning === 'arrivals' ? 'primary' : ''}" data-policy-role="cleaning" data-policy-value="arrivals">Arrivées & mobil-homes</button>
+      <button class="btn small ${pol.cleaning === 'sanitary' ? 'primary' : ''}" data-policy-role="cleaning" data-policy-value="sanitary">Sanitaires d’abord</button></div></div>
+      <div class="price"><b>Maintenance</b><div class="acts">
+      <button class="btn small ${pol.maintenance === 'urgent' ? 'primary' : ''}" data-policy-role="maintenance" data-policy-value="urgent">Réparations urgentes</button>
+      <button class="btn small ${pol.maintenance === 'preventive' ? 'primary' : ''}" data-policy-role="maintenance" data-policy-value="preventive">Prévenir l’usure</button></div></div>`;
     h += `<h3>L’équipe</h3><div class="list">`;
     h += s.staff.map((x) => {
       const aid = s.rt.staffAgents.get(x.id); const a = aid && s.rt.agentMap.get(aid);
@@ -591,6 +613,21 @@
         <p class="note"><b>Engagements connus sur la période :</b> soldes à recevoir ${eur(outlook.balancesDue)} ; charges fixes estimées ${eur(outlook.fixedCosts)}${outlook.loanCosts ? ' ; échéances d’emprunt ' + eur(outlook.loanCosts) : ''}.
         ${outlook.riskBookings ? '<br>⚠️ ' + outlook.riskBookings + ' séjour(s) à risque : hébergement en panne ou non relié.' : ''}
         <br>* La valeur contractée inclut les acomptes déjà encaissés. Les soldes restent soumis aux annulations. Les réservations nouvelles, dépenses variables, achats, incidents et investissements ne sont pas prévus.</p>`;
+    }
+    if (s.phase === 'season') {
+      const performances = S.units(s).filter((b) => b.progress === 0).map((b) => ({ b, perf: S.unitPerformance(s, b) }))
+        .filter((o) => o.perf && o.perf.days > 0)
+        .sort((a, b) => b.perf.margin - a.perf.margin);
+      if (performances.length) {
+        const gross = performances.reduce((a, o) => a + o.perf.revenue, 0);
+        const margin = performances.reduce((a, o) => a + o.perf.margin, 0);
+        h += `<h3>🏕️ Rentabilité des hébergements</h3>
+          <div class="kpis"><div class="kpi"><b>${eur(gross)}</b><small>CA des nuits déjà effectuées</small></div>
+          <div class="kpi"><b class="${margin >= 0 ? 'pos' : 'neg'}">${eur(margin)}</b><small>marge indicative</small></div></div>
+          <table class="fin"><tr><th>Hébergement</th><th>Occupation</th><th>Marge*</th></tr>${performances.slice(0, 12).map(({b,perf}) =>
+            `<tr><td>${TYPE_NAME[b.type]} n°${b.num}</td><td>${perf.nights}/${perf.days} · ${pct(perf.occupancy)}</td><td class="${perf.margin >= 0 ? 'pos' : 'neg'}">${eur(perf.margin)}</td></tr>`).join('')}</table>
+          <p class="note">* Estimation : recettes des nuits déjà passées, moins entretien propre à l’hébergement et consommation d’eau/énergie estimée. Personnel, assurances, impôts, investissements et amortissements ne sont pas affectés par parcelle. Ce n’est pas un résultat net comptable.</p>`;
+      }
     }
     h += `<h3>Trésorerie — 60 derniers jours</h3><canvas class="spark" id="spark"></canvas>`;
     const capL = S.loanCapacity(s);
@@ -652,6 +689,15 @@
   function bindPanel() {
     const body = $('pbody');
     body.querySelectorAll('[data-hire]').forEach((b) => (b.onclick = () => { S.hire(s, b.dataset.hire); CT.sfx.play('hire'); renderPanel(true); }));
+    body.querySelectorAll('[data-policy-role]').forEach((b) => (b.onclick = () => {
+      if (S.setStaffPolicy(s, b.dataset.policyRole, b.dataset.policyValue)) { CT.sfx.play('click'); renderPanel(true); SV.autosave(s); }
+    }));
+    body.querySelectorAll('[data-season]').forEach((inp) => (inp.oninput = () => {
+      S.setSeasonRate(s, inp.dataset.season, +inp.value / 100);
+      const out = $('sr-' + inp.dataset.season);
+      if (out) out.textContent = '×' + (s.seasonRates[inp.dataset.season]).toFixed(2);
+    }));
+    body.querySelectorAll('[data-season]').forEach((inp) => (inp.onchange = () => { renderPanel(true); SV.autosave(s); }));
     body.querySelectorAll('[data-borrow]').forEach((b) => (b.onclick = () => { const r = S.borrow(s, +b.dataset.borrow); if (r.ok) CT.sfx.play('coin'); else { CT.sfx.play('error'); toast(r.why, 'bad'); } renderPanel(true); }));
     body.querySelectorAll('[data-repay]').forEach((b) => (b.onclick = () => { const r = S.repayLoan(s); if (r.ok) { CT.sfx.play('coin'); toast('Emprunt soldé.', 'good'); } else toast(r.why, 'bad'); renderPanel(true); }));
     body.querySelectorAll('[data-fire]').forEach((b) => (b.onclick = () => { S.fire(s, +b.dataset.fire); renderPanel(true); }));
@@ -688,6 +734,13 @@
       if (b.type === 'reception') { let n = 0; for (const a of s.rt.agents) if (!a.dead && a.kind === 'staff' && a.role === 'reception' && a.state === 'work') n++; h += `<div class="stat"><span>Au comptoir</span><b>${n ? n + ' réceptionniste' + (n > 1 ? 's' : '') : 'vous (lent)'}</b></div>`; }
       if (def.unit) {
         h += `<div class="stat"><span>Capacité</span><b>${def.cap} pers. · ${eur2(S.unitPrice(s, b))}/nuit</b></div>`;
+        if (s.phase === 'season') {
+          const perf = S.unitPerformance(s, b);
+          h += `<div class="stat"><span>Nuits réalisées</span><b>${perf.nights} / ${perf.days}</b></div>
+            <div class="stat"><span>Chiffre d’affaires acquis</span><b>${eur(perf.revenue)}</b></div>
+            <div class="stat"><span>Marge indicative*</span><b class="${perf.margin >= 0 ? 'pos' : 'neg'}">${eur(perf.margin)}</b></div>
+            <small>* Hors personnel, frais communs et investissements.</small>`;
+        }
         h += `<div class="stat"><span>Paysage alentour</span><b>${'🌿'.repeat(Math.min(5, Math.round(S.beautyAt(s, b) / 3))) || '—'}</b></div>`;
         if (b.clean) h += `<p class="note">🧹 Ménage à faire avant la prochaine arrivée.</p>`;
         const cur = s.bookings.find((k) => k.unit === b.id && k.status === 'onsite');

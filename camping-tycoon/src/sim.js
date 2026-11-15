@@ -64,7 +64,7 @@
       name: opts.name || 'Camping Les Flots Bleus', guestRng: ((opts.seed ?? 12345) ^ 0x9e3779b9) >>> 0, year: 1, day: 0, minute: 7 * 60, phase: 'season',
       w: W, h: H, tiles: new Array(W * H).fill(TERRAIN.GRASS), deco: new Array(W * H).fill(DECO.NONE),
       buildings: [], nextId: 1, bookings: [], staff: [],
-      prices: Object.assign({}, D.DEFAULT_PRICES), shopMarkup: 1.0,
+      prices: Object.assign({}, D.DEFAULT_PRICES), seasonRates: { low: 1, mid: 1, high: 1 }, shopMarkup: 1.0, staffPolicy: { cleaning: 'arrivals', maintenance: 'urgent' },
       reputation: 42, stars: 1,
       fin: { cash: 30000, start: 30000, season: {}, all: {}, history: [] },
       stats: newSeasonStats(), totals: { groups: 0, nights: 0, seasons: 0, shows: 0 },
@@ -108,7 +108,7 @@
     s.entrance = { x: 2, y: 16 };
     // Dégager l'entrée
     for (let y = 12; y <= 21; y++) for (let x = 2; x <= 8; x++) Dc[idx(x, y)] = DECO.NONE;
-    const place = (type, x, y) => { const b = addBuilding(s, type, x, y); b.progress = 0; return b; };
+    const place = (type, x, y) => { const b = addBuilding(s, type, x, y); b.progress = 0; b.openDay = 0; return b; };
     place('reception', 4, 14);
     place('sanitary', 13, 14);
     for (const x of [16, 18, 20]) place('tent', x, 14);
@@ -123,7 +123,8 @@
 
   function addBuilding(s, type, x, y) {
     const def = BUILDINGS[type];
-    const b = { id: s.nextId++, type, x, y, w: def.w, h: def.h, cond: 100, broken: false, brokenDay: -1, dirt: 0, water: 100, progress: def.build, clean: false, uses: 0, ax: -1, ay: -1 };
+    const b = { id: s.nextId++, type, x, y, w: def.w, h: def.h, cond: 100, broken: false, brokenDay: -1, dirt: 0, water: 100, progress: def.build, clean: false, uses: 0, ax: -1, ay: -1,
+      openYear: s.phase === 'winter' ? s.year + 1 : s.year, openDay: s.phase === 'winter' ? 0 : s.day + def.build };
     b.level = 1; b.buildTotal = def.build;
     if (def.unit) b.num = 1 + s.buildings.filter((o) => BUILDINGS[o.type].unit).reduce((m, o) => Math.max(m, o.num || 0), 0);
     for (let j = y; j < y + def.h; j++) for (let i = x; i < x + def.w; i++) s.deco[idx(i, j)] = DECO.NONE;
@@ -337,12 +338,23 @@
 
   /** Traite une demande de réservation de façon atomique. Retourne la réservation ou un motif de refus. */
   const PREMIUM = 1.3;
-  function unitPrice(s, b) { return r2(s.prices[BUILDINGS[b.type].unitType] * (b.level === 2 ? PREMIUM : 1)); }
-  function acceptRate(s, type, profile, tier = 1) {
-    const ref = D.REF_PRICES[type] * starMult(s) * (tier === 2 ? 1.22 : 1);
-    return Math.min(1, Math.pow(ref / (s.prices[type] * (tier === 2 ? PREMIUM : 1)), PROFILES[profile].elasticity));
+  // La saison tarifaire dépend du jour d'arrivée. Le prix est verrouillé à la réservation.
+  function seasonBand(day) {
+    if (day < 61 || day >= 153) return 'low';    // avril-mai et septembre
+    if (day < 91 || day >= 137) return 'mid';   // juin et fin août
+    return 'high';                              // juillet et première quinzaine d'août
   }
-  function priceAccepted(s, req, tier) { return rand(s) <= acceptRate(s, req.type, req.profile, tier); }
+  function seasonMultiplier(s, day) {
+    return (s.seasonRates && s.seasonRates[seasonBand(day)]) || 1;
+  }
+  function unitPrice(s, b, day = s.day) {
+    return r2(s.prices[BUILDINGS[b.type].unitType] * (b.level === 2 ? PREMIUM : 1) * seasonMultiplier(s, day));
+  }
+  function acceptRate(s, type, profile, tier = 1, day = s.day) {
+    const ref = D.REF_PRICES[type] * starMult(s) * (tier === 2 ? 1.22 : 1);
+    return Math.min(1, Math.pow(ref / (s.prices[type] * (tier === 2 ? PREMIUM : 1) * seasonMultiplier(s, day)), PROFILES[profile].elasticity));
+  }
+  function priceAccepted(s, req, tier) { return rand(s) <= acceptRate(s, req.type, req.profile, tier, req.arrive); }
   function requestBooking(s, req) {
     s.stats.requests++;
     const def = Object.keys(BUILDINGS).find((k) => BUILDINGS[k].unitType === req.type);
@@ -366,7 +378,7 @@
     if (!unit) { s.stats.lostPrice++; return { refused: 'price' }; }
     void priceOk;
     const extra = req.type === 'mobilhome' ? 0 : Math.max(0, req.size - 2) * (s.prices.extra ?? 5);
-    const price = r2(unitPrice(s, unit) + extra);
+    const price = r2(unitPrice(s, unit, req.arrive) + extra);
     const total = r2(price * req.nights);
     const deposit = r2(total * D.DEPOSIT_RATE);
     const kids = req.profile === 'family' ? Math.max(1, req.size - 2) : 0;
@@ -1080,17 +1092,17 @@
     };
     if (a.role === 'cleaning') {
       for (const b of built(s)) {
-        if (b.type === 'sanitary' && b.dirt > 22) consider(b, b.dirt, 'clean', 25);
+        if (b.type === 'sanitary' && b.dirt > 22) consider(b, b.dirt * ((s.staffPolicy || {}).cleaning === 'sanitary' ? 1.8 : 1), 'clean', 25);
         if (b.clean) {
           const occupied = s.rt.groups.has(currentBookingId(s, b));
-          if (!occupied) consider(b, arrivalToday(s, b) ? 150 : 70, 'mh', 50);
+          if (!occupied) consider(b, arrivalToday(s, b) ? ((s.staffPolicy || {}).cleaning === 'sanitary' ? 125 : 185) : ((s.staffPolicy || {}).cleaning === 'sanitary' ? 48 : 78), 'mh', 50);
         }
       }
     } else if (a.role === 'maintenance') {
       for (const b of built(s)) {
         if (b.broken) consider(b, 200, 'repair', 90);
-        else if (b.type === 'pool' && b.water < 75) consider(b, 120 - b.water, 'pool', 35);
-        else if (b.cond < 70) consider(b, 100 - b.cond, 'service', 40);
+        else if (b.type === 'pool' && b.water < 75) consider(b, (120 - b.water) * ((s.staffPolicy || {}).maintenance === 'preventive' ? 1.2 : 1), 'pool', 35);
+        else if (b.cond < 85) consider(b, (100 - b.cond) * ((s.staffPolicy || {}).maintenance === 'preventive' ? 1.7 : 0.85), 'service', 40);
       }
     }
     if (best) {
@@ -1760,6 +1772,40 @@
 
   function setPrice(s, type, v) { s.prices[type] = clamp(Math.round(v), type === 'extra' ? 0 : 5, 400); }
   function setMarkup(s, v) { s.shopMarkup = clamp(Math.round(v * 100) / 100, 0.8, 1.6); }
+  function setSeasonRate(s, band, value) {
+    if (!['low', 'mid', 'high'].includes(band) || !Number.isFinite(Number(value))) return false;
+    s.seasonRates = Object.assign({ low: 1, mid: 1, high: 1 }, s.seasonRates || {});
+    s.seasonRates[band] = clamp(Math.round(Number(value) * 100) / 100, 0.7, 1.5);
+    return true;
+  }
+  function setStaffPolicy(s, role, value) {
+    const allowed = { cleaning: ['arrivals', 'sanitary'], maintenance: ['urgent', 'preventive'] };
+    if (!allowed[role] || !allowed[role].includes(value)) return false;
+    s.staffPolicy = Object.assign({ cleaning: 'arrivals', maintenance: 'urgent' }, s.staffPolicy || {});
+    s.staffPolicy[role] = value;
+    return true;
+  }
+  // Indicateur d'exploitation par emplacement : le CA est acquis nuit après nuit,
+  // pas au moment du versement de l'acompte. Hors salaires et frais communs.
+  function unitPerformance(s, unit) {
+    if (!unit || !BUILDINGS[unit.type] || !BUILDINGS[unit.type].unit) return null;
+    const cut = s.phase === 'winter' ? D.SEASON_DAYS : Math.min(D.SEASON_DAYS, s.day);
+    const opening = unit.openYear === s.year ? (unit.openDay || 0) : 0;
+    const days = Math.max(0, cut - opening);
+    let nights = 0, revenue = 0, energy = 0;
+    for (const bk of s.bookings) {
+      if (bk.unit !== unit.id || !['done', 'onsite'].includes(bk.status)) continue;
+      const earned = Math.max(0, Math.min(cut, bk.depart) - Math.max(opening, bk.arrive));
+      nights += earned;
+      revenue += earned * bk.price;
+      energy += earned * bk.size * 1.2;
+    }
+    const upkeep = days * BUILDINGS[unit.type].upkeep;
+    const costs = r2(upkeep + energy);
+    return { days, nights, revenue: r2(revenue), upkeep: r2(upkeep),
+      energyEstimate: r2(energy), costs, margin: r2(revenue - costs),
+      occupancy: days ? Math.min(1, nights / days) : 0 };
+  }
 
 
   /* ---------- Prévisions basées exclusivement sur les contrats ---------- */
@@ -1837,6 +1883,7 @@
   const api = {
     W, H, DAY, newGame, initRuntime, step, tick, rand, fmtDate, fmtTime, dateParts, dow, seasonCurve,
     requestBooking, isBooked, occupancy, classement, units, built, ofType, services, accessible, beautyAt, avgBeauty,
+    seasonBand, seasonMultiplier, setSeasonRate, setStaffPolicy, unitPerformance,
     guestStates, guestMood, guestNeedsStep, guestStateForAgent, guestSnapshot,
     hire, fire, build, buildPath, placeDeco, demolish, canPlace, buildingAt, byId, setPrice, setMarkup,
     startSeason, endSeason, endOfDay, checkIn, checkOut, money, summary, bookingOutlook, field, idx, bs, mapChanged, attractiveness, weatherAt,

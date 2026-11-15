@@ -20,3 +20,11 @@ Le jeu doit être servi **à la racine de son propre site** (ex. `https://campin
 3. Vérifier : la page s'ouvre sur l'écran titre « Camping Tycoon », Chrome propose « Installer l'application », l'icône est la tente rouge sur fond bleu.
 
 Tests (facultatif) : `node --test tests/*.test.js` (Node 18+), 31 tests.
+
+## Production v1.5.0 — Le Camping Vivant
+
+Déploiement attendu sur le projet Vercel existant `camping-tycoon-jlg` avec le même domaine `https://camping-tycoon-jlg.vercel.app/`.
+
+Conserver `campingTycoon.save.auto` et `campingTycoon.save.prev`. La migration initialise `seasonRates` et `staffPolicy` lorsqu'ils sont absents. Tester les 37 scénarios `node --test tests/*.test.js` avant publication. Le service worker porte la version `camping-tycoon-v1.5.0` et remplace l'ancien cache à l'activation.
+
+Ne pas confondre le résultat financier du camping avec la marge indicative par hébergement : celle-ci exclut les frais communs, le personnel et les investissements.

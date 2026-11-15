@@ -421,3 +421,67 @@ test('V1.4 : bilan et saison suivante conservent l’historique comportemental',
   assert.ok(typeof r.guestActivities==='object');assert.ok(Number.isFinite(r.avgGuestMood));
   assert.ok(S.startSeason(s));assert.equal(s.reports[0].guestTrips,r.guestTrips);
 });
+
+test('V1.5 : calendrier tarifaire, bornes et prix appliqués',()=>{
+ const s=fresh(1501),b=S.units(s).find(x=>x.type==='tent');
+ assert.deepEqual([0,61,91,136,137,153].map(S.seasonBand),['low','mid','high','high','mid','low']);
+ assert.ok(S.setSeasonRate(s,'high',1.4));
+ assert.equal(S.unitPrice(s,b,110),S.r2(s.prices.tent*1.4));
+ assert.equal(S.unitPrice(s,b,2),s.prices.tent);
+ assert.ok(S.acceptRate(s,'tent','couple',1,110)<S.acceptRate(s,'tent','couple',1,2));
+ assert.equal(S.setSeasonRate(s,'unknown',1.1),false);
+ assert.equal(S.setSeasonRate(s,'low',Number.NaN),false);
+ S.setSeasonRate(s,'low',4);assert.equal(s.seasonRates.low,1.5);
+});
+test('V1.5 : réservations existantes à prix garanti malgré les changements',()=>{
+ const s=fresh(1502);S.setSeasonRate(s,'high',1.3);
+ const a=S.requestBooking(s,{profile:'couple',type:'tent',arrive:102,nights:3,size:2,force:true}).booking;
+ assert.ok(a);const price=a.price,paid=a.paid;assert.equal(price,S.r2(s.prices.tent*1.3));
+ S.setSeasonRate(s,'high',0.8);assert.equal(a.price,price);assert.equal(a.paid,paid);
+ const b=S.requestBooking(s,{profile:'couple',type:'tent',arrive:110,nights:2,size:2,force:true}).booking;
+ assert.ok(b);assert.equal(b.price,S.r2(s.prices.tent*0.8));
+});
+test('V1.5 : marge indicative fondée sur les nuits réalisées et frais propres',()=>{
+ const s=fresh(1503),unit=S.units(s).find(b=>b.type==='tent');
+ const bk=S.requestBooking(s,{profile:'couple',type:'tent',arrive:0,nights:5,size:2,force:true}).booking;
+ S.checkIn(s,bk,false);s.day=3;
+ const p=S.unitPerformance(s,unit);
+ assert.equal(p.days,3);assert.equal(p.nights,3);
+ assert.equal(p.revenue,S.r2(bk.price*3));
+ assert.equal(p.upkeep,S.r2(3*D.BUILDINGS.tent.upkeep));
+ assert.equal(p.energyEstimate,S.r2(3*2*1.2));
+ assert.equal(p.margin,S.r2(p.revenue-p.costs));
+ assert.equal(S.unitPerformance(s,{type:'reception'}),null);
+});
+test('V1.5 : aucun revenu acquis sur réservation future ou annulée',()=>{
+ const s=fresh(1504),unit=S.units(s).find(b=>b.type==='tent');
+ const bk=S.requestBooking(s,{profile:'couple',type:'tent',arrive:12,nights:2,size:2,force:true}).booking;
+ s.day=10;assert.equal(S.unitPerformance(s,unit).revenue,0);
+ bk.status='cancelled';s.day=18;assert.equal(S.unitPerformance(s,unit).nights,0);
+});
+test('V1.5 : priorités de l’équipe et migration des sauvegardes',()=>{
+ const s=fresh(1505);assert.ok(S.setStaffPolicy(s,'cleaning','sanitary'));
+ assert.ok(S.setStaffPolicy(s,'maintenance','preventive'));
+ assert.equal(S.setStaffPolicy(s,'maintenance','none'),false);
+ assert.equal(S.setStaffPolicy(s,'unknown','urgent'),false);
+ S.setSeasonRate(s,'high',1.25);
+ const copy=SV.deserialize(SV.serialize(s));
+ assert.equal(copy.staffPolicy.cleaning,'sanitary');
+ assert.equal(copy.staffPolicy.maintenance,'preventive');
+ assert.equal(copy.seasonRates.high,1.25);
+ delete s.staffPolicy;delete s.seasonRates;
+ const old=SV.deserialize(SV.serialize(s));
+ assert.equal(old.staffPolicy.cleaning,'arrivals');assert.equal(old.seasonRates.high,1);
+});
+test('V1.5 : mise en service d’une nouvelle parcelle prise en compte',()=>{
+ const s=fresh(1506);let res;
+ for(let y=2;y<30&&!res;y++)for(let x=3;x<38&&!res;x++){
+   const q=S.canPlace(s,'tent',x,y);
+   if(q.ok&&q.access)res=S.build(s,'tent',x,y);
+ }
+ assert.ok(res&&res.ok);const b=res.building;
+ assert.equal(b.openYear,s.year);
+ assert.equal(b.openDay,s.day+D.BUILDINGS.tent.build);
+ assert.equal(S.unitPerformance(s,b).days,0);
+ s.day=5;assert.equal(S.unitPerformance(s,b).days,4);
+});

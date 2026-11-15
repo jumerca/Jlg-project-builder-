@@ -397,11 +397,67 @@
       rr(g, 4, -30, 15, 12, 4); g.fill(); g.stroke();
       g.fillStyle = '#7a4b2a'; g.font = 'bold 8px system-ui'; g.fillText('…', 11.5, -22);
     }
+    if (a.kind === 'guest' && seated && a.act === 'eat') {
+      const hand = Math.sin(t * 0.007 + a.id);
+      g.strokeStyle = skin; g.lineWidth = 1.8; g.beginPath();
+      g.moveTo(3, -9); g.lineTo(6 + hand, -10 - Math.max(0, hand) * 4); g.stroke();
+    }
+    if (a.kind === 'guest' && a.act === 'show' && a.state === 'use') {
+      const clap = Math.sin(t * 0.012 + a.id);
+      g.strokeStyle = skin; g.lineWidth = 2; g.beginPath();
+      g.moveTo(-4, -10); g.lineTo(-1 + clap, -16);
+      g.moveTo(4, -10); g.lineTo(1 - clap, -16); g.stroke();
+    }
     if (a.kind === 'guest' && seated && a.act === 'stroll') {
       g.fillStyle = '#66b6a8'; g.beginPath(); g.arc(0, -23, 2.2, 0, Math.PI * 2); g.fill();
     }
     g.restore();
   }
+
+  /* Petit décor vectoriel 2,5D, animé uniquement sur les emplacements occupés visibles. */
+  function drawPitchLife(g, b, t, meal, kids) {
+    const px = b.x * TS, py = b.y * TS, w = b.w * TS, h = b.h * TS;
+    const cx = px + (b.type === 'mobilhome' ? w - 27 : b.type === 'caravan' ? w - 25 : 39);
+    const cy = py + h - 13;
+    g.save();
+    g.fillStyle = 'rgba(37,54,49,.16)';
+    g.beginPath(); g.ellipse(cx, cy + 2, 25, 8, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#d8bd85'; g.strokeStyle = 'rgba(83,67,49,.55)'; g.lineWidth = 1.4;
+    g.beginPath(); g.ellipse(cx, cy - 2, 21, 7, -.08, 0, Math.PI * 2); g.fill(); g.stroke();
+    for (const side of [-1, 1]) {
+      g.fillStyle = '#8c583e'; g.strokeStyle = INK;
+      g.beginPath(); g.rect(cx + side * 15 - 5, cy - 6, 10, 5); g.fill(); g.stroke();
+      g.beginPath(); g.moveTo(cx + side * 15 - 4, cy - 1);
+      g.lineTo(cx + side * 15 - 4, cy + 5); g.moveTo(cx + side * 15 + 4, cy - 1);
+      g.lineTo(cx + side * 15 + 4, cy + 5); g.stroke();
+    }
+    g.fillStyle = '#8b5b3f'; g.fillRect(cx - 2, cy - 5, 4, 11);
+    g.beginPath(); g.moveTo(cx - 10, cy + 5); g.lineTo(cx + 10, cy + 5); g.strokeStyle = '#49352e'; g.lineWidth = 2; g.stroke();
+    g.beginPath(); g.ellipse(cx, cy - 8, 14, 6, 0, 0, Math.PI * 2);
+    g.fillStyle = '#f2dfb1'; g.strokeStyle = '#684635'; g.lineWidth = 1.3; g.fill(); g.stroke();
+    if (meal) {
+      for (const offset of [-7, 7]) {
+        g.fillStyle = '#fffef2'; g.beginPath(); g.ellipse(cx + offset, cy - 9, 3.5, 2, 0, 0, 7); g.fill();
+        g.fillStyle = offset > 0 ? '#e88d4a' : '#72a76a';
+        g.beginPath(); g.ellipse(cx + offset, cy - 9, 1.9, 1, 0, 0, 7); g.fill();
+      }
+      g.fillStyle = '#c5e4f3'; g.fillRect(cx - 2, cy - 13, 3, 5);
+      g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1; g.beginPath();
+      const steam = Math.sin(t * .004 + b.id) * 1.2;
+      g.moveTo(cx, cy - 16); g.quadraticCurveTo(cx + steam, cy - 22, cx, cy - 25); g.stroke();
+    } else {
+      g.fillStyle = '#f4f2e5'; g.fillRect(cx - 7, cy - 13, 8, 5);
+      g.strokeStyle = '#2a6e81'; g.strokeRect(cx - 7, cy - 13, 8, 5);
+      g.fillStyle = '#d75a41'; g.beginPath(); g.ellipse(cx + 5, cy - 10, 2.6, 1.7, 0, 0, 7); g.fill();
+    }
+    if (kids) {
+      const bx = px + 8 + (b.id % 3) * 5, by = py + h - 9;
+      g.fillStyle = '#fff7dc'; g.strokeStyle = '#b64f43'; g.lineWidth = 1.2;
+      g.beginPath(); g.arc(bx, by - Math.abs(Math.sin(t * .002 + b.id)) * 2.2, 3.3, 0, 7); g.fill(); g.stroke();
+    }
+    g.restore();
+  }
+
   function drawSwimmer(g, x, y, a, t) {
     const bob = Math.sin(t * 0.004 + a.id) * 1.2;
     g.beginPath(); g.ellipse(x, y + 2, 6, 2.6, 0, 0, Math.PI * 2); g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 1.2; g.stroke();
@@ -554,8 +610,12 @@
         if (q.inside === 'snack') { const tabs = b.level === 2 ? [[18, 44], [48, 50], [78, 42], [30, 58], [62, 58]] : [[18, 44], [48, 50], [78, 42]]; const tb = tabs[a.id % tabs.length]; const k = (a.id >> 2) % 4; x = b.x * TS + tb[0] + [-9, 9, -9, 9][k]; y = b.y * TS + tb[1] + [0, 0, 8, 8][k]; }
         else if (q.inside === 'stage') { x = b.x * TS + 12 + hash(a.id, 3) * (w - 24); y = b.y * TS + 60 + hash(3, a.id) * (h - 66) - (S.stageWindow(s) && S.stageWindow(s).show ? Math.abs(Math.sin(t * 0.008 + a.id)) * 2 : 0); }
         else { x = b.x * TS + 10 + hash(a.id, 2) * (w - 20) + Math.sin(t * 0.002 + a.id) * 5; y = b.y * TS + 22 + hash(2, a.id) * (h - 26); }
+        if (q.inside === 'playground' && a.kid) y -= Math.max(0, Math.sin(t * 0.009 + a.id)) * 5;
         if (!vis(x, y)) continue;
-        list.push({ z: b.y * TS + h + 0.5 + y * 0.0001, kind: 'p', a, x, y });
+        const activityAgent = q.inside === 'snack' ? Object.assign({}, a, { state: 'rest', act: 'eat' }) :
+          q.inside === 'playground' ? Object.assign({}, a, { state: 'walk', act: 'play' }) :
+          q.inside === 'stage' ? Object.assign({}, a, { state: 'use', act: 'show' }) : a;
+        list.push({ z: b.y * TS + h + 0.5 + y * 0.0001, kind: 'p', a: activityAgent, x, y });
         continue;
       } else if (q) { x = q.x; y = q.y; }
       else {
@@ -567,7 +627,18 @@
       if (!vis(x, y)) continue;
       list.push({ z: y, kind: 'p', a, x, y });
     }
-    // vacanciers chez eux (journée)
+    const h = s.minute / 60;
+    const meal = (h >= 11.6 && h <= 14) || (h >= 18.4 && h <= 20.6);
+    if (daylight > 0.5 && !['storm', 'rain'].includes(s.weather.type) && h >= 8.5 && h < 21.2) {
+      for (const [bid, gr] of rt.groups) {
+        if (gr.phase !== 'home' || !gr.members.some((m) => !m.aid)) continue;
+        const bk = s.bookings.find((v) => v.id === bid);
+        const b = bk && S.byId(s, bk.unit);
+        if (!b || !vis((b.x + b.w / 2) * TS, (b.y + b.h / 2) * TS)) continue;
+        list.push({ kind: 'life', z: b.y * TS + b.h * TS + 1, b, meal, kids: !!bk.kids });
+      }
+    }
+    // Vacanciers sur leur terrasse, assis ou discutant.
     if (daylight > 0.55) {
       for (const [bid, gr] of rt.groups) {
         if (gr.phase !== 'home') continue;
@@ -695,6 +766,8 @@
           if (!BUILDINGS[b.type].unit) lamps.push([cx, b.y * TS + b.h * TS - 6, 70]);
           if (b.type === 'stage' && S.stageLive(s, b)) lamps.push([cx, b.y * TS + 20, 150]);
         }
+      } else if (o.kind === 'life') {
+        drawPitchLife(g, o.b, now, o.meal, o.kids);
       } else if (o.kind === 'arch') {
         g.drawImage(sprite('arch' + s.name, 110, 100, 26, 44, (gg) => { gg.scale(1.4, 1.4); drawArch(gg, s.name); }), o.x - 26 + 10, o.y - 44 - 14, 110, 100);
       } else if (o.kind === 'p') drawPerson(g, o.x, o.y, o.a, now, o.sit ? 0.95 : 1);

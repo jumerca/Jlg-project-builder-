@@ -39,6 +39,8 @@
     o.reports = o.reports || [];
     o.objectives = o.objectives || {};
     o.shopMarkup = o.shopMarkup || 1;
+    o.seasonRates = Object.assign({ low: 1, mid: 1, high: 1 }, o.seasonRates || {});
+    o.staffPolicy = Object.assign({ cleaning: 'arrivals', maintenance: 'urgent' }, o.staffPolicy || {});
     for (const b of o.buildings) { if (b.water === undefined) b.water = 100; if (b.uses === undefined) b.uses = 0; }
     o.format = FORMAT;
     return o;
