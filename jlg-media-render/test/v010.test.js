@@ -45,7 +45,7 @@ test('seven day calendar requests each date and rejects unrelated sports',async(
 test('dossier index and new dossier article routes respond 200 without network',async()=>{
  const index=await page('/dossiers');
  assert.equal(index.status,200);
- assert.match(index.body,/Nos dossiers originaux/);
+ assert.match(index.body,/Le journal, /);
  assert.match(index.body,/Euro féminin 2026/);
  assert.match(index.body,/Oyonnax/);
  const eu=await page('/dossier/euro-feminin-2026-bleues');
