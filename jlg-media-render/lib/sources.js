@@ -3,8 +3,10 @@ const {hash}=require('./editorial');
 const FEEDS=[
  {name:'franceinfo',url:'https://www.francetvinfo.fr/titres.rss'},
  {name:'France 24',url:'https://www.france24.com/fr/rss'},
- {name:'Le Monde',url:'https://www.lemonde.fr/rss/une.xml'},
  {name:'RFI',url:'https://www.rfi.fr/fr/rss'},
+ {name:'ICI Limousin',url:'https://www.ici.fr/rss/limousin/a-la-une.xml'},
+ {name:'France 3 Corrèze',url:'https://france3-regions.franceinfo.fr/nouvelle-aquitaine/correze/rss'},
+ {name:'France 3 Tulle',url:'https://france3-regions.franceinfo.fr/nouvelle-aquitaine/correze/tulle/rss'},
  {name:'Le Figaro',url:'https://www.lefigaro.fr/rss/figaro_actualites.xml'},
  {name:'Google Actualités · Corrèze',url:'https://news.google.com/rss/search?q=Corr%C3%A8ze%20OR%20Brive%20OR%20Tulle%20OR%20Pompadour&hl=fr&gl=FR&ceid=FR%3Afr'}
 ];
