@@ -1,6 +1,7 @@
 'use strict';
 const {DOSSIERS}=require('./dossiers');
 const E=require('./editorial');
+const I=require('./photos');
 const PRINT_DATE='Dimanche 22 novembre 2026';
 const href=d=>'/dossier/'+encodeURIComponent(d.slug);
 const category=s=>s==='Corrèze'?'corr':'';
@@ -9,7 +10,7 @@ const sourceCount=d=>Array.isArray(d.sources)?d.sources.length:0;
 const label=d=>'<span class="ed-kicker">'+E.esc(d.eyebrow||(d.section+' · DOSSIER'))+'</span>';
 function newsroomCard(d,variant='normal'){
  const cls=variant==='side'?'ed-story ed-story-side':variant==='wide'?'ed-story ed-story-wide':'ed-story';
- return '<article class="'+cls+'"><div class="ed-story-kicker">'+E.esc(d.section)+' <span>· ANALYSE</span></div><h3>'+headline(d)+'</h3><p>'+E.esc(d.subtitle)+'</p><div class="ed-story-bottom"><span>'+sourceCount(d)+' sources · JLG Média</span><a href="'+href(d)+'">Lire l’article <span aria-hidden="true">↗</span></a></div></article>';
+ return '<article class="'+cls+'">'+I.picture(d,'card')+'<div class="ed-story-kicker">'+E.esc(d.section)+' <span>· ANALYSE</span></div><h3>'+headline(d)+'</h3><p>'+E.esc(d.subtitle)+'</p><div class="ed-story-bottom"><span>'+sourceCount(d)+' sources · JLG Média</span><a href="'+href(d)+'">Lire l’article <span aria-hidden="true">↗</span></a></div></article>';
 }
 function cover(news=[]){
  const lead=DOSSIERS.find(d=>d.slug==='cop31-antalya-pas-accord-final')||DOSSIERS[0];
@@ -28,7 +29,7 @@ function cover(news=[]){
   +'<header class="ed-front-title"><div><span class="ed-front-number">N° 001 · JLG CREATIVE</span><h1>Le journal <em>des faits.</em></h1><p>Des articles écrits, des sources vérifiables, des analyses qui expliquent ce qui se passe — pas une vitrine de dépêches.</p></div><div class="ed-front-identity"><span>ÉDITION</span><strong>22<span>·</span>11</strong><small>2026 · FRANCE</small></div></header>'
   +'<div class="ed-breaking"><strong>À LA UNE</strong><span>Climat : la COP31 s’achève sans déclaration politique commune à Antalya.</span><a href="'+href(lead)+'">Comprendre le blocage →</a></div>'
   +'<section class="ed-lead-grid"><article class="ed-lead">'
-  +'<div class="ed-lead-atmosphere" aria-hidden="true"><div class="ed-earth"><div class="ed-earth-ring ed-earth-ring-a"></div><div class="ed-earth-ring ed-earth-ring-b"></div><div class="ed-earth-core">31</div></div><span class="ed-atmosphere-label">ANTALYA · 2026</span></div>'
+  +I.picture(lead,'lead')
   +'<div class="ed-lead-text">'+label(lead)+'<h2>'+headline(lead)+'</h2><p>'+E.esc(lead.subtitle)+'</p><div class="ed-lead-footer"><span>LE GRAND DOSSIER · '+sourceCount(lead)+' DOCUMENTS SOURCES</span><a href="'+href(lead)+'">Lire notre analyse <span aria-hidden="true">↗</span></a></div></div></article>'
   +'<div class="ed-lead-side">'+aside.map(d=>newsroomCard(d,'side')).join('')+'</div></section>'
   +'<div class="ed-divider"><span>01</span><h2>Les articles de la rédaction</h2><a href="/dossiers">Voir tous les dossiers ↗</a></div>'
@@ -38,7 +39,7 @@ function cover(news=[]){
   +'<div class="ed-section-intro ed-sport-intro"><span>SPORT</span><h2>Les matchs, au-delà du score</h2><p>Lire le déroulé, replacer les chiffres et expliquer les enjeux.</p></div>'
   +'<div class="ed-local-grid">'+[sport,handball,cup].filter(Boolean).map(d=>newsroomCard(d)).join('')+'</div>'
   +(rest.length?'<div class="ed-local-grid">'+rest.map(d=>newsroomCard(d)).join('')+'</div>':'')
-  +'</div><aside class="ed-front-aside"><div class="ed-brief-header"><div><span>EN CONTINU</span><h2>Le fil des brèves</h2></div><span class="ed-mini-dot"></span></div><p class="ed-brief-disclaimer">Informations courtes issues de flux identifiés. Ce sont des dépêches, pas des articles de la rédaction.</p><ol class="ed-brief-list">'+(briefs||'<li>Le fil est momentanément indisponible.</li>')+'</ol><a class="ed-brief-more" href="/breves">Toute l’actualité en brèves ↗</a><div class="ed-news-note"><span>NOTRE MÉTHODE</span><h3>Ce qu’on sait. Ce qu’on analyse. Ce qui reste à vérifier.</h3><p>Nos articles originaux affichent les documents utilisés. Les flux RSS ne décident ni des titres de la Une, ni du contenu de nos analyses.</p><a href="/journal">Découvrir la rédaction →</a></div></aside></section>'
+  +'</div><aside class="ed-front-aside"><div class="ed-brief-header"><div><span>EN CONTINU</span><h2>Le fil des brèves</h2></div><span class="ed-mini-dot"></span></div><p class="ed-brief-disclaimer">Informations courtes issues de flux identifiés. Ce sont des dépêches, pas des articles de la rédaction.</p><ol class="ed-brief-list">'+(briefs||'<li>Le fil est momentanément indisponible.</li>')+'</ol><a class="ed-brief-more" href="/breves">Toute l’actualité en brèves ↗</a></aside></section>'
   +'<div class="ed-bottom-ribbon"><div><span>VOTRE JOURNAL</span><strong>Les bonnes questions méritent mieux que trois lignes.</strong></div><a href="/dossiers">Lire les articles de fond ↗</a></div>'
   +'<p class="ed-edition-note">Une datée du 22 novembre 2026 · Sélection et articles rédactionnels non actualisés automatiquement. Pour les derniers événements reçus des fournisseurs, consulter les <a href="/breves">brèves</a> et les <a href="/scores">scores datés</a>.</p></div>';
 }
