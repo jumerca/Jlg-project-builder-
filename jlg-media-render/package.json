@@ -1,0 +1,14 @@
+{
+  "name": "jlg-media-independent",
+  "version": "0.9.9",
+  "private": true,
+  "type": "commonjs",
+  "description": "JLG Media - edition independante Render",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
