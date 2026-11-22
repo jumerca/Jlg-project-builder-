@@ -7,11 +7,12 @@ const E=require('./lib/editorial');
 const S=require('./lib/sports');
 const A=require('./lib/agenda');
 const V=require('./lib/agenda-view');
+const P=require('./lib/frontpage');
 const {DOSSIERS}=require('./lib/dossiers');
 const ROOT=path.join(__dirname,'public');
 const pathSafe=p=>path.normalize(p).replace(/^(\.\.(\/|\\|$))+/,'');
 const C={title:'JLG Média',desc:'Actualités françaises, dossiers originaux et scores sportifs sourcés'};
-const NAV=[['/','À la une'],['/?section=France','France'],['/?section=Corrèze','Corrèze'],['/?section=International','International'],['/?section=Sport','Sport'],['/journal','Journal'],['/dossiers','Dossiers'],['/?section=Brèves','Brèves'],['/scores','Scores & Direct'],['/calendrier','Calendrier'],['/classements','Classements']];
+const NAV=[['/','À la une'],['/?section=France','France'],['/?section=Corrèze','Corrèze'],['/?section=International','International'],['/?section=Sport','Sport'],['/journal','Journal'],['/dossiers','Dossiers'],['/breves','Brèves'],['/scores','Scores & Direct'],['/calendrier','Calendrier'],['/classements','Classements']];
 function fmt(iso,clock=false){
  if(!iso)return 'Date non communiquée';
  try{return new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',day:'numeric',month:'short',year:'numeric',...(clock?{hour:'2-digit',minute:'2-digit'}:{})}).format(new Date(iso))}catch{return 'Date inconnue'}
@@ -20,7 +21,7 @@ function nav(current){
  return '<nav class="navouter"><div class="container nav" aria-label="Rubriques">'+NAV.map(([href,label])=>'<a href="'+href+'" class="'+(href===current?'active':'')+'">'+E.esc(label)+'</a>').join('')+'</div></nav>';
 }
 function layout(body,title=C.title,current='/',desc=C.desc){
- return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#081a2b"><meta name="description" content="'+E.esc(desc)+'"><link rel="icon" type="image/svg+xml" href="/icon.svg"><link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/style.css?v=099"><title>'+E.esc(title)+' · JLG Média</title></head><body><div class="topbar"><div class="container flex between"><span>JLG CREATIVE · JOURNAL NUMÉRIQUE</span><span>INFORMATION SOURCÉE · V0.10.0 INDÉPENDANT</span></div></div><header class="mast"><div class="container mast-inner"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true">J</span><span><span class="brand-name">JLG <em>Média</em></span><small>COMPRENDRE, VÉRIFIER, TRANSMETTRE</small></span></a><div class="mast-right"><span>Édition française indépendante</span><a href="/scores">Scores sportifs</a></div></div></header>'+nav(current)+'<main class="container">'+body+'</main><footer class="footer"><div class="container"><div><b>JLG Média · JLG Creative</b><p>Les nouvelles sont issues de flux publics cités. Leurs textes ne sont pas reproduits intégralement. Une revue de plusieurs RSS n’est pas une enquête vérifiée. Les données sportives tierces peuvent être incomplètes.</p></div><p>Édition indépendante de l’ancienne version Vercel. Hébergée sur Render. <a href="/api/health">État technique</a> · <a href="/journal">Méthode éditoriale</a></p></div></footer></body></html>';
+ return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#081a2b"><meta name="description" content="'+E.esc(desc)+'"><link rel="icon" type="image/svg+xml" href="/icon.svg"><link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/style.css?v=099"><link rel="stylesheet" href="/frontpage.css?v=011"><title>'+E.esc(title)+' · JLG Média</title></head><body><div class="topbar"><div class="container flex between"><span>JLG CREATIVE · JOURNAL NUMÉRIQUE</span><span>INFORMATION SOURCÉE · V0.11.0 · ÉDITION</span></div></div><header class="mast"><div class="container mast-inner"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true">J</span><span><span class="brand-name">JLG <em>Média</em></span><small>COMPRENDRE, VÉRIFIER, TRANSMETTRE</small></span></a><div class="mast-right"><span>Édition française indépendante</span><a href="/scores">Scores sportifs</a></div></div></header>'+nav(current)+'<main class="container">'+body+'</main><footer class="footer"><div class="container"><div><b>JLG Média · JLG Creative</b><p>Les articles de fond sont rédigés à partir de documents identifiés. Les brèves issues de flux RSS restent attribuées à leurs médias. Les articles ne sont pas des reportages de terrain. Les scores sportifs peuvent être incomplets.</p></div><p>Édition indépendante de l’ancienne version Vercel. Hébergée sur Render. <a href="/api/health">État technique</a> · <a href="/journal">Méthode éditoriale</a></p></div></footer></body></html>';
 }
 function card(g,large=false){
  const url='/article?id='+encodeURIComponent(g.id);
@@ -47,7 +48,11 @@ function article(g){
  return header+intros+'<h2>Ce que rapportent les publications</h2>'+blocks+'<h2>Ce qui demande une vérification complémentaire</h2><p>Le contexte intégral, les éventuelles divergences entre sources et les conséquences précises ne sont pas connus à partir des seules métadonnées RSS. JLG Média ne les reconstitue pas par supposition.</p>'+guard+'<p><a class="back" href="/journal">← Retour au journal</a></p></article>';
 }
 function dossier(d){
- return '<div class="breadcrumbs"><a href="/">Accueil</a> / <a href="/journal">Journal</a> / Dossiers</div><article class="reader"><div class="badge">Dossier original · '+E.esc(d.section)+' · '+fmt(d.date)+'</div><h1>'+E.esc(d.title)+'</h1><p class="lead">'+E.esc(d.subtitle)+'</p><div class="notice">Analyse éditoriale rédigée à partir de documents identifiés. Les hypothèses de jeu sont distinguées des faits officialisés. Dernière vérification éditoriale : 22 novembre 2026.</div>'+d.sections.map(s=>'<section><h2>'+E.esc(s.title)+'</h2>'+s.paragraphs.map(p=>'<p>'+E.esc(p)+'</p>').join('')+'</section>').join('')+'<section class="source"><h2>Sources primaires à consulter</h2><ol>'+d.sources.map(s=>'<li><a target="_blank" rel="noopener noreferrer" href="'+E.esc(s.url)+'">'+E.esc(s.title)+'</a></li>').join('')+'</ol></section><p><a class="back" href="/journal">← Retour au journal</a></p></article>';
+ const links=d.sources.map(s=>'<li><a class="ed-source-anchor" target="_blank" rel="noopener noreferrer" href="'+E.esc(s.url)+'">'+E.esc(s.title)+'</a></li>').join('');
+ const sections=d.sections.map(s=>'<section><h2>'+E.esc(s.title)+'</h2>'+s.paragraphs.map(p=>'<p>'+E.esc(p)+'</p>').join('')+'</section>').join('');
+ const related=DOSSIERS.filter(x=>x.slug!==d.slug).filter(x=>x.section===d.section).slice(0,2);
+ const end=related.length?'<div class="ed-related">'+related.map(x=>'<a href="/dossier/'+E.esc(x.slug)+'">'+E.esc(x.title)+' →</a>').join('')+'</div>':'';
+ return '<div class="breadcrumbs"><a href="/">La Une</a> / <a href="/journal">Journal</a> / '+E.esc(d.section)+'</div><article class="reader"><span class="ed-kicker">'+E.esc(d.eyebrow||d.section+' · ARTICLE DE FOND')+'</span><h1>'+E.esc(d.title)+'</h1><p class="lead">'+E.esc(d.subtitle)+'</p><div class="ed-byline"><span><strong>JLG Média · Rédaction</strong> — synthèse documentaire originale</span><time datetime="'+E.esc(d.date)+'">'+fmt(d.date)+'</time><span>'+E.esc(d.readTime||'Lecture 5 min')+'</span></div><aside class="ed-editor-note"><strong>Notre méthode.</strong> Article rédigé à partir de documents dont les liens figurent au bas de cette page. Les faits rapportés et les angles d’analyse sont distincts. Cette édition, datée du 22 novembre 2026, ne se réécrit pas automatiquement à partir des flux de dépêches.</aside>'+sections+'<section class="source"><h2 class="ed-source-header">Sources et documents consultés</h2><p>Ces références permettent de vérifier les faits principaux. Les liens donnent accès aux publications d’origine ; les textes de JLG Média sont des synthèses originales.</p><ol>'+links+'</ol></section>'+end+'<p><a class="back" href="/journal">← Retour aux articles</a></p></article>';
 }
 function matchCard(l){
  return '<section class="score-card"><div class="badge">'+E.esc(l.group||'International')+' · '+E.esc(l.sport)+'</div><h3>'+E.esc(l.name)+'</h3>'+(l.ok?(l.events.length?l.events.map(m=>{
@@ -83,12 +88,12 @@ function html(res,body,status=200){res.writeHead(status,{'Content-Type':'text/ht
 async function handler(req,res){
  const url=new URL(req.url||'/','https://jlg-media.render.local'),p=url.pathname;
  try{
-  if(p==='/api/health')return json(res,{ok:true,product:'JLG Média · édition Render',version:'0.10.0',independent:true,timestamp:new Date().toISOString()});
-  if(['/style.css','/icon.svg','/manifest.webmanifest'].includes(p)){
+  if(p==='/api/health')return json(res,{ok:true,product:'JLG Média · édition Render',version:'0.11.0',independent:true,timestamp:new Date().toISOString()});
+  if(['/style.css','/frontpage.css','/icon.svg','/manifest.webmanifest'].includes(p)){
    const fn=path.join(ROOT,pathSafe(p.slice(1))),type=p.endsWith('.css')?'text/css':p.endsWith('.svg')?'image/svg+xml':'application/manifest+json';
    res.writeHead(200,{'Content-Type':type+'; charset=utf-8','Cache-Control':'public,max-age=3600'});return fs.createReadStream(fn).pipe(res);
   }
-  if(p==='/dossiers'||p==='/dossier')return html(res,layout(V.dossiersPage(),'Dossiers originaux','/dossiers'));
+  if(p==='/dossiers'||p==='/dossier')return html(res,layout(P.dossierIndex(),'Nos articles · La rédaction','/dossiers'));
   if(p.startsWith('/dossier/')||(p==='/journal'&&url.searchParams.get('dossier'))){
    const slug=p.startsWith('/dossier/')?p.split('/').pop():url.searchParams.get('dossier');
    const d=DOSSIERS.find(x=>x.slug===slug);
@@ -107,19 +112,26 @@ async function handler(req,res){
    const data=await S.scores(sport,day);
    return p==='/api/scores'?json(res,data):html(res,layout(scorePage(data),'Scores & Direct','/scores'));
   }
-  if(['/', '/journal','/article','/api/actualites'].includes(p)){
+  if(['/', '/journal','/article','/api/actualites','/breves'].includes(p)){
+   // The curated edition and RSS briefing are distinct editorial products.
+   if(p==='/journal')return html(res,layout(P.dossierIndex(),'Les articles de la rédaction','/journal'));
+   const section=url.searchParams.get('section')||'';
+   if(p==='/'&&!section&&!url.searchParams.has('q')){
+    const feed=await load();
+    return html(res,layout(P.cover(E.combine(feed.items)),'La Une · Édition du 22 novembre','/'));
+   }
    const feed=await load();
    let groups=E.combine(feed.items);
    if(p==='/api/actualites')return json(res,{fetchedAt:feed.at,sources:feed.sources,groups:groups.slice(0,100).map(x=>({id:x.id,title:x.title,category:x.category,kind:x.kind,sourceCount:x.count}))});
    if(p==='/article'){
     const g=groups.find(x=>x.id===url.searchParams.get('id'));
-    return g?html(res,layout(article(g),g.title,'/journal')):html(res,layout('<div class="empty">Ce sujet ne figure plus dans le flux récent. Consultez le <a href="/journal">journal</a>.</div>','Article archivé','/journal'),404);
+    return g?html(res,layout(article(g),g.title,'/breves')):html(res,layout('<div class="empty">Cette brève ne figure plus dans le fil récent. <a href="/breves">Consulter les dernières brèves</a>.</div>','Brève archivée','/breves'),404);
    }
    const q=E.norm(url.searchParams.get('q')||'');
    if(q)groups=groups.filter(g=>E.norm(g.title+' '+g.summary+' '+g.sourceNames.join(' ')).includes(q));
-   const section=p==='/journal'?'':url.searchParams.get('section')||'';
-   const body=journalPage(groups,feed,section);
-   return html(res,layout(body,section||'À la une',p==='/journal'?'/journal':section?'/?section='+encodeURIComponent(section):'/'));
+   if(p==='/breves'||section==='Brèves'||q)return html(res,layout(journalPage(groups,feed,'Brèves'),'Les brèves des médias','/breves'));
+   if(section)return html(res,layout(P.sectionPage(section,feed,groups),'Actualités '+section,'/?section='+encodeURIComponent(section)));
+   return html(res,layout(P.cover(groups),'La Une · Édition du 22 novembre','/'));
   }
   return html(res,layout('<section class="intro"><h1>Page introuvable</h1><p>Cette adresse n’existe pas dans l’édition indépendante.</p></section>','404'),404);
  }catch(e){console.error('JLG Media request error',e);return html(res,layout('<div class="empty">Le service connaît un problème temporaire. Aucune information non vérifiée n’a été affichée. <a href="/">Réessayer</a>.</div>','Indisponible'),503)}
