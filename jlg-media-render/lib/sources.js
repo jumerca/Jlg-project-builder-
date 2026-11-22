@@ -1,5 +1,6 @@
 'use strict';
 const {hash}=require('./editorial');
+const MEDIA=require('./media-catalog');
 const FEEDS=[
  {name:'franceinfo',url:'https://www.francetvinfo.fr/titres.rss'},
  {name:'France 24',url:'https://www.france24.com/fr/rss'},
@@ -8,7 +9,8 @@ const FEEDS=[
  {name:'France 3 Corrèze',url:'https://france3-regions.franceinfo.fr/nouvelle-aquitaine/correze/rss'},
  {name:'France 3 Tulle',url:'https://france3-regions.franceinfo.fr/nouvelle-aquitaine/correze/tulle/rss'},
  {name:'Le Figaro',url:'https://www.lefigaro.fr/rss/figaro_actualites.xml'},
- {name:'Google Actualités · Corrèze',url:'https://news.google.com/rss/search?q=Corr%C3%A8ze%20OR%20Brive%20OR%20Tulle%20OR%20Pompadour&hl=fr&gl=FR&ceid=FR%3Afr'}
+ {name:'Google Actualités · Corrèze',url:'https://news.google.com/rss/search?q=Corr%C3%A8ze%20OR%20Brive%20OR%20Tulle%20OR%20Pompadour&hl=fr&gl=FR&ceid=FR%3Afr'},
+ ...MEDIA.DISCOVERY
 ];
 const decode=s=>String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/&#(x[\da-f]+|\d+);/gi,(_,n)=>{try{return String.fromCodePoint(n[0].toLowerCase()==='x'?parseInt(n.slice(1),16):parseInt(n,10))}catch{return ''}}).replace(/&(amp|lt|gt|quot|apos|nbsp|eacute|egrave|ecirc|agrave|ccedil|rsquo|ldquo|rdquo);/gi,(_,x)=>({amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' ',eacute:'é',egrave:'è',ecirc:'ê',agrave:'à',ccedil:'ç',rsquo:'’',ldquo:'“',rdquo:'”'}[x.toLowerCase()]||''));
 const clean=s=>decode(s).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
@@ -30,12 +32,12 @@ function parse(xml,origin,now=Date.now()){
   const epoch=Number.isFinite(Date.parse(date))?Date.parse(date):0;
   const source=clean(field(block,'source'));
   return {id:hash(url||title),title:title.slice(0,250),url,publisher:source||origin.name,feed:origin.name,summary:summary.slice(0,450),epoch,date:epoch?new Date(epoch).toISOString():null};
- }).filter(x=>x.title.length>=10&&x.url&&(!x.epoch||x.epoch<now+86400000));
+ }).filter(x=>x.title.length>=10&&x.url&&(!x.epoch||x.epoch<now+86400000)&&MEDIA.acceptsAggregate(origin,x.publisher,x.url));
 }
 let cached={at:0,items:[],sources:[]},inflight=null;
 async function retrieve(feed,fetcher=fetch){
  try{
-  const r=await fetcher(feed.url,{headers:{Accept:'application/rss+xml,application/xml,text/xml;q=.8,*/*;q=.6','User-Agent':'JLG-Media/0.9.9 (+https://github.com/jumerca)'},signal:AbortSignal.timeout(6500)});
+  const r=await fetcher(feed.url,{headers:{Accept:'application/rss+xml,application/xml,text/xml;q=.8,*/*;q=.6','User-Agent':'JLG-Media/0.12.0 (+https://github.com/jumerca)'},signal:AbortSignal.timeout(6500)});
   if(!r.ok)throw Error('HTTP '+r.status);
   const data=await r.text();if(!/<(rss|feed|rdf:RDF|item)\b/i.test(data))throw Error('not RSS');
   return {name:feed.name,ok:true,items:parse(data,feed)};
