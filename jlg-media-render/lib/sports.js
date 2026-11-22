@@ -91,7 +91,10 @@ async function standings(kind,code,fetcher=fetch){
   const records=standings.map((x,i)=>{
    const stats=x.stats||[];
    const get=(...names)=>stats.find(z=>names.includes(z.name)||names.includes(z.abbreviation))?.value??null;
-   return {team:x.team?.displayName||x.team?.name||'',rank:get('rank','RANK')??i+1,played:get('gamesPlayed','GP','games'),points:get('points','PTS')};
+   const wins=get('wins','W'),losses=get('losses','L');
+   const isNBA=kind==='basketball';
+   const validRecord=isNBA&&Number.isInteger(wins)&&Number.isInteger(losses)&&wins>=0&&losses>=0;
+   return {team:x.team?.displayName||x.team?.name||'',rank:get('rank','RANK')??i+1,played:isNBA?(validRecord?wins+losses:null):get('gamesPlayed','GP','games'),points:isNBA?(validRecord?wins+'–'+losses:null):get('points','PTS')};
   }).filter(x=>x.team).slice(0,24);
   return {ok:true,url,records};
  }catch(e){return {ok:false,url,records:[],error:String(e.message||e)}}
