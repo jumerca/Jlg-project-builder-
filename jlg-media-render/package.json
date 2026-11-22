@@ -1,9 +1,9 @@
 {
   "name": "jlg-media-independent",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "type": "commonjs",
-  "description": "JLG Media - edition independante Render",
+  "description": "JLG Média, édition de presse originale et indépendante, publiée sur Render",
   "scripts": {
     "start": "node server.js",
     "test": "node --test test/*.test.js"
