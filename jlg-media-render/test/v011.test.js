@@ -3,6 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const {DOSSIERS}=require('../lib/dossiers');
 const {STORIES}=require('../lib/edition-20261122');
 const P=require('../lib/frontpage');
+const E=require('../lib/editorial');
 const {handler}=require('../server');
 async function page(url){
  let status=0,body='',headers={};
@@ -43,14 +44,14 @@ test('front page remains useful when all RSS feeds fail',()=>{
 });
 test('newsroom index shows all editorial titles',()=>{
  const h=P.dossierIndex();
- for(const d of DOSSIERS)assert.ok(h.includes(d.title),d.slug+' is absent');
+ for(const d of DOSSIERS)assert.ok(h.includes(E.esc(d.title)),d.slug+' is absent');
  assert.ok(!h.includes('france24.com'));
 });
 test('France, Correze and international sections feature authored coverage first',()=>{
  for(const section of ['France','Corrèze','International','Sport']){
   const t=P.sectionPage(section,{},[]);
   assert.match(t,/Nos articles de fond/);
-  for(const d of DOSSIERS.filter(x=>x.section===section))assert.ok(t.includes(d.title));
+  for(const d of DOSSIERS.filter(x=>x.section===section))assert.ok(t.includes(E.esc(d.title)));
  }
 });
 test('new original articles are served in full with sources, byline, and date without RSS',async()=>{
