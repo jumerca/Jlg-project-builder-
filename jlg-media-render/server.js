@@ -5,11 +5,13 @@ const path=require('node:path');
 const {load}=require('./lib/sources');
 const E=require('./lib/editorial');
 const S=require('./lib/sports');
+const A=require('./lib/agenda');
+const V=require('./lib/agenda-view');
 const {DOSSIERS}=require('./lib/dossiers');
 const ROOT=path.join(__dirname,'public');
 const pathSafe=p=>path.normalize(p).replace(/^(\.\.(\/|\\|$))+/,'');
 const C={title:'JLG Média',desc:'Actualités françaises, dossiers originaux et scores sportifs sourcés'};
-const NAV=[['/','À la une'],['/?section=France','France'],['/?section=Corrèze','Corrèze'],['/?section=International','International'],['/?section=Sport','Sport'],['/journal','Journal'],['/?section=Brèves','Brèves'],['/scores','Scores & Direct'],['/classements','Classements']];
+const NAV=[['/','À la une'],['/?section=France','France'],['/?section=Corrèze','Corrèze'],['/?section=International','International'],['/?section=Sport','Sport'],['/journal','Journal'],['/dossiers','Dossiers'],['/?section=Brèves','Brèves'],['/scores','Scores & Direct'],['/calendrier','Calendrier'],['/classements','Classements']];
 function fmt(iso,clock=false){
  if(!iso)return 'Date non communiquée';
  try{return new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',day:'numeric',month:'short',year:'numeric',...(clock?{hour:'2-digit',minute:'2-digit'}:{})}).format(new Date(iso))}catch{return 'Date inconnue'}
@@ -18,17 +20,14 @@ function nav(current){
  return '<nav class="navouter"><div class="container nav" aria-label="Rubriques">'+NAV.map(([href,label])=>'<a href="'+href+'" class="'+(href===current?'active':'')+'">'+E.esc(label)+'</a>').join('')+'</div></nav>';
 }
 function layout(body,title=C.title,current='/',desc=C.desc){
- return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#081a2b"><meta name="description" content="'+E.esc(desc)+'"><link rel="icon" type="image/svg+xml" href="/icon.svg"><link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/style.css?v=099"><title>'+E.esc(title)+' · JLG Média</title></head><body><div class="topbar"><div class="container flex between"><span>JLG CREATIVE · JOURNAL NUMÉRIQUE</span><span>INFORMATION SOURCÉE · V0.9.9 INDÉPENDANT</span></div></div><header class="mast"><div class="container mast-inner"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true">J</span><span><span class="brand-name">JLG <em>Média</em></span><small>COMPRENDRE, VÉRIFIER, TRANSMETTRE</small></span></a><div class="mast-right"><span>Édition française indépendante</span><a href="/scores">Scores sportifs</a></div></div></header>'+nav(current)+'<main class="container">'+body+'</main><footer class="footer"><div class="container"><div><b>JLG Média · JLG Creative</b><p>Les nouvelles sont issues de flux publics cités. Leurs textes ne sont pas reproduits intégralement. Une revue de plusieurs RSS n’est pas une enquête vérifiée. Les données sportives tierces peuvent être incomplètes.</p></div><p>Édition indépendante de l’ancienne version Vercel. Hébergée sur Render. <a href="/api/health">État technique</a> · <a href="/journal">Méthode éditoriale</a></p></div></footer></body></html>';
+ return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#081a2b"><meta name="description" content="'+E.esc(desc)+'"><link rel="icon" type="image/svg+xml" href="/icon.svg"><link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/style.css?v=099"><title>'+E.esc(title)+' · JLG Média</title></head><body><div class="topbar"><div class="container flex between"><span>JLG CREATIVE · JOURNAL NUMÉRIQUE</span><span>INFORMATION SOURCÉE · V0.10.0 INDÉPENDANT</span></div></div><header class="mast"><div class="container mast-inner"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true">J</span><span><span class="brand-name">JLG <em>Média</em></span><small>COMPRENDRE, VÉRIFIER, TRANSMETTRE</small></span></a><div class="mast-right"><span>Édition française indépendante</span><a href="/scores">Scores sportifs</a></div></div></header>'+nav(current)+'<main class="container">'+body+'</main><footer class="footer"><div class="container"><div><b>JLG Média · JLG Creative</b><p>Les nouvelles sont issues de flux publics cités. Leurs textes ne sont pas reproduits intégralement. Une revue de plusieurs RSS n’est pas une enquête vérifiée. Les données sportives tierces peuvent être incomplètes.</p></div><p>Édition indépendante de l’ancienne version Vercel. Hébergée sur Render. <a href="/api/health">État technique</a> · <a href="/journal">Méthode éditoriale</a></p></div></footer></body></html>';
 }
 function card(g,large=false){
  const url='/article?id='+encodeURIComponent(g.id);
  const tag=g.kind==='revue'?'Revue multi-sources':'Brève sourcée';
  return '<article class="'+(large?'feature':'article-card')+'"><div class="badge">'+E.esc(g.category)+' · '+tag+'</div><h'+(large?'2':'3')+'><a href="'+url+'">'+E.esc(g.title)+'</a></h'+(large?'2':'3')+'><p>'+E.esc(E.brief(g.summary)||'Sujet couvert par '+g.sourceNames.join(', ')+'.')+'</p><div class="meta"><span>'+E.esc(g.sourceNames.slice(0,3).join(' · '))+'</span><span>·</span><span>'+fmt(g.items[0].date)+'</span>'+(g.count>1?'<span class="pill">'+g.count+' publications</span>':'')+'</div></article>';
 }
-function dossierCard(){
- const d=DOSSIERS[0];
- return '<article class="feature"><span class="badge">Dossier original · Handball</span><h2><a href="/dossier/'+d.slug+'">'+E.esc(d.title)+'</a></h2><p>'+E.esc(d.subtitle)+'</p><div class="meta">5 sources officielles · 22 novembre 2026 · JLG Creative</div></article>';
-}
+function dossierCard(){return V.dossierCard(DOSSIERS[0],true)}
 function journalPage(groups,src,section=''){
  const all=section||'À la une',page=section==='Brèves'?groups.filter(x=>x.kind!=='revue'):section&&section!=='À la une'?groups.filter(x=>x.category===section):groups;
  const cards=page.slice(0,64);
@@ -36,7 +35,7 @@ function journalPage(groups,src,section=''){
  const sources=src.sources||[],good=sources.filter(x=>x.ok).length;
  const status='<div class="notice"><b>État des flux :</b> '+good+'/'+sources.length+' sources accessibles. '+cards.length+' sujets affichés. '+(src.at?'Dernière collecte : '+fmt(new Date(src.at).toISOString(),true)+'.':'')+' Les flux RSS sont des métadonnées publiques, pas des reportages complets.</div>';
  const search='<form class="search" method="get" action="/"><input type="search" name="q" placeholder="Rechercher une actualité…" aria-label="Recherche"><button>Rechercher</button></form>';
- const main=cards.length?'<div class="grid">'+(section==='Brèves'||section?cards.map(g=>card(g)).join(''):dossierCard()+cards.map(g=>card(g)).join(''))+'</div>':'<div class="empty">Aucune actualité confirmée dans cette rubrique au moment de la collecte. Les informations ne sont pas fabriquées pour remplir cette page. <a href="/journal">Consulter le journal complet</a>.</div>';
+ const main=cards.length?'<div class="grid">'+(section==='Brèves'||section?cards.map(g=>card(g)).join(''):dossierCard()+DOSSIERS.slice(1).map(d=>V.dossierCard(d,false)).join('')+cards.map(g=>card(g)).join(''))+'</div>':'<div class="empty">Aucune actualité confirmée dans cette rubrique au moment de la collecte. Les informations ne sont pas fabriquées pour remplir cette page. <a href="/journal">Consulter le journal complet</a>.</div>';
  const more='<section class="section-head"><h2>Journal et provenance</h2><small>Rédaction originale uniquement pour les dossiers vérifiés manuellement</small></section><div class="aside-panel"><p>Une « revue multi-sources » indique qu’au moins deux médias distincts publient sur le même sujet. Cela ne confirme pas automatiquement tous les faits rapportés. Une brève ne prétend pas fournir une analyse complète.</p><details><summary>État détaillé des fournisseurs</summary><ul>'+sources.map(s=>'<li>'+E.esc(s.name)+' : '+(s.ok?'<b>flux reçu</b> ('+s.count+' nouvelles)':'<b>indisponible</b>')+'</li>').join('')+'</ul></details></div>';
  return intro+'<div class="bar">'+search+'<span class="pill">'+new Date().toLocaleDateString('fr-FR',{timeZone:'Europe/Paris',day:'numeric',month:'long',year:'numeric'})+'</span></div>'+status+'<section class="section-head"><h2>'+E.esc(section==='Brèves'?'Le fil des brèves':'Dernières publications')+'</h2><small>Lecture dans JLG Média, sources consultables</small></section>'+main+more;
 }
@@ -62,16 +61,19 @@ function scoreNav(sport,date,mode='scores'){
  const route=mode==='standings'?'/classements':'/scores';
  const tabs='<div class="filters">'+types.map(s=>'<a class="'+(s===sport?'on':'')+'" href="'+route+'?sport='+encodeURIComponent(s)+'&jour='+date+'">'+E.esc(s)+'</a>').join('')+'</div>';
  const form='<form class="filters" method="get" action="'+route+'"><input type="hidden" name="sport" value="'+E.esc(sport)+'"><label for="jour">Journée</label><input type="date" name="jour" id="jour" required value="'+date+'"><button>Afficher</button></form>';
- return tabs+form;
+ return tabs+'<div class="filters"><a href="'+route+'?sport='+encodeURIComponent(sport)+'&jour='+A.offset(date,-1)+'">← Veille</a><a href="'+route+'?sport='+encodeURIComponent(sport)+'&jour='+A.offset(date,1)+'">Lendemain →</a></div>'+form;
 }
 function scorePage(data){
  const {sport,date,leagues}=data,ready=leagues.filter(l=>l.ok).length,count=leagues.reduce((s,l)=>s+l.events.length,0);
- return '<section class="intro"><span class="eyebrow">Le sport · Les sources avant le score</span><h1>Scores &amp; Direct</h1><p>Football, rugby, basket et handball — données datées, statuts du fournisseur et liens consultables. Aucun direct ou résultat n’est créé artificiellement.</p></section><div class="notice">'+ready+'/'+leagues.length+' flux accessibles · '+count+' rencontres retournées pour la journée demandée. TheSportsDB est une base communautaire non exhaustive ; un résultat sensible doit être recoupé auprès d’une fédération.</div>'+scoreNav(sport,date)+'<div class="bar"><span class="pill">'+E.esc(date)+' · heure de Paris lorsque disponible</span><a class="pill" href="/classements">Consulter les classements</a></div><div class="score-grid">'+leagues.map(matchCard).join('')+'</div><section class="aside-panel" style="margin-top:20px"><h3>Sources officielles complémentaires</h3><a href="https://www.lnh.fr/daikin-starligue/calendrier" target="_blank">LNH · Starligue</a><a href="https://www.eurohandball.com/en/" target="_blank">EHF · Handball européen</a><a href="https://www.ihf.info/" target="_blank">IHF · Sélections</a><a href="https://www.world.rugby/matches" target="_blank">World Rugby · International</a></section>';
+ return '<section class="intro"><span class="eyebrow">Le sport · Les sources avant le score</span><h1>Scores &amp; Direct</h1><p>Football, rugby, basket et handball — données datées, statuts du fournisseur et liens consultables. Aucun direct ou résultat n’est créé artificiellement.</p></section><div class="notice">'+ready+'/'+leagues.length+' flux accessibles · '+count+' rencontres retournées pour la journée demandée. TheSportsDB est une base communautaire non exhaustive ; un résultat sensible doit être recoupé auprès d’une fédération.</div>'+scoreNav(sport,date)+'<div class="bar"><span class="pill">'+E.esc(date)+' · heure de Paris lorsque disponible</span><a class="pill" href="/calendrier">Agenda handball sur 7 jours</a><a class="pill" href="/classements">Consulter les classements</a></div><div class="score-grid">'+V.officialCards(date,sport)+leagues.map(matchCard).join('')+'</div><section class="aside-panel" style="margin-top:20px"><h3>Sources officielles complémentaires</h3><a href="https://www.lnh.fr/daikin-starligue/calendrier" target="_blank">LNH · Starligue</a><a href="https://www.eurohandball.com/en/" target="_blank">EHF · Handball européen</a><a href="https://www.ihf.info/" target="_blank">IHF · Sélections</a><a href="https://www.world.rugby/matches" target="_blank">World Rugby · International</a></section>';
 }
 function tableCard(name,res){
  return '<section class="score-card"><h3>'+E.esc(name)+'</h3>'+(res.records.length?'<table class="standings"><thead><tr><th>'+E.esc(name==='NBA'?'Conf. / rang':'#')+'</th><th>Équipe</th><th>J</th><th>'+E.esc(name==='NBA'?'Bilan':'Pts')+'</th></tr></thead><tbody>'+res.records.map(r=>'<tr><td>'+E.esc(name==='NBA'?(r.conference+' '+(r.rank??'—')):r.rank)+'</td><td>'+E.esc(r.team)+'</td><td>'+E.esc(r.played??'—')+'</td><td>'+E.esc(r.points??'—')+'</td></tr>').join('')+'</tbody></table>':'<p class="feed-errors">Classement indisponible. Aucune valeur reconstituée.</p>')+'<div class="meta"><a target="_blank" rel="noopener noreferrer" href="'+E.esc(res.url)+'">Données ESPN</a></div></section>';
 }
 async function standingsPage(sport,date){
+ if(sport==='Rugby'||sport==='Handball'){
+  return '<section class="intro"><span class="eyebrow">Transparence sportive</span><h1>Classements '+E.esc(sport)+'</h1><p>Aucune source automatisée disponible pour un classement suffisamment vérifié de cette discipline. Nous ne remplaçons jamais le tableau manquant par le classement d’un autre sport.</p></section>'+scoreNav(sport,date,'standings')+'<div class="notice warning">Classement indisponible dans cette édition. Consultez les matchs et les références officielles ci-dessous.</div><section class="aside-panel"><h3>Sources sportives</h3><a href="/scores?sport='+encodeURIComponent(sport)+'">Scores et rencontres de '+E.esc(sport)+'</a>'+(sport==='Handball'?'<a href="https://www.eurohandball.com/en/" target="_blank" rel="noopener noreferrer">EHF : compétitions et classements</a><a href="https://www.ihf.info/" target="_blank" rel="noopener noreferrer">IHF : équipes nationales</a>':'<a href="https://www.world.rugby/" target="_blank" rel="noopener noreferrer">World Rugby</a><a href="https://top14.lnr.fr/" target="_blank" rel="noopener noreferrer">LNR : rugby français</a>')+'</section>';
+ }
  const competitions=(sport==='Basket'?[['NBA','basketball','nba']]:[['Ligue 1','soccer','fra.1'],['Premier League','soccer','eng.1'],['Liga','soccer','esp.1'],['Serie A','soccer','ita.1']]);
  const out=await Promise.all(competitions.map(async ([n,k,c])=>[n,await S.standings(k,c)]));
  return '<section class="intro"><span class="eyebrow">Données sportives</span><h1>Classements</h1><p>Classements transmis par ESPN. Pour la NBA, les rangs sont ceux de chaque conférence (playoffSeed), et les bilans correspondent aux victoires-défaites.</p></section>'+scoreNav(sport,date,'standings')+'<div class="score-grid">'+out.map(([n,r])=>tableCard(n,r)).join('')+'</div><p class="notice warning">Pour le rugby et le handball, les classements ne sont pas encore disponibles dans une source structurée fiable. Consulte les calendriers et résultats officiels depuis la rubrique Scores.</p>';
@@ -81,21 +83,27 @@ function html(res,body,status=200){res.writeHead(status,{'Content-Type':'text/ht
 async function handler(req,res){
  const url=new URL(req.url||'/','https://jlg-media.render.local'),p=url.pathname;
  try{
-  if(p==='/api/health')return json(res,{ok:true,product:'JLG Média · édition Render',version:'0.9.9',independent:true,timestamp:new Date().toISOString()});
+  if(p==='/api/health')return json(res,{ok:true,product:'JLG Média · édition Render',version:'0.10.0',independent:true,timestamp:new Date().toISOString()});
   if(['/style.css','/icon.svg','/manifest.webmanifest'].includes(p)){
    const fn=path.join(ROOT,pathSafe(p.slice(1))),type=p.endsWith('.css')?'text/css':p.endsWith('.svg')?'image/svg+xml':'application/manifest+json';
    res.writeHead(200,{'Content-Type':type+'; charset=utf-8','Cache-Control':'public,max-age=3600'});return fs.createReadStream(fn).pipe(res);
   }
-  if(p==='/dossier/mondial-handball-2027-france'||p==='/journal'&&url.searchParams.get('dossier')){
+  if(p==='/dossiers'||p==='/dossier')return html(res,layout(V.dossiersPage(),'Dossiers originaux','/dossiers'));
+  if(p.startsWith('/dossier/')||(p==='/journal'&&url.searchParams.get('dossier'))){
    const slug=p.startsWith('/dossier/')?p.split('/').pop():url.searchParams.get('dossier');
    const d=DOSSIERS.find(x=>x.slug===slug);
    return d?html(res,layout(dossier(d),d.title,'/journal')):html(res,layout('<div class="empty">Dossier introuvable.</div>','Dossier','/journal'),404);
   }
+  if(p==='/calendrier'){
+    const start=url.searchParams.get('debut')||S.today();
+    if(!S.dateValid(start))return html(res,layout('<div class="empty">Date invalide.</div>','Date invalide'),400);
+    return html(res,layout(V.calendarPage(await A.week(start)),'Calendrier de handball','/calendrier'));
+   }
   if(p==='/scores'||p==='/classements'||p==='/api/scores'){
    const sport=url.searchParams.get('sport')||'Tous',day=url.searchParams.get('jour')||S.today();
    if(!S.dateValid(day))return p==='/api/scores'?json(res,{error:'Date invalide'},400):html(res,layout('<div class="empty">Date invalide.</div>','Date invalide'),400);
    if(!['Tous','Football','Basket','Rugby','Handball'].includes(sport))return html(res,layout('<div class="empty">Sport invalide.</div>','Sport invalide'),400);
-   if(p==='/classements')return html(res,layout(await standingsPage(sport==='Basket'?'Basket':'Football',day),'Classements','/classements'));
+   if(p==='/classements')return html(res,layout(await standingsPage(sport,day),'Classements','/classements'));
    const data=await S.scores(sport,day);
    return p==='/api/scores'?json(res,data):html(res,layout(scorePage(data),'Scores & Direct','/scores'));
   }
