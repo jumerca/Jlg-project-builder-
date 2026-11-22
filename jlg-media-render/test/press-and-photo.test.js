@@ -58,3 +58,12 @@ t('public homepage and article render correct photo credits and no method aside'
  a.match(article.body,/CC BY 4.0/);
  a.doesNotMatch(article.body,/Notre méthode/);
 });
+
+t('direct source feeds cover BFMTV, Libération, La Croix and Ouest-France',()=>{
+ for(const n of ['BFMTV','Libération','La Croix','Ouest-France']){
+  const feed=S.FEEDS.find(x=>x.name===n);
+  a.ok(feed,'Feed '+n);
+  a.ok(/^https:\/\//.test(feed.url));
+  a.notEqual(feed.aggregate,true);
+ }
+});
