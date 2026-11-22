@@ -22,6 +22,7 @@ const HB=[
  {id:5484,name:'Amicaux internationaux femmes',group:'Sélections'},
  {id:4536,name:'Starligue',group:'France'}
 ];
+const parisDate=d=>{try{return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(d))}catch{return null}};
 const dateValid=s=>/^\d{4}-\d{2}-\d{2}$/.test(String(s))&&Number.isFinite(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
 const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const parisClock=d=>{try{return new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'}).format(new Date(d))}catch{return null}};
@@ -42,7 +43,7 @@ async function espn(league,date,fetcher=fetch){
   if(!r.ok)throw Error('HTTP '+r.status);
   const j=await r.json();
   if(!Array.isArray(j.events))throw Error('Format fournisseur');
-  return {...league,ok:true,url,events:j.events.slice(0,55).map(e=>espnMatch(e,league.sport)).filter(Boolean)};
+  return {...league,ok:true,url,events:j.events.filter(e=>e.date&&parisDate(e.date)===date).slice(0,55).map(e=>espnMatch(e,league.sport)).filter(Boolean)};
  }catch(e){return {...league,ok:false,url,events:[],error:String(e.message||e).slice(0,90)}}
 }
 function handballEvent(e,date,league){
@@ -55,7 +56,11 @@ function handballEvent(e,date,league){
  const status=final?'Terminé':live?'En cours selon TheSportsDB':/postponed|cancelled|canceled|suspended/.test(raw)?'Reporté ou annulé':'Programmé ou statut non confirmé';
  const h=num(e.intHomeScore),a=num(e.intAwayScore),has=(final||live)&&h!==null&&a!==null&&h<=100&&a<=100;
  const id=/^\d{1,13}$/.test(String(e.idEvent||''))?e.idEvent:null;
- return {id,home,away,homeScore:has?h:null,awayScore:has?a:null,status,time:e.strTime?.slice(0,5)||null,url:id?'https://www.thesportsdb.com/event/'+id:null,provider:'TheSportsDB · communauté',kind:'Handball',league:e.strLeague||league.name};
+ // TheSportsDB timestamps are UTC; never label raw strTime as Paris local time.
+ const rawStamp=e.strTimestamp||((e.dateEvent&&/^\d{2}:\d{2}(:\d{2})?$/.test(String(e.strTime||'')))?e.dateEvent+'T'+e.strTime+'Z':null);
+ const utc=rawStamp?new Date(/(?:Z|[+-]\d{2}:?\d{2})$/.test(rawStamp)?rawStamp:rawStamp.replace(' ','T')+'Z'):null;
+ const time=utc&&Number.isFinite(utc.getTime())?parisClock(utc.toISOString()):null;
+ return {id,home,away,homeScore:has?h:null,awayScore:has?a:null,status,time,url:id?'https://www.thesportsdb.com/event/'+id:null,provider:'TheSportsDB · communauté',kind:'Handball',league:e.strLeague||league.name};
 }
 async function handball(league,date,fetcher=fetch){
  const url='https://www.thesportsdb.com/api/v1/json/123/eventsday.php?d='+date+'&s=Handball&l='+league.id;
@@ -101,4 +106,4 @@ async function standings(kind,code,fetcher=fetch){
   return {ok:true,url,records:records.slice(0,isNBA?30:24)};
  }catch(e){return {ok:false,url,records:[],error:String(e.message||e)}}
 }
-module.exports={SOURCE,HB,dateValid,today,num,espnMatch,handballEvent,espn,handball,scores,standings,parisClock};
+module.exports={SOURCE,HB,dateValid,today,num,espnMatch,handballEvent,espn,handball,scores,standings,parisClock,parisDate};
