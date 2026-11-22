@@ -9,6 +9,10 @@ const FEEDS=[
  {name:'France 3 Corrèze',url:'https://france3-regions.franceinfo.fr/nouvelle-aquitaine/correze/rss'},
  {name:'France 3 Tulle',url:'https://france3-regions.franceinfo.fr/nouvelle-aquitaine/correze/tulle/rss'},
  {name:'Le Figaro',url:'https://www.lefigaro.fr/rss/figaro_actualites.xml'},
+ {name:'BFMTV',url:'https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/'},
+ {name:'Libération',url:'https://www.liberation.fr/arc/outboundfeeds/rss-all/?outputType=xml'},
+ {name:'La Croix',url:'https://www.la-croix.com/feeds/rss/site.xml'},
+ {name:'Ouest-France',url:'https://www.ouest-france.fr/rss/une'},
  {name:'Google Actualités · Corrèze',url:'https://news.google.com/rss/search?q=Corr%C3%A8ze%20OR%20Brive%20OR%20Tulle%20OR%20Pompadour&hl=fr&gl=FR&ceid=FR%3Afr'},
  ...MEDIA.DISCOVERY
 ];
