@@ -1,0 +1,25 @@
+{
+  "name": "CielTempo — JLG Creative",
+  "short_name": "CielTempo",
+  "description": "Radar des pluies observées et prévisions de pluie animées, 48 heures de météo",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eaf4fa",
+  "theme_color": "#0e648a",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
