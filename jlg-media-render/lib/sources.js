@@ -28,7 +28,7 @@ function parse(xml,origin,now=Date.now()){
   const epoch=Number.isFinite(Date.parse(date))?Date.parse(date):0;
   const source=clean(field(block,'source'));
   return {id:hash(url||title),title:title.slice(0,250),url,publisher:source||origin.name,feed:origin.name,summary:summary.slice(0,450),epoch,date:epoch?new Date(epoch).toISOString():null};
- }).filter(x=>x.title.length>=10&&x.url&&!/https?:\/\/news\.google\.com/.test(x.url)&&(!x.epoch||x.epoch<now+86400000));
+ }).filter(x=>x.title.length>=10&&x.url&&(!x.epoch||x.epoch<now+86400000));
 }
 let cached={at:0,items:[],sources:[]},inflight=null;
 async function retrieve(feed,fetcher=fetch){
