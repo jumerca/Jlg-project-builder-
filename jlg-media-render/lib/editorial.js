@@ -1,5 +1,6 @@
 'use strict';
 const crypto=require('node:crypto');
+const MEDIA=require('./media-catalog');
 const STOP=new Set('dans avec pour afin chez cette ces ceux celui cela apres avant entre alors aussi ainsi leur leurs elle elles nous vous ils sur sous dont mais donc sont était étaient être avoir lors plus moins toute tous toutes tout vers deux trois autre autres jusqu sans selon contre autour cette france francais francaise actualite nouvelles nouveau nouvelle direct video article lundi mardi mercredi jeudi vendredi samedi dimanche fait faire une des aux les est et ou de du au un en la le il se sa son ses par pas ne on d l a à y'.split(/\s+/));
 const hash=s=>crypto.createHash('sha256').update(String(s)).digest('hex').slice(0,16);
 const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
@@ -28,9 +29,10 @@ function combine(items){
  }
  return clusters.map(group=>{
   const publishers=[...new Set(group.map(g=>norm(g.publisher||g.feed)).filter(Boolean))];
-  const independent=publishers.length>=2;
+  const editorialGroups=[...new Set(group.map(g=>norm(MEDIA.family(g.publisher||g.feed))).filter(Boolean))];
+  const independent=editorialGroups.length>=2;
   const kind=independent?'revue':'breve';
-  return {id:hash(group[0].url),title:group[0].title,summary:group[0].summary||'',category:classify(group[0]),kind,publishers:publishers.length,items:group,epoch:group[0].epoch||0,sourceNames:[...new Set(group.map(g=>g.publisher||g.feed))],count:group.length,
+  return {id:hash(group[0].url),title:group[0].title,summary:group[0].summary||'',category:classify(group[0]),kind,publishers:editorialGroups.length,items:group,epoch:group[0].epoch||0,sourceNames:[...new Set(group.map(g=>g.publisher||g.feed))],count:group.length,
     note:independent?'Revue de publications issues de médias distincts, réalisée à partir de leurs métadonnées RSS. Elle ne vaut pas vérification complète des textes originaux.':'Brève ou regroupement de dépêches. Une source unique, ou plusieurs titres du même éditeur, ne suffit pas à un recoupement indépendant.'};
  });
 }
