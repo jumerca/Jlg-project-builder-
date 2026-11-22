@@ -1,4 +1,5 @@
 'use strict';
+const {STORIES}=require('./edition-20261122');
 const DOSSIERS=[
  {slug:'mondial-handball-2027-france',title:'Mondial de handball 2027 : ce qui attend les Bleus en Allemagne',section:'Sport',date:'2026-11-22',subtitle:'Tirage, adversaires, format et enjeux tactiques : les faits établis, puis ce qu’il reste à connaître.',sources:[
   {title:'IHF — tirage et répartition des groupes',url:'https://www.ihf.info/index.php/media-center/news/draw-munich-sets-stage-2027-ihf-mens-world-championship'},
@@ -136,4 +137,4 @@ const DOSSIERS=[
   ]
 }
 ];
-module.exports={DOSSIERS};
+module.exports={DOSSIERS:[...STORIES,...DOSSIERS]};
