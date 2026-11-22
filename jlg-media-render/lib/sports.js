@@ -87,16 +87,18 @@ async function standings(kind,code,fetcher=fetch){
   const r=await fetcher(url,{signal:AbortSignal.timeout(6500)});
   if(!r.ok)throw Error('HTTP '+r.status);
   const j=await r.json();
-  const standings=j.children?.flatMap(c=>c.standings?.entries||[])||j.standings?.entries||[];
-  const records=standings.map((x,i)=>{
+  const entries=j.children?.flatMap(g=>(g.standings?.entries||[]).map(x=>({x,conference:g.name||g.abbreviation||''})))||j.standings?.entries?.map(x=>({x,conference:''}))||[];
+  const isNBA=kind==='basketball';
+  const records=entries.map(({x,conference},i)=>{
    const stats=x.stats||[];
    const get=(...names)=>stats.find(z=>names.includes(z.name)||names.includes(z.abbreviation))?.value??null;
    const wins=get('wins','W'),losses=get('losses','L');
-   const isNBA=kind==='basketball';
    const validRecord=isNBA&&Number.isInteger(wins)&&Number.isInteger(losses)&&wins>=0&&losses>=0;
-   return {team:x.team?.displayName||x.team?.name||'',rank:get('rank','RANK')??i+1,played:isNBA?(validRecord?wins+losses:null):get('gamesPlayed','GP','games'),points:isNBA?(validRecord?wins+'–'+losses:null):get('points','PTS')};
-  }).filter(x=>x.team).slice(0,24);
-  return {ok:true,url,records};
+   const officialSeed=get('playoffSeed');
+   return {team:x.team?.displayName||x.team?.name||'',conference:conference.includes('Eastern')?'Est':conference.includes('Western')?'Ouest':conference,rank:isNBA?(Number.isInteger(officialSeed)&&officialSeed>=1&&officialSeed<=15?officialSeed:null):(get('rank','RANK')??i+1),played:isNBA?(validRecord?wins+losses:null):get('gamesPlayed','GP','games'),points:isNBA?(validRecord?wins+'–'+losses:null):get('points','PTS')};
+  }).filter(x=>x.team);
+  if(isNBA)records.sort((a,b)=>(a.conference||'').localeCompare(b.conference||'','fr')||(a.rank??99)-(b.rank??99));
+  return {ok:true,url,records:records.slice(0,isNBA?30:24)};
  }catch(e){return {ok:false,url,records:[],error:String(e.message||e)}}
 }
 module.exports={SOURCE,HB,dateValid,today,num,espnMatch,handballEvent,espn,handball,scores,standings,parisClock};
