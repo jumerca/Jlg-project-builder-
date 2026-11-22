@@ -6,7 +6,7 @@ const href=d=>'/dossier/'+encodeURIComponent(d.slug);
 const category=s=>s==='Corrèze'?'corr':'';
 const headline=d=>'<a href="'+href(d)+'">'+E.esc(d.title)+'</a>';
 const sourceCount=d=>Array.isArray(d.sources)?d.sources.length:0;
-const label=d=>'<span class="ed-kicker">'+E.esc(d.eyebrow||d.section+' · DOSSIER')</span>';
+const label=d=>'<span class="ed-kicker">'+E.esc(d.eyebrow||(d.section+' · DOSSIER'))+'</span>';
 function newsroomCard(d,variant='normal'){
  const cls=variant==='side'?'ed-story ed-story-side':variant==='wide'?'ed-story ed-story-wide':'ed-story';
  return '<article class="'+cls+'"><div class="ed-story-kicker">'+E.esc(d.section)+' <span>· ANALYSE</span></div><h3>'+headline(d)+'</h3><p>'+E.esc(d.subtitle)+'</p><div class="ed-story-bottom"><span>'+sourceCount(d)+' sources · JLG Média</span><a href="'+href(d)+'">Lire l’article <span aria-hidden="true">↗</span></a></div></article>';
