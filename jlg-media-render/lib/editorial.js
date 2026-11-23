@@ -46,7 +46,11 @@ function classify(a){
  if(/\b(rugby|football|handball|basket|tennis|grand chelem|formule 1|ligue 1|championnat|nba|sport|champions league|premier league)\b/.test(t))return 'Sport';
  if(/\b(cinema|film|festival de cannes|acteur|actrice|box office)\b/.test(t))return 'Cinéma';
  if(/\b(voyage|tourisme|touriste|destination|aeroport|hotel)\b/.test(t))return 'Voyages';
- if(/\b(guerre|ukraine|russie|israel|gaza|chine|etats unis|otan|cop31|climat|onu)\b/.test(t))return 'International';
+ // Regional reporting stays local; other world headlines must not default to France.
+ const headline=norm(a.title||'');
+ const world=/\b(ukraine|kiev|kyiv|russie|russe|russes|moscou|israel|israelien|palestine|palestinien|gaza|cisjordanie|liban|syrie|iran|irak|turquie|turc|otan|onu|cop31|climat|nepal|nepalais|inde|indien|bresil|bresilien|amazonie|amazonienne|chine|chinois|taiwan|japon|japonais|coree|philippines|indonesie|pakistan|afghanistan|bangladesh|soudan|soudanais|ethiopie|egypte|algerie|maroc|tunisie|senegal|mali|niger|burkina|congo|rdc|angola|mauritanie|arabie|yemen|qatar|emirats|etats unis|americain|americains|trump|canada|canadien|mexique|mexicain|argentine|argentin|colombie|colombien|venezuela|bresilienne|allemagne|allemand|espagne|espagnol|italie|italien|royaume uni|britannique|londres|washington|new york|berlin|bruxelles|ue|europeen|europeenne|geopolitique|conflit international)\b/;
+ if(world.test(headline))return 'International';
+ if(/\b(guerre|invasion|frappe[s]?|missile[s]?|diplomatie|conflit[s]?|frontiere[s]?|ambassade|dirigeants? etrangers?)\b/.test(t)&&world.test(t))return 'International';
  return 'France';
 }
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
