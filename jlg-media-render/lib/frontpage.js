@@ -1,5 +1,6 @@
 'use strict';
 const {DOSSIERS}=require('./dossiers');
+const {ROLLING,UPDATED_AT}=require('./edition-rolling');
 const E=require('./editorial');
 const I=require('./photos');
 const PRINT_DATE='Dimanche 22 novembre 2026';
@@ -13,19 +14,24 @@ function newsroomCard(d,variant='normal'){
  return '<article class="'+cls+'">'+I.picture(d,'card')+'<div class="ed-story-kicker">'+E.esc(d.section)+' <span>· ANALYSE</span></div><h3>'+headline(d)+'</h3><p>'+E.esc(d.subtitle)+'</p><div class="ed-story-bottom"><span>'+sourceCount(d)+' sources · JLG Média</span><a href="'+href(d)+'">Lire l’article <span aria-hidden="true">↗</span></a></div></article>';
 }
 function cover(news=[]){
- const lead=DOSSIERS.find(d=>d.slug==='cop31-antalya-pas-accord-final')||DOSSIERS[0];
+ const fresh=ROLLING.filter(d=>d&&d.slug&&d.date).sort((a,b)=>b.date.localeCompare(a.date));
+ const preferred=fresh.find(d=>d.priority==='une')||fresh[0];
+ const lead=preferred||DOSSIERS.find(d=>d.slug==='cop31-antalya-pas-accord-final')||DOSSIERS[0];
+ const editionDay=preferred?.date||'2026-11-22';
+ const displayedDate=preferred?new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Paris'}).format(new Date(editionDay+'T12:00:00Z')):PRINT_DATE;
+ const editionLabel=preferred?'Actualisée le '+displayedDate:'Édition du '+PRINT_DATE;
  const economy=DOSSIERS.find(d=>d.slug==='choose-france-42-milliards-decryptage');
  const local=DOSSIERS.find(d=>d.slug==='souvigne-correze-barrage-riviere');
  const drought=DOSSIERS.find(d=>d.slug==='correze-restrictions-eau-fin-novembre');
  const sport=DOSSIERS.find(d=>d.slug==='oyonnax-brive-32-22-2026');
  const handball=DOSSIERS.find(d=>d.slug==='euro-feminin-2026-bleues');
  const cup=DOSSIERS.find(d=>d.slug==='mondial-handball-2027-france');
- const used=new Set([lead,economy,local,drought,sport,handball,cup].filter(Boolean).map(d=>d.slug));
+ const aside=[...fresh.filter(d=>d.slug!==lead.slug),economy,local].filter((d,i,arr)=>d&&arr.findIndex(x=>x?.slug===d.slug)===i).slice(0,2);
+ const used=new Set([lead,...aside,economy,local,drought,sport,handball,cup].filter(Boolean).map(d=>d.slug));
  const rest=DOSSIERS.filter(d=>!used.has(d.slug));
- const aside=[economy,local].filter(Boolean);
  const briefs=news.slice(0,7).map((g,i)=>'<li><span class="ed-brief-number">'+String(i+1).padStart(2,'0')+'</span><div><span class="ed-brief-tag">'+E.esc(g.category||'Actualité')+'</span><a href="/article?id='+encodeURIComponent(g.id)+'">'+E.esc(g.title)+'</a><small>'+E.esc(g.sourceNames?.slice(0,2).join(' · ')||'Flux de presse')+' · BRÈVE</small></div></li>').join('');
  return '<div class="ed-cover">'
-  +'<header class="ed-compact-head"><div><span class="ed-front-number">JLG MÉDIA · LE JOURNAL</span><h1>À la une</h1></div><time class="ed-compact-date" datetime="2026-11-22">Édition du '+PRINT_DATE+'</time></header>'
+  +'<header class="ed-compact-head"><div><span class="ed-front-number">JLG MÉDIA · LE JOURNAL</span><h1>À la une</h1></div><time class="ed-compact-date" datetime="'+E.esc(editionDay)+'">'+E.esc(editionLabel)+'</time></header>'
   +'<section class="ed-lead-grid"><article class="ed-lead">'
   +I.picture(lead,'lead')
   +'<div class="ed-lead-text">'+label(lead)+'<h2>'+headline(lead)+'</h2><p>'+E.esc(lead.subtitle)+'</p><div class="ed-lead-footer"><span>LE GRAND DOSSIER · '+sourceCount(lead)+' DOCUMENTS SOURCES</span><a href="'+href(lead)+'">Lire notre analyse <span aria-hidden="true">↗</span></a></div></div></article>'
@@ -38,7 +44,7 @@ function cover(news=[]){
   +'<div class="ed-local-grid">'+[sport,handball,cup].filter(Boolean).map(d=>newsroomCard(d)).join('')+'</div>'
   +(rest.length?'<div class="ed-local-grid">'+rest.map(d=>newsroomCard(d)).join('')+'</div>':'')
   +'</div><aside class="ed-front-aside"><div class="ed-brief-header"><div><span>EN CONTINU</span><h2>Le fil des brèves</h2></div><span class="ed-mini-dot"></span></div><p class="ed-brief-disclaimer">Informations courtes issues de flux identifiés. Ce sont des dépêches, pas des articles de la rédaction.</p><ol class="ed-brief-list">'+(briefs||'<li>Le fil est momentanément indisponible.</li>')+'</ol><a class="ed-brief-more" href="/breves">Toute l’actualité en brèves ↗</a></aside></section>'
-  +'<p class="ed-edition-note">Une datée du 22 novembre 2026 · Sélection et articles rédactionnels non actualisés automatiquement. Pour les derniers événements reçus des fournisseurs, consulter les <a href="/breves">brèves</a> et les <a href="/scores">scores datés</a>.</p></div>';
+  +'<p class="ed-edition-note">'+E.esc(preferred?'Dernière édition éditoriale : '+displayedDate+'. Les sujets sont sélectionnés et vérifiés ; la couverture n’est pas exhaustive.':'Édition du 22 novembre 2026 : cette sélection de dossiers est datée. Les nouvelles éditions ne sont pas publiées sans vérification.')+' Retrouvez les informations plus récentes dans les <a href="/breves">brèves</a> et les <a href="/scores">scores datés</a>.</p></div>';
 }
 function dossierIndex(){
  return '<section class="ed-archive-intro"><span class="ed-kicker">LES ARTICLES DE LA RÉDACTION</span><h1>Le journal, <em>sans raccourcis.</em></h1><p>Une bibliothèque de '+DOSSIERS.length+' articles rédigés pour JLG Média : faits documentés, contexte, explications originales et liens vers les sources. Les sujets ne sont pas générés automatiquement à partir des titres RSS.</p></section><div class="ed-archive-filter"><a href="/journal">Tous</a><a href="/?section=International">International</a><a href="/?section=France">France</a><a href="/?section=Corr%C3%A8ze">Corrèze</a><a href="/?section=Sport">Sport</a><a href="/breves">Brèves →</a></div><section class="ed-archive-grid">'+DOSSIERS.map(d=>newsroomCard(d)).join('')+'</section>';
