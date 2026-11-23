@@ -43,22 +43,22 @@ const STORIES=[
       {
         "title": "Le nœud du désaccord : nommer les combustibles fossiles",
         "paragraphs": [
-          "Le charbon, le pétrole et le gaz sont au cœur du contentieux. Selon Reuters et les comptes rendus de la clôture, le projet soumis aux délégations n’abordait pas assez directement la question de la sortie des énergies fossiles. Pour plusieurs pays, dont ceux de l’Union européenne, l’absence de référence explicite aux principales sources d’émissions rendait le compromis insuffisant. D’autres États défendaient une approche différente des responsabilités et du calendrier de la transition.",
-          "Le débat dépasse donc une formule dans un paragraphe. Écrire noir sur blanc le rôle des combustibles fossiles constitue un signal pour les politiques nationales, les investisseurs et les secteurs industriels. Ne pas le faire permet de préserver une ambiguïté diplomatique, mais fragilise la portée politique du texte. Ce raisonnement est une analyse de JLG Média ; il ne doit pas être confondu avec une citation d’un négociateur."
+          "Le charbon, le pétrole et le gaz sont au cœur du contentieux. Le projet soumis aux délégations laissait de côté une référence explicite à la sortie des énergies fossiles : l'une des lignes rouges de la négociation. Pour plusieurs pays, dont ceux de l’Union européenne, l’absence de référence explicite aux principales sources d’émissions rendait le compromis insuffisant. D’autres États défendaient une approche différente des responsabilités et du calendrier de la transition.",
+          "Le débat dépasse donc une formule dans un paragraphe. Écrire noir sur blanc le rôle des combustibles fossiles constitue un signal pour les politiques nationales, les investisseurs et les secteurs industriels. Ne pas le faire permet de préserver une ambiguïté diplomatique, mais fragilise la portée politique du texte. Le désaccord porte autant sur le signal adressé aux économies que sur les obligations politiques qui pourraient en découler."
         ]
       },
       {
         "title": "L’autre fracture : qui paie l’adaptation et la transition ?",
         "paragraphs": [
-          "Les financements climatiques ont été un autre obstacle majeur, selon les mêmes sources. Les pays les plus vulnérables aux effets du réchauffement demandent de pouvoir investir dans la prévention, la protection et la transformation de leurs économies. Les États appelés à contribuer discutent le niveau des engagements et leurs modalités. Sans clarification sur l’argent, les objectifs climatiques risquent de rester difficiles à mettre en œuvre sur le terrain.",
+          "Les financements climatiques ont constitué l’autre grand point de blocage. Les pays les plus vulnérables aux effets du réchauffement demandent de pouvoir investir dans la prévention, la protection et la transformation de leurs économies. Les États appelés à contribuer discutent le niveau des engagements et leurs modalités. Sans clarification sur l’argent, les objectifs climatiques risquent de rester difficiles à mettre en œuvre sur le terrain.",
           "Une conférence peut fixer une direction sans régler tous les budgets ; à Antalya, les désaccords financiers se sont ajoutés aux divergences énergétiques. Les deux dossiers se nourrissent mutuellement : exiger une transition plus rapide sans préciser les moyens de l’accompagner expose la négociation à un blocage durable."
         ]
       },
       {
         "title": "Que change concrètement l’échec de la COP31 ?",
         "paragraphs": [
-          "À court terme, la conséquence la plus visible est diplomatique : aucun nouveau message global consensuel ne vient renforcer les engagements antérieurs. Pour les citoyens, il serait trompeur d’affirmer que les projets de transition s’arrêtent partout. Les politiques publiques, les investissements privés et les mesures locales dépendent aussi de décisions prises hors de ce sommet.",
-          "Le prochain indicateur à surveiller sera la manière dont les délégations réinvestiront les discussions dans les enceintes suivantes, et surtout les décisions nationales qu’elles prendront réellement. Un texte international est important, mais la trajectoire des émissions et la mise en œuvre des politiques constituent une mesure plus concrète de l’action climatique. Au soir du 22 novembre, il n’est pas possible de présenter la COP31 comme un succès politique ; il serait tout aussi inexact de prétendre que toute coopération climatique a disparu."
+          "À court terme, la conséquence la plus visible est diplomatique : aucun nouveau message global consensuel ne vient renforcer les engagements antérieurs. Les projets de transition ne s’arrêtent pas pour autant dans les pays engagés. Les politiques publiques, les investissements privés et les mesures locales dépendent aussi de décisions prises hors de ce sommet.",
+          "Le prochain indicateur à surveiller sera la manière dont les délégations réinvestiront les discussions dans les enceintes suivantes, et surtout les décisions nationales qu’elles prendront réellement. Un texte international est important, mais la trajectoire des émissions et la mise en œuvre des politiques constituent une mesure plus concrète de l’action climatique. La COP31 se referme donc sur un échec politique, sans pour autant effacer les coopérations déjà construites."
         ]
       }
     ]
@@ -93,7 +93,7 @@ const STORIES=[
       {
         "title": "Deux montants, deux réalités",
         "paragraphs": [
-          "Le chiffre de 42,5 milliards d’euros donne une impression de mobilisation massive. Il correspond, selon l’Élysée cité par Reuters le 22 novembre, à 273 projets recensés dans le cadre de la deuxième édition française de Choose France. Le rendez-vous du lundi 23 novembre doit mettre à l’honneur les entreprises françaises qui investissent sur le territoire. Mais le total ne désigne pas exclusivement des annonces faites pour la première fois ce week-end.",
+          "Le chiffre de 42,5 milliards d’euros donne une impression de mobilisation massive. L’Élysée a recensé 273 projets dans le cadre de la deuxième édition française de Choose France. Le rendez-vous du lundi 23 novembre doit mettre à l’honneur les entreprises françaises qui investissent sur le territoire. Mais le total ne désigne pas exclusivement des annonces faites pour la première fois ce week-end.",
           "Parmi ces 273 opérations, 81 projets représentent 14,9 milliards d’euros d’engagements présentés comme nouveaux. Les autres investissements comptabilisés relèvent d’annonces antérieures ou de projets engagés au fil de l’année. Les additionner peut éclairer la dynamique industrielle ; les qualifier tous de nouveautés serait une erreur de lecture."
         ]
       },
@@ -115,7 +115,7 @@ const STORIES=[
         "title": "Comment juger la réussite de Choose France ?",
         "paragraphs": [
           "Le précédent sommet français, en novembre 2025, avait été associé à 151 annonces pour 30,4 milliards d’euros selon les chiffres rappelés dans la presse. Comparer les totaux d’une année sur l’autre peut être utile, mais seulement si la même méthode de comptage est conservée. L’augmentation du nombre de projets ne suffit pas à établir qu’autant d’investissements ont déjà été exécutés.",
-          "Le suivi journalistique devra donc porter sur trois indicateurs séparés : les annonces réellement nouvelles, les dépenses réalisées sur les sites et les conséquences sur l’emploi ou la production. C’est à cette condition que les 42,5 milliards deviendront autre chose qu’un grand chiffre de Une. Au soir du 22 novembre, les documents disponibles permettent de décrire les projets présentés, pas de certifier leur réalisation."
+          "Trois indicateurs permettront d’en mesurer la portée : les annonces réellement nouvelles, les dépenses réalisées sur les sites et les conséquences sur l’emploi ou la production. Le montant annoncé prendra son sens à mesure que les chantiers avanceront et que leurs effets pourront être mesurés. Au 22 novembre, ces engagements sont recensés, mais leur réalisation reste à mesurer dans les années à venir."
         ]
       }
     ]
@@ -172,7 +172,7 @@ const STORIES=[
         "title": "Écologie et vie quotidienne ne s’opposent pas nécessairement",
         "paragraphs": [
           "Le chantier comprend aussi la consolidation d’une route départementale voisine. Le syndicat souligne le lien entre restauration du milieu naturel et sécurisation des déplacements, avec un montage associant des collectivités, l’Agence de l’eau Adour-Garonne et un fonds privé consacré aux rivières. Il s’agit d’une intervention technique et territoriale, pas uniquement d’une opération symbolique.",
-          "Pour les habitants, l’enjeu est double : préserver un cours d’eau utile à la biodiversité tout en maintenant des infrastructures sûres. Les prochaines questions sont précises : quels obstacles auront effectivement été traités, combien de kilomètres seront reconnectés, et quelles espèces reviendront réellement ? À ce stade, JLG Média ne prétend pas disposer d’un comptage de poissons migrateurs après travaux."
+          "Pour les habitants, l’enjeu est double : préserver un cours d’eau utile à la biodiversité tout en maintenant des infrastructures sûres. Les prochaines questions sont précises : quels obstacles auront effectivement été traités, combien de kilomètres seront reconnectés, et quelles espèces reviendront réellement ? Le retour effectif des poissons migrateurs exigera des relevés de terrain après la fin des travaux."
         ]
       }
     ]
@@ -203,7 +203,7 @@ const STORIES=[
       {
         "title": "Une amélioration réelle, mais pas un retour à la normale",
         "paragraphs": [
-          "Les dernières mesures de restriction des usages de l’eau en Corrèze ont été levées à compter du 20 novembre 2026. La décision fait suite aux précipitations récentes et à la remontée des débits des cours d’eau, selon une communication préfectorale datée du 19 novembre. Pour les particuliers et les professionnels, il s’agit d’un changement réglementaire concret : les restrictions départementales qui restaient en vigueur cessent de s’appliquer.",
+          "Les dernières mesures de restriction des usages de l’eau en Corrèze ont été levées à compter du 20 novembre 2026. La préfecture a annoncé cette décision le 19 novembre, après les pluies et la remontée des débits des cours d’eau. Pour les particuliers et les professionnels, il s’agit d’un changement réglementaire concret : les restrictions départementales qui restaient en vigueur cessent de s’appliquer.",
           "Le communiqué apporte immédiatement une précision essentielle. Même si les indicateurs repassent au-dessus des seuils déclenchant les mesures, la situation hydrologique demeure anormalement dégradée. Les niveaux observés restent nettement inférieurs aux moyennes habituelles pour cette période de l’année. Une fin d’interdiction n’équivaut donc pas à une ressource reconstituée."
         ]
       },
@@ -218,14 +218,14 @@ const STORIES=[
         "title": "Ce que cela change pour les habitants",
         "paragraphs": [
           "À compter de la date indiquée, les interdictions liées aux dernières restrictions sécheresse ne s’appliquent plus dans les conditions fixées par l’arrêté préfectoral. Cela ne dispense pas de respecter d’autres règles locales, les prescriptions sanitaires ou les éventuelles mesures qui pourraient être prises plus tard si la situation se détériorait.",
-          "Pour les foyers comme pour l’hôtellerie, l’agriculture et les équipements publics, une consommation mesurée reste pertinente. Il serait excessif d’affirmer que le risque est terminé pour l’hiver : les données des prochaines semaines devront confirmer la durée de l’amélioration."
+          "Pour les foyers comme pour l’hôtellerie, l’agriculture et les équipements publics, une consommation mesurée reste pertinente. Le risque pour l’hiver demeure : les données des prochaines semaines devront confirmer la durée de l’amélioration."
         ]
       },
       {
         "title": "L’indicateur à surveiller",
         "paragraphs": [
           "Le suivi utile n’est pas seulement la couleur des alertes. Il concerne les niveaux des rivières, les nappes, les prélèvements et l’évolution des précipitations. Les arrêtés et communiqués préfectoraux constituent les références à consulter en priorité pour savoir quelles restrictions s’appliquent effectivement.",
-          "Cette information est datée du 22 novembre 2026. Toute modification réglementaire postérieure devra être recontrôlée avant d’en tirer une conclusion pratique. JLG Média ne présente pas cette levée comme une garantie pour toute la saison."
+          "Cette information est datée du 22 novembre 2026. Toute modification réglementaire postérieure devra être recontrôlée avant d’en tirer une conclusion pratique. La levée des restrictions n’est pas une garantie pour toute la saison."
         ]
       }
     ]
