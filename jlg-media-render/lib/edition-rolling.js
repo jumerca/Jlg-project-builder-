@@ -2,6 +2,67 @@
 // Articles originaux vérifiés, rédigés par JLG Média ; les flux RSS ne sont pas des articles.
 const ROLLING=[
   {
+    "slug": "nvidia-retour-jensen-huang-direction-2026-11-23",
+    "title": "Nvidia : Jensen Huang reprend les commandes, mais les enquêtes se poursuivent",
+    "subtitle": "Le conseil d’administration a réinstallé lundi son fondateur à la direction, onze jours après sa démission. L’intervention de la Maison-Blanche et les interrogations sur les exportations de puces vers la Chine continuent de peser sur le géant de l’intelligence artificielle.",
+    "section": "International",
+    "scope": "international",
+    "format": "article",
+    "date": "2026-11-23",
+    "lastChecked": "2026-11-23",
+    "priority": "une",
+    "eyebrow": "TECHNOLOGIE · ÉTATS-UNIS · INTELLIGENCE ARTIFICIELLE",
+    "readTime": "4 min",
+    "sources": [
+      {
+        "title": "Nvidia — communiqué officiel de réintégration, 23 novembre 2026",
+        "url": "https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Board-Reinstates-Jensen-Huang-as-President-CEO-and-Board-Director/default.aspx"
+      },
+      {
+        "title": "Associated Press — Nvidia board reinstates Jensen Huang as CEO, 23 novembre 2026",
+        "url": "https://apnews.com/article/39d4b34ffaa867b4e669893b5fd5028f"
+      },
+      {
+        "title": "Reuters — Nvidia reinstates Jensen Huang as CEO, 23 novembre 2026",
+        "url": "https://www.investing.com/news/stock-market-news/nvidia-reinstates-jensen-huang-as-ceo-5045809"
+      },
+      {
+        "title": "The Guardian — Jensen Huang reinstated as Nvidia chief executive, 23 novembre 2026",
+        "url": "https://www.theguardian.com/technology/2026/nov/23/jensen-huang-reinstated-as-nvidia-chief-executive"
+      }
+    ],
+    "sections": [
+      {
+        "title": "Un revirement spectaculaire à la tête du groupe",
+        "paragraphs": [
+          "Onze jours après son départ, Jensen Huang reprend la direction de Nvidia. Le fabricant américain de puces pour l’intelligence artificielle a annoncé lundi 23 novembre sa réintégration immédiate comme directeur général, président et administrateur. Le conseil d’administration a voté à l’unanimité, renversant sa position exprimée quelques jours plus tôt, lorsqu’il avait écarté son retour. La décision met fin à une vacance de direction particulièrement sensible pour une entreprise au centre des investissements mondiaux dans l’intelligence artificielle.",
+          "Colette Kress, qui assurait l’intérim, reprend ses fonctions de directrice financière. Harvey Jones reste président du conseil. Dans son communiqué, Nvidia explique que les administrateurs ont retrouvé confiance dans la capacité de Huang à diriger le groupe après plusieurs échanges avec lui. Cette réintégration constitue un changement de gouvernance immédiat, pas la conclusion des investigations ouvertes autour de son départ."
+        ]
+      },
+      {
+        "title": "Washington s’invite dans la gouvernance de Nvidia",
+        "paragraphs": [
+          "Le président américain Donald Trump a publiquement soutenu le retour de Huang. Selon l’Associated Press, le chef de l’État a affirmé que son administration avait fait connaître sa position aux dirigeants de Nvidia. Le groupe confirme avoir reçu des avis de hauts responsables américains avant de conclure que la réintégration de son fondateur ne présentait pas de risque pour la sécurité nationale. Cette intervention illustre le statut stratégique pris par les processeurs avancés dans la rivalité technologique entre Washington et Pékin.",
+          "Le dossier ne se limite pourtant pas à une question de personnes. Des élus américains veulent savoir si les contrôles sur les exportations de puces vers la Chine ont été correctement respectés. Le groupe a constitué un comité consacré à la sécurité nationale et aux restrictions commerciales, et prévoit de recruter un responsable de la conformité. Nvidia affirme poursuivre sa coopération avec les autorités. Le conseil maintient également son enquête indépendante sur une possible opération de renseignement étrangère visant Huang."
+        ]
+      },
+      {
+        "title": "Les investisseurs applaudissent, les questions demeurent",
+        "paragraphs": [
+          "Les marchés ont immédiatement salué le retour du dirigeant qui a construit la domination de Nvidia dans les accélérateurs d’intelligence artificielle. L’action a fortement progressé lundi, Reuters faisant état d’une hausse de plus de 25 % avant l’ouverture américaine. Les variations de marché reflètent l’espoir d’un retour à une direction familière, mais elles ne disent rien de l’issue des procédures en cours.",
+          "La démission de Huang, le 12 novembre, était intervenue après des révélations sur des relations extraconjugales, dont une avec une femme soupçonnée par certains responsables américains de liens avec les services chinois. Ces soupçons ne constituent pas une preuve d’espionnage, et les autorités n’ont pas annoncé de conclusion définitive sur ce point. Le retour du fondateur règle la question de la direction à court terme ; il ne dispense ni l’entreprise ni son dirigeant de répondre aux interrogations sur la gouvernance, la conformité et la protection des technologies sensibles."
+        ]
+      }
+    ],
+    "photo": {
+      "file": "NVIDIA Headquarters.jpg",
+      "author": "Coolcaesar",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "caption": "Siège de Nvidia à Santa Clara, en Californie. Photographie d’archive réalisée le 4 août 2018, sans lien avec la décision du 23 novembre 2026."
+    }
+  },
+  {
     "slug": "ue-22e-sanctions-russie-proposition-2026-11-23",
     "title": "Russie : Bruxelles propose un 22e train de sanctions, des banques jusqu’au sport",
     "subtitle": "La Commission européenne veut durcir les restrictions financières et énergétiques visant Moscou. Le nouveau dispositif toucherait aussi les sportifs russes et les anciens combattants, mais doit encore obtenir l’unanimité des Vingt-Sept.",
@@ -10,7 +71,7 @@ const ROLLING=[
     "format": "article",
     "date": "2026-11-23",
     "lastChecked": "2026-11-23",
-    "priority": "une",
+    "priority": "secondary",
     "eyebrow": "EUROPE · UKRAINE · SANCTIONS",
     "readTime": "3 min",
     "sources": [
