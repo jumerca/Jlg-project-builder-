@@ -48,3 +48,13 @@ test('rolling article pictures show verified attribution and correct archive cap
   assert.ok(html.includes('Wikimedia Commons'));
  }
 });
+
+test('live status endpoint exposes the current rolling editorial issue',async()=>{
+ const {handler}=require('../server');
+ let code=0,data='';
+ await handler({url:'/api/health'}, {writeHead(status){code=status},end(body){data=body}});
+ assert.equal(code,200);
+ const status=JSON.parse(data);
+ assert.equal(status.rollingArticles,ROLLING.length);
+ assert.equal(status.editorialUpdatedAt,UPDATED_AT);
+});
