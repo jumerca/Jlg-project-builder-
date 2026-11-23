@@ -56,12 +56,26 @@ function dossier(d){
  const end=related.length?'<div class="ed-related">'+related.map(x=>'<a href="/dossier/'+E.esc(x.slug)+'">'+E.esc(x.title)+' →</a>').join('')+'</div>':'';
  return '<div class="breadcrumbs"><a href="/">La Une</a> / <a href="/journal">Journal</a> / '+E.esc(d.section)+'</div><article class="reader"><span class="ed-kicker">'+E.esc(d.eyebrow||d.section+' · ARTICLE DE FOND')+'</span><h1>'+E.esc(d.title)+'</h1><p class="lead">'+E.esc(d.subtitle)+'</p><div class="ed-byline"><span><strong>JLG Média · Rédaction</strong> — synthèse documentaire originale</span><time datetime="'+E.esc(d.date)+'">'+fmt(d.date)+'</time><span>'+E.esc(d.readTime||'Lecture 5 min')+'</span></div>'+I.picture(d,'article')+sections+'<section class="source"><h2 class="ed-source-header">Sources et documents consultés</h2><p>Ces références permettent de vérifier les faits principaux. Les liens donnent accès aux publications d’origine ; les textes de JLG Média sont des synthèses originales.</p><ol>'+links+'</ol></section>'+end+'<p><a class="back" href="/journal">← Retour aux articles</a></p></article>';
 }
+function matchPresentation(m,now=Date.now()){
+ const ready=Number.isInteger(m.homeScore)&&Number.isInteger(m.awayScore);
+ const state=m.state||(m.status?.includes('Terminé')?'final':m.status?.includes('En cours')?'live':'scheduled');
+ const stamp=Date.parse(m.kickoff||'');
+ const alreadyPlayed=Number.isFinite(stamp)&&now>stamp+3*60*60*1000;
+ if(state==='cancelled')return {kind:'pending',label:m.status||'Rencontre reportée',score:'Reporté'};
+ if(state==='final')return ready?{kind:'final',label:'Terminé',score:m.homeScore+' – '+m.awayScore}:{kind:'pending',label:'Terminé · score non communiqué',score:'Résultat indisponible'};
+ if(state==='live')return ready?{kind:'live',label:'EN DIRECT · source fournisseur',score:m.homeScore+' – '+m.awayScore}:{kind:'live',label:'En cours · score non communiqué',score:'Score indisponible'};
+ if(alreadyPlayed)return {kind:'pending',label:'Résultat non confirmé par le fournisseur',score:'Résultat attendu'};
+ const time=m.time?.match(/(\d{2}):(\d{2})/)||null;
+ const clock=time?time[1]+' h '+time[2]:'Heure à confirmer';
+ return {kind:'scheduled',label:'À venir',score:clock};
+}
 function matchCard(l){
- return '<section class="score-card"><div class="badge">'+E.esc(l.group||'International')+' · '+E.esc(l.sport)+'</div><h3>'+E.esc(l.name)+'</h3>'+(l.ok?(l.events.length?l.events.map(m=>{
-  const h=m.homeScore===null?'—':String(m.homeScore),a=m.awayScore===null?'—':String(m.awayScore);
-  const score=h==='—'&&a==='—'?'— : —':h+' : '+a;
-  return '<div class="match"><div class="match-head"><strong>'+E.esc(m.home)+'<br>'+E.esc(m.away)+'</strong><b>'+E.esc(score)+'</b></div><small>'+E.esc(m.status)+' · '+(m.time?E.esc(m.time):'heure non communiquée')+(m.url?' · <a href="'+E.esc(m.url)+'" target="_blank" rel="noopener noreferrer">Fiche source</a>':'')+'</small></div>';
- }).join(''):'<p class="feed-errors">Aucune rencontre retournée pour cette date. Cela ne prouve pas qu’il n’y a pas de match.</p>'):'<p class="feed-errors">Source indisponible : aucun score simulé.</p>')+'<p class="meta">Données : <a href="'+E.esc(l.url)+'" target="_blank" rel="noopener noreferrer">'+E.esc(l.sport==='Handball'?'TheSportsDB · communautaire':'ESPN')+'</a>'+(l.sport==='Handball'?' · couverture partielle':'')+'</p></section>';
+ const rows=l.events.map(m=>{
+  const display=matchPresentation(m);
+  const link=m.url?'<a class="source-link" href="'+E.esc(m.url)+'" target="_blank" rel="noopener noreferrer">Fiche du match</a>':'';
+  return '<div class="match"><div class="match-head"><strong>'+E.esc(m.home)+'<br>'+E.esc(m.away)+'</strong><span class="match-score '+display.kind+'">'+E.esc(display.score)+'</span></div><small><span class="match-status '+display.kind+'">'+E.esc(display.label)+'</span> · '+E.esc(m.time||'Heure non confirmée')+(link?' · '+link:'')+'</small></div>';
+ }).join('');
+ return '<section class="score-card"><div class="badge">'+E.esc(l.group||'International')+' · '+E.esc(l.sport)+'</div><h3>'+E.esc(l.name)+'</h3>'+rows+'<p class="meta">Source : <a href="'+E.esc(l.url)+'" target="_blank" rel="noopener noreferrer">'+E.esc(l.sport==='Handball'?'TheSportsDB · couverture partielle':'ESPN')+'</a></p></section>';
 }
 function scoreNav(sport,date,mode='scores'){
  const types=['Tous','Football','Basket','Rugby','Handball'];
@@ -71,8 +85,21 @@ function scoreNav(sport,date,mode='scores'){
  return tabs+'<div class="filters"><a href="'+route+'?sport='+encodeURIComponent(sport)+'&jour='+A.offset(date,-1)+'">← Veille</a><a href="'+route+'?sport='+encodeURIComponent(sport)+'&jour='+A.offset(date,1)+'">Lendemain →</a></div>'+form;
 }
 function scorePage(data){
- const {sport,date,leagues}=data,ready=leagues.filter(l=>l.ok).length,count=leagues.reduce((s,l)=>s+l.events.length,0);
- return '<section class="intro"><span class="eyebrow">Le sport · Les sources avant le score</span><h1>Scores &amp; Direct</h1><p>Football, rugby, basket et handball — données datées, statuts du fournisseur et liens consultables. Aucun direct ou résultat n’est créé artificiellement.</p></section><div class="notice">'+ready+'/'+leagues.length+' flux accessibles · '+count+' rencontres retournées pour la journée demandée. TheSportsDB est une base communautaire non exhaustive ; un résultat sensible doit être recoupé auprès d’une fédération.</div>'+scoreNav(sport,date)+'<div class="bar"><span class="pill">'+E.esc(date)+' · heure de Paris lorsque disponible</span><a class="pill" href="/calendrier">Agenda handball sur 7 jours</a><a class="pill" href="/classements">Consulter les classements</a></div><div class="score-grid">'+V.officialCards(date,sport)+leagues.map(matchCard).join('')+'</div><section class="aside-panel" style="margin-top:20px"><h3>Sources officielles complémentaires</h3><a href="https://www.lnh.fr/daikin-starligue/calendrier" target="_blank">LNH · Starligue</a><a href="https://www.eurohandball.com/en/" target="_blank">EHF · Handball européen</a><a href="https://www.ihf.info/" target="_blank">IHF · Sélections</a><a href="https://www.world.rugby/matches" target="_blank">World Rugby · International</a></section>';
+ const {sport,date,leagues}=data;
+ const good=leagues.filter(l=>l.ok),withMatches=good.filter(l=>l.events.length),without=good.filter(l=>!l.events.length),failed=leagues.filter(l=>!l.ok);
+ const total=withMatches.reduce((n,l)=>n+l.events.length,0);
+ const scheduled=withMatches.flatMap(l=>l.events).filter(m=>matchPresentation(m).kind==='scheduled').length;
+ const final=withMatches.flatMap(l=>l.events).filter(m=>matchPresentation(m).kind==='final').length;
+ const matchList=withMatches.map(matchCard).join('');
+ const empty='<div class="empty"><strong>Aucun match confirmé dans les flux interrogés pour cette journée.</strong><p>Il peut y avoir des rencontres non couvertes, notamment en rugby et en handball. Consulte les calendriers officiels ci-dessous.</p></div>';
+ const secondary=without.length||failed.length?'<details class="aside-panel" style="margin-top:16px"><summary>Compétitions sans rencontre ou source indisponible ('+(without.length+failed.length)+')</summary><p class="scores-summary">L’absence de résultat dans un flux ne prouve pas l’absence d’un match.</p><ul>'+without.map(l=>'<li>'+E.esc(l.name)+' : aucune rencontre retournée</li>').join('')+failed.map(l=>'<li>'+E.esc(l.name)+' : fournisseur indisponible</li>').join('')+'</ul></details>':'';
+ return '<section class="intro"><span class="eyebrow">Sport · Calendrier et résultats</span><h1>Matchs &amp; résultats</h1><p>Le coup d’envoi, le direct et le résultat sont présentés séparément. L’heure est celle de Paris, les scores proviennent des fournisseurs indiqués.</p></section>'
+ +'<div class="scores-highlight"><span>'+total+' rencontres affichées</span><span>'+scheduled+' à venir</span><span>'+final+' résultats confirmés</span><span>'+good.length+'/'+leagues.length+' sources accessibles</span></div>'
+ +scoreNav(sport,date)
+ +'<div class="bar"><span class="pill">Journée du '+E.esc(date)+'</span><a class="pill" href="/calendrier">Agenda handball sur 7 jours</a><a class="pill" href="/classements">Classements</a></div>'
+ +'<div class="score-grid">'+V.officialCards(date,sport)+(matchList||empty)+'</div>'+secondary
+ +'<p class="scores-summary">Mise à jour : '+fmt(data.fetchedAt,true)+'. Un match programmé aujourd’hui peut ne pas avoir encore de score. Pour le rugby et le handball, les données gratuites ne couvrent pas toutes les compétitions.</p>'
+ +'<section class="aside-panel" style="margin-top:16px"><h3>Résultats officiels complémentaires</h3><a href="https://www.lnh.fr/daikin-starligue/calendrier" target="_blank" rel="noopener noreferrer">LNH · Starligue</a><a href="https://www.eurohandball.com/en/" target="_blank" rel="noopener noreferrer">EHF · Handball européen</a><a href="https://www.ihf.info/" target="_blank" rel="noopener noreferrer">IHF · Handball international</a><a href="https://www.lnr.fr/" target="_blank" rel="noopener noreferrer">LNR · Top 14 et Pro D2</a><a href="https://www.world.rugby/matches" target="_blank" rel="noopener noreferrer">World Rugby · Sélections</a></section>';
 }
 function tableCard(name,res){
  return '<section class="score-card"><h3>'+E.esc(name)+'</h3>'+(res.records.length?'<table class="standings"><thead><tr><th>'+E.esc(name==='NBA'?'Conf. / rang':'#')+'</th><th>Équipe</th><th>J</th><th>'+E.esc(name==='NBA'?'Bilan':'Pts')+'</th></tr></thead><tbody>'+res.records.map(r=>'<tr><td>'+E.esc(name==='NBA'?(r.conference+' '+(r.rank??'—')):r.rank)+'</td><td>'+E.esc(r.team)+'</td><td>'+E.esc(r.played??'—')+'</td><td>'+E.esc(r.points??'—')+'</td></tr>').join('')+'</tbody></table>':'<p class="feed-errors">Classement indisponible. Aucune valeur reconstituée.</p>')+'<div class="meta"><a target="_blank" rel="noopener noreferrer" href="'+E.esc(res.url)+'">Données ESPN</a></div></section>';
@@ -146,4 +173,4 @@ if(require.main===module){
  const port=Number(process.env.PORT)||3000;
  http.createServer((req,res)=>{Promise.resolve(handler(req,res)).catch(e=>{console.error(e);res.writeHead(500);res.end('Erreur serveur')})}).listen(port,'0.0.0.0',()=>console.log('JLG Media listening on '+port));
 }
-module.exports={handler,layout,card,article,dossier,matchCard,scorePage};
+module.exports={handler,layout,card,article,dossier,matchCard,matchPresentation,scorePage};
