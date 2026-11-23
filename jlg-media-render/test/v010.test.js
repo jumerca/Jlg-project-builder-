@@ -15,8 +15,9 @@ test('all published dossiers have unique slugs and more than one documentary hos
  const slugs=new Set(DOSSIERS.map(d=>d.slug));
  assert.equal(slugs.size,DOSSIERS.length);
  for(const d of DOSSIERS){
-  assert.ok(d.title&&d.subtitle&&d.sections.length>=3);
-  assert.ok(d.sections.every(s=>s.paragraphs.length>=2));
+  const short=d.format==='breve';
+  assert.ok(d.title&&d.subtitle&&d.sections.length>=(short?1:3));
+  assert.ok(d.sections.every(s=>s.paragraphs.length>=(short?1:2)));
   assert.ok(new Set(d.sources.map(s=>new URL(s.url).hostname.replace(/^www\./,''))).size>=2);
  }
 });
