@@ -55,7 +55,8 @@ const PHOTOS={
 const wikiFile=f=>'https://commons.wikimedia.org/wiki/File:'+encodeURIComponent(f.replace(/ /g,'_'));
 const imageUrl=(f,w=900)=>'https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(f.replace(/ /g,'_'))+'?width='+Math.max(330,Math.min(1200,w));
 function picture(d,size='card'){
- const meta=PHOTOS[d.slug];if(!meta)return '';
+ const meta=PHOTOS[d.slug]||d.photo;
+ if(!meta||!meta.file||!meta.author||!meta.license||!meta.licenseUrl||!meta.caption)return '';
  const cls=size==='lead'?'ed-photo ed-photo-lead':size==='article'?'ed-photo ed-photo-article':'ed-photo ed-photo-card';
  return '<figure class="'+cls+'"><img loading="'+(size==='lead'?'eager':'lazy')+'" decoding="async" src="'+E.esc(imageUrl(meta.file,size==='lead'?1100:size==='article'?1100:660))+'" alt="'+E.esc(meta.caption)+'"><figcaption>'+E.esc(meta.caption)+' · <a href="'+E.esc(wikiFile(meta.file))+'" target="_blank" rel="noopener noreferrer">'+E.esc(meta.author)+'</a> / <a href="'+E.esc(meta.licenseUrl)+'" target="_blank" rel="noopener noreferrer">'+E.esc(meta.license)+'</a> · Wikimedia Commons</figcaption></figure>';
 }
