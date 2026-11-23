@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="t d"><title id="t">JLG Média</title><desc id="d">Monogramme J et page de journal blanc et turquoise sur fond bleu nuit</desc><rect x="0" y="0" width="512" height="512" rx="114" fill="#06192b"/><path d="M170 144H339" stroke="#fff" stroke-width="32" stroke-linecap="round"/><path d="M338 144L297 328Q277 362 210 361Q163 361 131 319" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/><path d="M376 91L441 163H381Z" fill="#03d4cc"/><path d="M336 218H421M325 259H421M313 300H421" stroke="#fff" stroke-width="15" stroke-linecap="round"/><path d="M85 408Q253 357 426 399" fill="none" stroke="#03d4cc" stroke-width="15" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>JLG Média</title>
+  <rect width="512" height="512" rx="111" fill="#071D30"/>
+  <path fill="#FBFEFF" d="M91 135h193v48h-68v146c0 56-28 85-85 85-21 0-40-4-58-13l16-51c13 7 25 10 37 10 22 0 30-12 30-33V183H91z"/>
+  <path d="M290 129h92l56 57v193c0 19-14 33-33 33H264v-52h125V205h-66v-55h-33z" fill="#FBFEFF"/>
+  <path d="M382 129v57h56z" fill="#15CBC5"/>
+  <path d="M278 246h80M278 289h80M278 332h80" stroke="#11C9C4" stroke-width="19" stroke-linecap="round"/>
+  <path d="M92 436h328" stroke="#11C9C4" stroke-width="11" stroke-linecap="round"/>
+</svg>
