@@ -25,7 +25,7 @@ function cover(news=[]){
  const aside=[economy,local].filter(Boolean);
  const briefs=news.slice(0,7).map((g,i)=>'<li><span class="ed-brief-number">'+String(i+1).padStart(2,'0')+'</span><div><span class="ed-brief-tag">'+E.esc(g.category||'Actualité')+'</span><a href="/article?id='+encodeURIComponent(g.id)+'">'+E.esc(g.title)+'</a><small>'+E.esc(g.sourceNames?.slice(0,2).join(' · ')||'Flux de presse')+' · BRÈVE</small></div></li>').join('');
  return '<div class="ed-cover">'
-  +'<div class="ed-compact-head"><div><span class="ed-compact-date">ÉDITION DU 22 NOVEMBRE 2026</span><h1>À la une<span>.</span></h1></div><a href="/journal">Tous les articles ↗</a></div>'
+  +'<header class="ed-front-title ed-front-title-compact"><div><span class="ed-front-number">JLG MÉDIA · LE JOURNAL</span><h1>À la une</h1></div><time class="ed-edition-date" datetime="2026-11-22">Édition du '+PRINT_DATE+'</time></header>'
   +'<section class="ed-lead-grid"><article class="ed-lead">'
   +I.picture(lead,'lead')
   +'<div class="ed-lead-text">'+label(lead)+'<h2>'+headline(lead)+'</h2><p>'+E.esc(lead.subtitle)+'</p><div class="ed-lead-footer"><span>LE GRAND DOSSIER · '+sourceCount(lead)+' DOCUMENTS SOURCES</span><a href="'+href(lead)+'">Lire notre analyse <span aria-hidden="true">↗</span></a></div></div></article>'
@@ -38,7 +38,6 @@ function cover(news=[]){
   +'<div class="ed-local-grid">'+[sport,handball,cup].filter(Boolean).map(d=>newsroomCard(d)).join('')+'</div>'
   +(rest.length?'<div class="ed-local-grid">'+rest.map(d=>newsroomCard(d)).join('')+'</div>':'')
   +'</div><aside class="ed-front-aside"><div class="ed-brief-header"><div><span>EN CONTINU</span><h2>Le fil des brèves</h2></div><span class="ed-mini-dot"></span></div><p class="ed-brief-disclaimer">Informations courtes issues de flux identifiés. Ce sont des dépêches, pas des articles de la rédaction.</p><ol class="ed-brief-list">'+(briefs||'<li>Le fil est momentanément indisponible.</li>')+'</ol><a class="ed-brief-more" href="/breves">Toute l’actualité en brèves ↗</a></aside></section>'
-  +'<div class="ed-bottom-ribbon"><div><span>VOTRE JOURNAL</span><strong>Les bonnes questions méritent mieux que trois lignes.</strong></div><a href="/dossiers">Lire les articles de fond ↗</a></div>'
   +'<p class="ed-edition-note">Une datée du 22 novembre 2026 · Sélection et articles rédactionnels non actualisés automatiquement. Pour les derniers événements reçus des fournisseurs, consulter les <a href="/breves">brèves</a> et les <a href="/scores">scores datés</a>.</p></div>';
 }
 function dossierIndex(){
