@@ -1,0 +1,79 @@
+/* JLG Média — brand and reading experience 0.12.0 */
+:root{--navy:#06192b;--ink:#142c3c;--teal:#02bcb6;--paper:#f6f8fa;--muted:#596f80;--line:#e1e9ed}
+body{background:#f6f8fa;color:#142c3c}
+.mast{background:#fff;color:#132c3c;border-bottom:1px solid #e2eaef;padding:0}
+.mast-inner{padding:13px 0;min-height:70px}
+.mast .brand{gap:11px;min-width:0}
+.brand-logo{width:43px;height:43px;display:block;flex:0 0 auto;border-radius:10px;box-shadow:0 2px 10px #1e3d5715}
+.mast .brand-name{font-size:25px;letter-spacing:-1.4px;color:#092538;font-weight:800}
+.mast .brand-name em{color:#02979b;font-style:normal;font-weight:800}
+.mast-edition{border:1px solid #dbe7ed;color:#21475b;background:#f7fbfc;padding:10px 15px;border-radius:10px;font-size:12px;font-weight:800;white-space:nowrap}
+.mast-edition:hover{border-color:#60c8c7;color:#027c84}
+.navouter{box-shadow:none;border-bottom:1px solid #e6edef;top:0}
+.nav{gap:0}
+.nav a{padding:12px 13px;color:#486276;font-weight:700;font-size:12px;border-bottom-width:2px}
+.nav a.active,.nav a:hover{color:#087f88;border-bottom-color:#03b8b6}
+.container{max-width:1230px}
+main.container{min-height:75vh}
+.ed-cover{padding-top:0}
+.ed-compact-head{padding:23px 0 16px;display:flex;align-items:flex-end;justify-content:space-between;gap:18px}
+.ed-compact-head h1{font:800 clamp(31px,4.4vw,51px)/1.05 "Space Grotesk",sans-serif;letter-spacing:-2.2px;color:#102e42;margin:4px 0 0}
+.ed-compact-head h1 span{color:#04bcb6}
+.ed-compact-date{font-size:10px;letter-spacing:1.65px;font-weight:900;color:#678194}
+.ed-compact-head>a{font-size:12px;color:#166c7c;font-weight:800;padding-bottom:6px;white-space:nowrap}
+.ed-lead-grid{gap:15px}
+.ed-lead{border-radius:14px;background:#0b2638;box-shadow:0 9px 25px #10283a16}
+.ed-lead h2{letter-spacing:-1.2px}
+.ed-lead .ed-photo-lead img{max-height:340px}
+.ed-story{border-radius:13px;padding:19px;box-shadow:0 3px 15px #12344708}
+.ed-story-side{padding:17px}
+.ed-story h3{letter-spacing:-.5px}
+.ed-front-grid{gap:20px}
+.ed-divider{margin-top:30px}
+.ed-brief-more{margin-bottom:0}
+.ed-bottom-ribbon{border-radius:12px}
+.reader{border-radius:15px;border-color:#e7edf1;box-shadow:0 8px 35px #1534470a}
+.reader h1{letter-spacing:-1.2px}
+.reader>section>h2{font-size:23px}
+.reader p{line-height:1.85}
+.reader .ed-byline{color:#627c8d}
+.reader .ed-byline strong{color:#102f40}
+.reader .source{border-left:3px solid #049da7;background:#f4fafa}
+.reader .source p{font-size:13px;color:#647987}
+.score-card{box-shadow:0 4px 15px #152c3a07;border-radius:14px}
+.score-card h3{font-size:16px}
+.score-card .match-head strong{font-size:14px}
+.score-card .match-score{font:800 20px/1.2 "Space Grotesk",sans-serif;color:#152f45;white-space:nowrap}
+.score-card .match-score.pending{font-size:12px;color:#627b88;font-weight:700;white-space:normal;text-align:right;max-width:145px}
+.score-card .match-score.live{color:#ce4437}
+.score-card .match-status{display:inline-block;font-weight:800;color:#527082;font-size:11px}
+.score-card .match-status.live{color:#ce4437}
+.score-card .match-status.final{color:#174e58}
+.score-card .match-status.pending{color:#727f8b}
+.score-card .match-status.scheduled{color:#0d8796}
+.score-card .match{padding:14px 0}
+.score-card .match small{line-height:1.65}
+.score-card .match .source-link{color:#08798b;text-decoration:underline}
+.scores-summary{color:#5b7282;line-height:1.7;font-size:12px;margin:15px 0 8px}
+.scores-summary strong{color:#193f50}
+.scores-highlight{margin:0 0 15px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.scores-highlight span{border:1px solid #d7e6ea;border-radius:30px;padding:7px 10px;background:white;font-weight:800;color:#426676;font-size:11px}
+.footer{background:#0a2031}
+.footer p{opacity:.9}
+@media(max-width:700px){
+ .mast-inner{padding:10px 0;min-height:58px}
+ .brand-logo{width:37px;height:37px}
+ .mast .brand-name{font-size:22px}
+ .mast-edition{font-size:11px;padding:8px 10px}
+ .nav a{padding:10px 10px;font-size:12px}
+ .ed-compact-head{padding:18px 0 13px;align-items:center}
+ .ed-compact-head h1{font-size:35px}
+ .ed-compact-date{font-size:9px;letter-spacing:1px}
+ .ed-compact-head>a{font-size:10px}
+ .ed-lead h2{font-size:29px}
+ .ed-lead .ed-photo-lead img{height:230px}
+ .score-card .match-head{align-items:flex-start}
+ .score-card .match-score{font-size:18px}
+ .score-card .match-score.pending{font-size:11px;max-width:115px}
+}
+@media(prefers-reduced-motion:reduce){.ed-story,.article-card{transition:none}}
