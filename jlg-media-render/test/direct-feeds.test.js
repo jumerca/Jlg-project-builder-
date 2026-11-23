@@ -1,0 +1,16 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const SOURCES=require('../lib/sources');
+const E=require('../lib/editorial');
+const MEDIA=require('../lib/media-catalog');
+const urlOf=name=>SOURCES.FEEDS.find(x=>x.name===name);
+test('TF1 has a direct RSS instead of Google fallback',()=>{const t=urlOf('TF1 INFO · Une');assert.equal(t?.url,'https://www.tf1info.fr/feeds/rss-une.xml');assert.equal(t.publisher,'TF1 INFO')});
+test('RMC sports coverage has 3 independent direct thematic RSS endpoints',()=>{const entries=SOURCES.FEEDS.filter(x=>x.publisher==='RMC Sport');assert.equal(entries.length,3);assert.ok(entries.every(x=>x.categoryHint==='Sport'&&x.url.startsWith('https://rmcsport.bfmtv.com/rss/')))});
+test('Rugbyrama is a direct feed and a specialty sports source',()=>{assert.equal(urlOf('Rugbyrama · Rugby')?.url,'https://www.rugbyrama.fr/rss.xml');assert.equal(urlOf('Rugbyrama · Rugby').categoryHint,'Sport')});
+test('the four repeatedly timed-out Google News discovery feeds are not part of active ingestion',()=>{assert.ok(SOURCES.FEEDS.every(x=>!x.url.includes('news.google.com')));assert.ok(SOURCES.FEEDS.length>=14)});
+test('TF1 RSS items have TF1 publisher on the visible link',()=>{const xml='<rss><channel><item><title>Nouvelle mesure annoncée lundi</title><link>https://www.tf1info.fr/actualite/12345.html</link><description>Le ministère donne les détails.</description><pubDate>Mon, 23 Nov 2026 06:00:00 GMT</pubDate></item></channel></rss>';const res=SOURCES.parse(xml,urlOf('TF1 INFO · Une'),Date.parse('2026-11-23T08:00:00Z'));assert.equal(res.length,1);assert.equal(res[0].publisher,'TF1 INFO');assert.equal(res[0].url,'https://www.tf1info.fr/actualite/12345.html')});
+test('specialist news coverage becomes sport even if the headline lacks keywords',()=>{assert.equal(E.classify({title:'Le XV a choisi son capitaine',summary:'',categoryHint:'Sport'}),'Sport');assert.equal(E.classify({title:'Brive dans le choc de la journée',summary:'',categoryHint:'Sport'}),'Sport')});
+test('primary local news without sports hint stays Corrèze',()=>assert.equal(E.classify({title:'Le lycée de Tulle rénové',summary:''}),'Corrèze'));
+test('same editorial family never counts as independent verification',()=>{assert.equal(MEDIA.family('BFMTV'),MEDIA.family('RMC Sport'));assert.equal(MEDIA.family('TF1 INFO'),MEDIA.family('LCI'));assert.equal(MEDIA.family('Rugbyrama'),MEDIA.family('Midi Olympique'));const a=E.combine([{title:'Victoire du XV contre l adversaire européen',publisher:'Midi Olympique',url:'https://midol.fr/a',epoch:1},{title:'Victoire du XV contre l adversaire européen',publisher:'Rugbyrama',url:'https://rugbyrama.fr/b',epoch:1}]);assert.equal(a.length,1);assert.equal(a[0].kind,'breve')});
+test('Le Monde and L Equipe remain available as research references, not auto-syndicated RSS',()=>{assert.ok(MEDIA.GENERAL.some(x=>x.name==='Le Monde'&&x.researchOnly));assert.ok(MEDIA.SPORT.some(x=>x.name==="L'Équipe"));assert.ok(SOURCES.FEEDS.every(x=>!x.url.includes('lemonde.fr')&&!x.url.includes('lequipe.fr')))});
