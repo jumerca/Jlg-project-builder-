@@ -38,12 +38,26 @@ function espnMatch(e,kind){
 }
 async function espn(league,date,fetcher=fetch){
  const url='https://site.api.espn.com/apis/site/v2/sports/'+league.kind+'/'+league.code+'/scoreboard?dates='+date.replaceAll('-','');
+ // NBA schedules are indexed by the US game date. A game played at 02:00
+ // in Paris on November 23 may belong to November 22 in the US.
+ const yesterday=new Date(date+'T12:00:00Z');yesterday.setUTCDate(yesterday.getUTCDate()-1);
+ const prev=yesterday.toISOString().slice(0,10).replaceAll('-','');
+ const endpoints=league.kind==='basketball'?[url,'https://site.api.espn.com/apis/site/v2/sports/'+league.kind+'/'+league.code+'/scoreboard?dates='+prev]:[url];
  try{
-  const r=await fetcher(url,{signal:AbortSignal.timeout(6500),headers:{Accept:'application/json'}});
-  if(!r.ok)throw Error('HTTP '+r.status);
-  const j=await r.json();
-  if(!Array.isArray(j.events))throw Error('Format fournisseur');
-  return {...league,ok:true,url,events:j.events.filter(e=>e.date&&parisDate(e.date)===date).slice(0,55).map(e=>espnMatch(e,league.sport)).filter(Boolean)};
+  const pages=await Promise.all(endpoints.map(async endpoint=>{
+   const r=await fetcher(endpoint,{signal:AbortSignal.timeout(6500),headers:{Accept:'application/json'}});
+   if(!r.ok)throw Error('HTTP '+r.status);
+   const j=await r.json();
+   if(!Array.isArray(j.events))throw Error('Format fournisseur');
+   return j.events;
+  }));
+  const seen=new Set();
+  const events=pages.flat().filter(e=>{
+   if(!e.date||parisDate(e.date)!==date)return false;
+   const id=String(e.id||e.date+'|'+e.name);
+   if(seen.has(id))return false;seen.add(id);return true;
+  }).slice(0,55).map(e=>espnMatch(e,league.sport)).filter(Boolean);
+  return {...league,ok:true,url,events};
  }catch(e){return {...league,ok:false,url,events:[],error:String(e.message||e).slice(0,90)}}
 }
 function handballEvent(e,date,league){
