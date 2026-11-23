@@ -39,7 +39,9 @@ function combine(items){
 const corr=/\b(correze|brive(?:-la-gaillarde)?|tulle|ussel|pompadour|donzenac|objat|juillac|lubersac|allassac|malemort|argentat|meymac|egletons|beaulieu-sur-dordogne|saint-yrieix-le-dejalat)\b/i;
 function isCorreze(a){return corr.test(norm((a.title||'')+' '+(a.summary||'')));}
 function classify(a){
+ if(a.categoryHint==='Sport')return 'Sport';
  if(isCorreze(a))return 'Corrèze';
+ if(a.categoryHint==='France')return 'France';
  const t=norm((a.title||'')+' '+(a.summary||''));
  if(/\b(rugby|football|handball|basket|tennis|grand chelem|formule 1|ligue 1|championnat|nba|sport|champions league|premier league)\b/.test(t))return 'Sport';
  if(/\b(cinema|film|festival de cannes|acteur|actrice|box office)\b/.test(t))return 'Cinéma';
