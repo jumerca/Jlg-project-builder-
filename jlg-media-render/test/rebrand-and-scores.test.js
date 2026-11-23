@@ -57,8 +57,8 @@ test('published editorial articles do not masquer an excerpt as journalism',()=>
  assert.ok(all.length>25);
  assert.ok(all.every(x=>x.length>70));
  const front=cover([]);
- assert.match(front,/Le fil des brèves/);
- assert.match(front,/Les articles de la rédaction/);
+ assert.match(front,/À la une/);
+ assert.doesNotMatch(front,/Le fil des brèves|EN CORRÈZE|Au plus près du territoire/);
  assert.ok(DOSSIERS.some(d=>d.section==='Sport'));
  assert.ok(DOSSIERS.some(d=>d.section==='Corrèze'));
 });
