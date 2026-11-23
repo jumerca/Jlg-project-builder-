@@ -1,6 +1,5 @@
 'use strict';
-// Articles originaux datés du 22 novembre 2026, rédigés à partir des sources documentaires listées.
-// Leurs données ne sont pas actualisées automatiquement. Les brèves RSS n'alimentent pas ces textes.
+// Articles originaux du 22 novembre 2026, rédigés et sourcés ; les brèves RSS ne modifient pas ce texte.
 const STORIES=[
   {
     "slug": "cop31-antalya-pas-accord-final",
@@ -8,7 +7,7 @@ const STORIES=[
     "subtitle": "La conférence s’achève sans déclaration politique commune. Sur les fossiles et les financements, la fracture entre États l’a emporté sur l’accord de façade.",
     "section": "International",
     "date": "2026-11-22",
-    "eyebrow": "CLIMAT · ENQUÊTE DOCUMENTAIRE",
+    "eyebrow": "CLIMAT · INTERNATIONAL",
     "readTime": "6 min",
     "sources": [
       {
@@ -36,8 +35,8 @@ const STORIES=[
       {
         "title": "Une conférence qui se termine sans texte politique d’ensemble",
         "paragraphs": [
-          "Au terme de deux semaines de discussions et d’une prolongation des négociations, la 31e conférence des Nations unies sur le climat s’est achevée le dimanche 22 novembre à Antalya, en Turquie, sans consensus sur une déclaration finale commune. La conclusion est confirmée par les Nations unies et par plusieurs délégations, dont l’Office fédéral suisse de l’environnement. Ce n’est pas une simple querelle de rédaction : l’incapacité des pays à adopter un message politique partagé révèle le fossé qui demeure entre leurs priorités énergétiques et financières.",
-          "Ce constat mérite pourtant une nuance importante. L’absence d’une déclaration générale ne signifie pas que les accords climatiques conclus les années précédentes sont annulés. Les obligations et les cadres existants, notamment ceux hérités de l’accord de Paris, ne s’effacent pas avec la déception d’une conférence. L’échec concerne la possibilité de dégager ici une nouvelle orientation collective assez forte pour convaincre une large majorité de délégations."
+          "Au terme de deux semaines de discussions et d’une prolongation des négociations, la 31e conférence des Nations unies sur le climat s’est achevée le dimanche 22 novembre à Antalya, en Turquie, sans consensus sur une déclaration finale commune. Au-delà des échanges de dernière minute, le désaccord révèle un fossé persistant entre des pays qui réclament une transition accélérée et d’autres qui privilégient leurs intérêts énergétiques ou financiers.",
+          "L’impasse diplomatique ne fait pas disparaître les accords climatiques conclus les années précédentes. Les obligations et les cadres existants, notamment ceux hérités de l’accord de Paris, ne s’effacent pas avec la déception d’une conférence. L’échec concerne la possibilité de dégager ici une nouvelle orientation collective assez forte pour convaincre une large majorité de délégations."
         ]
       },
       {
@@ -93,7 +92,7 @@ const STORIES=[
       {
         "title": "Deux montants, deux réalités",
         "paragraphs": [
-          "Le chiffre de 42,5 milliards d’euros donne une impression de mobilisation massive. L’Élysée a recensé 273 projets dans le cadre de la deuxième édition française de Choose France. Le rendez-vous du lundi 23 novembre doit mettre à l’honneur les entreprises françaises qui investissent sur le territoire. Mais le total ne désigne pas exclusivement des annonces faites pour la première fois ce week-end.",
+          "Quarante-deux milliards et demi d’euros : le chiffre impressionne, mais il mérite d’être décortiqué. L’Élysée a recensé 273 projets dans le cadre de la deuxième édition française de Choose France. Le rendez-vous du lundi 23 novembre doit mettre à l’honneur les entreprises françaises qui investissent sur le territoire. Mais le total ne désigne pas exclusivement des annonces faites pour la première fois ce week-end.",
           "Parmi ces 273 opérations, 81 projets représentent 14,9 milliards d’euros d’engagements présentés comme nouveaux. Les autres investissements comptabilisés relèvent d’annonces antérieures ou de projets engagés au fil de l’année. Les additionner peut éclairer la dynamique industrielle ; les qualifier tous de nouveautés serait une erreur de lecture."
         ]
       },
@@ -101,7 +100,7 @@ const STORIES=[
         "title": "Pourquoi la distinction compte pour le débat public",
         "paragraphs": [
           "Un investissement annoncé n’est pas nécessairement un montant déjà dépensé. Il peut correspondre à une dépense étalée sur plusieurs exercices, à un projet en développement ou à un engagement conditionné à des étapes futures. Sans calendrier de décaissement, sans point d’avancement des chantiers et sans bilan des emplois créés, le montant global renseigne davantage sur les intentions déclarées que sur leurs effets déjà observables.",
-          "Les 14,9 milliards de nouveaux projets ne constituent donc pas non plus 14,9 milliards immédiatement injectés dans l’économie le 23 novembre. Cette précision n’enlève rien à l’importance potentielle des annonces ; elle permet simplement de ne pas confondre communication économique, engagement des investisseurs et activité effectivement réalisée."
+          "Les 14,9 milliards de nouveaux projets ne constituent donc pas non plus 14,9 milliards immédiatement injectés dans l’économie le 23 novembre. La différence entre un projet annoncé et une usine construite sera déterminante pour juger l’impact de ces investissements sur l’économie française."
         ]
       },
       {
@@ -114,7 +113,7 @@ const STORIES=[
       {
         "title": "Comment juger la réussite de Choose France ?",
         "paragraphs": [
-          "Le précédent sommet français, en novembre 2025, avait été associé à 151 annonces pour 30,4 milliards d’euros selon les chiffres rappelés dans la presse. Comparer les totaux d’une année sur l’autre peut être utile, mais seulement si la même méthode de comptage est conservée. L’augmentation du nombre de projets ne suffit pas à établir qu’autant d’investissements ont déjà été exécutés.",
+          "Lors du précédent sommet français, en novembre 2025, 151 annonces représentant 30,4 milliards d’euros avaient été présentées. Comparer les totaux d’une année sur l’autre peut être utile, mais seulement si la même méthode de comptage est conservée. L’augmentation du nombre de projets ne suffit pas à établir qu’autant d’investissements ont déjà été exécutés.",
           "Trois indicateurs permettront d’en mesurer la portée : les annonces réellement nouvelles, les dépenses réalisées sur les sites et les conséquences sur l’emploi ou la production. Le montant annoncé prendra son sens à mesure que les chantiers avanceront et que leurs effets pourront être mesurés. Au 22 novembre, ces engagements sont recensés, mais leur réalisation reste à mesurer dans les années à venir."
         ]
       }
@@ -151,7 +150,7 @@ const STORIES=[
         "title": "Un chantier concret à Moulin Bas",
         "paragraphs": [
           "À la jonction de la Souvigne et du bassin de la Dordogne, le secteur du Moulin Bas, près de Monceaux-sur-Dordogne et d’Argentat-sur-Dordogne, fait l’objet d’une opération destinée à restaurer la continuité du cours d’eau. Le Syndicat mixte de la Dordogne moyenne et de la Cère aval, maître d’ouvrage, a présenté le projet à l’automne 2026 : supprimer un ancien seuil artificiel qui gêne le passage des poissons et le transit des sédiments.",
-          "Le site ne se réduit pas à un petit aménagement paysager. European Rivers Network décrit un obstacle d’environ 1,7 mètre de hauteur et 12 mètres de largeur. Son effacement modifie localement les conditions de circulation de l’eau et des matériaux. C’est un travail sur le fonctionnement de la rivière, avec des effets attendus qui dépassent le seul emplacement du chantier."
+          "Le site ne se réduit pas à un petit aménagement paysager. L’obstacle, d’environ 1,7 mètre de hauteur pour 12 mètres de largeur, freinait la circulation des poissons et des sédiments. Son effacement modifie localement les conditions de circulation de l’eau et des matériaux. C’est un travail sur le fonctionnement de la rivière, avec des effets attendus qui dépassent le seul emplacement du chantier."
         ]
       },
       {
@@ -164,8 +163,8 @@ const STORIES=[
       {
         "title": "Un programme plus large que le seul Moulin Bas",
         "paragraphs": [
-          "Le partenariat de restauration ne porte pas sur un ouvrage isolé. European Rivers Network présente un ensemble de sept obstacles à effacer ou à aménager, avec l’ambition de rendre de nouveau accessibles environ 17 kilomètres de cours principal et 12 kilomètres d’affluents. Le réseau évoque également la possibilité de reconnecter près de 27 kilomètres de milieux aquatiques au terme des différentes interventions.",
-          "Ces chiffres décrivent l’objectif du programme et ne doivent pas être présentés comme autant de kilomètres déjà rouverts à la date de publication. Le suivi des chantiers, de leur réception et des observations biologiques permettra de mesurer les réalisations. C’est une distinction fondamentale entre une perspective annoncée et un résultat constaté."
+          "Le chantier de Moulin Bas s’inscrit dans un programme de restauration de sept obstacles. L’objectif est de rouvrir environ 17 kilomètres de cours principal et 12 kilomètres d’affluents. Le réseau évoque également la possibilité de reconnecter près de 27 kilomètres de milieux aquatiques au terme des différentes interventions.",
+          "La continuité écologique attendue reste un objectif : les travaux devront être achevés, puis leurs effets évalués sur le terrain. Le retour des espèces migratrices ne se décrète pas ; il se mesure dans la durée."
         ]
       },
       {
@@ -211,7 +210,7 @@ const STORIES=[
         "title": "Pourquoi les pluies d’automne ne suffisent pas toujours",
         "paragraphs": [
           "Après une période sèche, plusieurs épisodes pluvieux peuvent faire remonter rapidement les cours d’eau. Mais la disponibilité de l’eau dépend aussi de la durée des précipitations, de leur répartition géographique et de la reconstitution des réserves souterraines. Les débits des rivières et les nappes phréatiques ne réagissent pas nécessairement au même rythme.",
-          "C’est précisément pour cette raison que la décision administrative et le diagnostic environnemental doivent être lus séparément. La préfecture peut estimer que les seuils réglementaires ne justifient plus des restrictions tout en invitant les usagers à préserver la ressource."
+          "Le répit administratif ne règle donc pas toute la question de la ressource en eau. La préfecture peut estimer que les seuils réglementaires ne justifient plus des restrictions tout en invitant les usagers à préserver la ressource."
         ]
       },
       {
