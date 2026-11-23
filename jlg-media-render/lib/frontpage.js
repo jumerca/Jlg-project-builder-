@@ -13,47 +13,57 @@ function newsroomCard(d,variant='normal'){
  const cls=variant==='side'?'ed-story ed-story-side':variant==='wide'?'ed-story ed-story-wide':'ed-story';
  return '<article class="'+cls+'">'+I.picture(d,'card')+'<div class="ed-story-kicker">'+E.esc(d.section)+' <span>· ANALYSE</span></div><h3>'+headline(d)+'</h3><p>'+E.esc(d.subtitle)+'</p><div class="ed-story-bottom"><span>'+sourceCount(d)+' sources · JLG Média</span><a href="'+href(d)+'">Lire l’article <span aria-hidden="true">↗</span></a></div></article>';
 }
+function homeEligible(d){
+ if(!d||!d.slug||!d.title)return false;
+ if(d.section==='Corrèze'||d.scope==='local'||d.scope==='regional')return false;
+ if(d.scope&&d.scope!=='national'&&d.scope!=='international')return false;
+ if(d.section==='France'||d.section==='International')return true;
+ if(d.section!=='Sport')return false;
+ if(d.scope==='national'||d.scope==='international')return true;
+ const t=E.norm([d.slug,d.eyebrow||'',d.title||''].join(' '));
+ return /ligue 1|champions league|equipe de france|euro feminin|mondial|coupe du monde|nba/.test(t);
+}
+function publishedArticles(){
+ return DOSSIERS.filter(d=>d&&d.slug&&d.title&&Array.isArray(d.sections)&&d.sections.some(s=>Array.isArray(s.paragraphs)&&s.paragraphs.length)&&Array.isArray(d.sources)&&d.sources.length);
+}
 function cover(news=[]){
- const fresh=ROLLING.filter(d=>d&&d.slug&&d.date).sort((a,b)=>b.date.localeCompare(a.date));
- const preferred=fresh.find(d=>d.priority==='une')||fresh[0];
- const lead=preferred||DOSSIERS.find(d=>d.slug==='cop31-antalya-pas-accord-final')||DOSSIERS[0];
- const editionDay=preferred?.date||'2026-11-22';
- const displayedDate=preferred?new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Paris'}).format(new Date(editionDay+'T12:00:00Z')):PRINT_DATE;
- const editionLabel=preferred?'Actualisée le '+displayedDate:'Édition du '+PRINT_DATE;
- const economy=DOSSIERS.find(d=>d.slug==='choose-france-42-milliards-decryptage');
- const local=DOSSIERS.find(d=>d.slug==='souvigne-correze-barrage-riviere');
- const drought=DOSSIERS.find(d=>d.slug==='correze-restrictions-eau-fin-novembre');
- const sport=DOSSIERS.find(d=>d.slug==='oyonnax-brive-32-22-2026');
- const handball=DOSSIERS.find(d=>d.slug==='euro-feminin-2026-bleues');
- const cup=DOSSIERS.find(d=>d.slug==='mondial-handball-2027-france');
- const aside=[...fresh.filter(d=>d.slug!==lead.slug),economy,local].filter((d,i,arr)=>d&&arr.findIndex(x=>x?.slug===d.slug)===i).slice(0,2);
- const used=new Set([lead,...aside,economy,local,drought,sport,handball,cup].filter(Boolean).map(d=>d.slug));
- const rest=DOSSIERS.filter(d=>!used.has(d.slug));
- const briefs=news.slice(0,7).map((g,i)=>'<li><span class="ed-brief-number">'+String(i+1).padStart(2,'0')+'</span><div><span class="ed-brief-tag">'+E.esc(g.category||'Actualité')+'</span><a href="/article?id='+encodeURIComponent(g.id)+'">'+E.esc(g.title)+'</a><small>'+E.esc(g.sourceNames?.slice(0,2).join(' · ')||'Flux de presse')+' · BRÈVE</small></div></li>').join('');
+ // The homepage displays exclusively authored JLG Média national / world reports.
+ // RSS titles are research leads, NEVER editorial articles or homepage headlines.
+ const eligible=publishedArticles().filter(homeEligible).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+ const rolling=eligible.filter(d=>ROLLING.some(r=>r.slug===d.slug));
+ const lead=rolling.find(d=>d.priority==='une')||eligible.find(d=>d.priority==='une')||eligible[0];
+ if(!lead)return '<section class="ed-archive-intro"><span class="ed-kicker">JLG MÉDIA · LA UNE</span><h1>À la une</h1><p>Les prochains articles nationaux et internationaux paraîtront après vérification et rédaction par JLG Média.</p></section>';
+ const rest=eligible.filter(d=>d.slug!==lead.slug);
+ const aside=rest.slice(0,2),more=rest.slice(2,9);
+ const editionDay=lead.date;
+ const displayedDate=new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Paris'}).format(new Date(editionDay+'T12:00:00Z'));
+ const latest=rolling.length>0?rolling[0]:lead;
+ const leadFooter='<div class="ed-lead-footer"><span>JLG MÉDIA · '+E.esc(lead.section)+' · '+sourceCount(lead)+' RÉFÉRENCES</span><a href="'+href(lead)+'">Lire l’article <span aria-hidden="true">↗</span></a></div>';
  return '<div class="ed-cover">'
-  +'<header class="ed-compact-head"><div><span class="ed-front-number">JLG MÉDIA · LE JOURNAL</span><h1>À la une</h1></div><time class="ed-compact-date" datetime="'+E.esc(editionDay)+'">'+E.esc(editionLabel)+'</time></header>'
+  +'<header class="ed-compact-head"><div><span class="ed-front-number">FRANCE · INTERNATIONAL · SPORT</span><h1>À la une</h1></div><time class="ed-compact-date" datetime="'+E.esc(editionDay)+'">Édition du '+E.esc(displayedDate)+'</time></header>'
   +'<section class="ed-lead-grid"><article class="ed-lead">'
   +I.picture(lead,'lead')
-  +'<div class="ed-lead-text">'+label(lead)+'<h2>'+headline(lead)+'</h2><p>'+E.esc(lead.subtitle)+'</p><div class="ed-lead-footer"><span>LE GRAND DOSSIER · '+sourceCount(lead)+' DOCUMENTS SOURCES</span><a href="'+href(lead)+'">Lire notre analyse <span aria-hidden="true">↗</span></a></div></div></article>'
+  +'<div class="ed-lead-text">'+label(lead)+'<h2>'+headline(lead)+'</h2><p>'+E.esc(lead.subtitle||'')+'</p>'+leadFooter+'</div></article>'
   +'<div class="ed-lead-side">'+aside.map(d=>newsroomCard(d,'side')).join('')+'</div></section>'
-  +'<div class="ed-divider"><span>01</span><h2>Les articles de la rédaction</h2><a href="/dossiers">Voir tous les dossiers ↗</a></div>'
-  +'<section class="ed-front-grid"><div class="ed-front-main">'
-  +'<div class="ed-section-intro"><span>EN CORRÈZE</span><h2>Au plus près du territoire</h2><p>Environnement, vie locale et enjeux qui comptent réellement pour les habitants.</p></div>'
-  +'<div class="ed-local-grid">'+[drought,local].filter(Boolean).map(d=>newsroomCard(d)).join('')+'</div>'
-  +'<div class="ed-section-intro ed-sport-intro"><span>SPORT</span><h2>Les matchs, au-delà du score</h2><p>Lire le déroulé, replacer les chiffres et expliquer les enjeux.</p></div>'
-  +'<div class="ed-local-grid">'+[sport,handball,cup].filter(Boolean).map(d=>newsroomCard(d)).join('')+'</div>'
-  +(rest.length?'<div class="ed-local-grid">'+rest.map(d=>newsroomCard(d)).join('')+'</div>':'')
-  +'</div><aside class="ed-front-aside"><div class="ed-brief-header"><div><span>EN CONTINU</span><h2>Le fil des brèves</h2></div><span class="ed-mini-dot"></span></div><p class="ed-brief-disclaimer">Informations courtes issues de flux identifiés. Ce sont des dépêches, pas des articles de la rédaction.</p><ol class="ed-brief-list">'+(briefs||'<li>Le fil est momentanément indisponible.</li>')+'</ol><a class="ed-brief-more" href="/breves">Toute l’actualité en brèves ↗</a></aside></section>'
-  +'<p class="ed-edition-note">'+E.esc(preferred?'Dernière édition éditoriale : '+displayedDate+'. Les sujets sont sélectionnés et vérifiés ; la couverture n’est pas exhaustive.':'Édition du 22 novembre 2026 : cette sélection de dossiers est datée. Les nouvelles éditions ne sont pas publiées sans vérification.')+' Retrouvez les informations plus récentes dans les <a href="/breves">brèves</a> et les <a href="/scores">scores datés</a>.</p></div>';
+  +(more.length?'<div class="ed-divider"><span>01</span><h2>Les autres titres</h2><a href="/dossiers">Tous les articles ↗</a></div><section class="ed-archive-grid">'+more.map(d=>newsroomCard(d)).join('')+'</section>':'')
+  +'<div class="ed-divider"><span>02</span><h2>Les rubriques du journal</h2></div>'
+  +'<nav class="ed-archive-filter" aria-label="Choisir une rubrique"><a href="/?section=France">France</a><a href="/?section=International">International</a><a href="/?section=Sport">Sport</a><a href="/?section=Corr%C3%A8ze">Corrèze</a><a href="/breves">En bref</a></nav>'
+  +'<p class="ed-edition-note">Dernière publication rédactionnelle : '+E.esc(latest.date)+'. La Une ne présente que des articles rédigés pour JLG Média ; les informations régionales sont dans leur rubrique dédiée.</p></div>';
 }
 function dossierIndex(){
  return '<section class="ed-archive-intro"><span class="ed-kicker">LES ARTICLES DE LA RÉDACTION</span><h1>Le journal, <em>sans raccourcis.</em></h1><p>Une bibliothèque de '+DOSSIERS.length+' articles rédigés pour JLG Média : faits documentés, contexte, explications originales et liens vers les sources. Les sujets ne sont pas générés automatiquement à partir des titres RSS.</p></section><div class="ed-archive-filter"><a href="/journal">Tous</a><a href="/?section=International">International</a><a href="/?section=France">France</a><a href="/?section=Corr%C3%A8ze">Corrèze</a><a href="/?section=Sport">Sport</a><a href="/breves">Brèves →</a></div><section class="ed-archive-grid">'+DOSSIERS.map(d=>newsroomCard(d)).join('')+'</section>';
 }
-function sectionPage(section,feed,groups=[]){
- const chosen=DOSSIERS.filter(d=>d.section===section);
- const briefs=groups.filter(g=>g.category===section).slice(0,12);
- const stories=chosen.map(d=>newsroomCard(d)).join('');
- const short=briefs.map(g=>'<li><a href="/article?id='+encodeURIComponent(g.id)+'">'+E.esc(g.title)+'</a><small>'+E.esc(g.sourceNames.slice(0,2).join(' · '))+'</small></li>').join('');
- return '<section class="ed-archive-intro"><span class="ed-kicker">LE JOURNAL · RUBRIQUE</span><h1>'+E.esc(section)+'</h1><p>Les dossiers sont rédigés à partir de documents identifiés ; le fil des brèves est présenté séparément avec ses médias d’origine.</p></section><div class="ed-divider"><span>01</span><h2>Nos articles de fond</h2><a href="/dossiers">Toutes les analyses ↗</a></div>'+(chosen.length?'<div class="ed-archive-grid">'+stories+'</div>':'<div class="empty">Aucun nouvel article de fond vérifié dans cette rubrique pour cette édition. Des brèves sont éventuellement accessibles ci-dessous.</div>')+'<div class="ed-divider"><span>02</span><h2>Le fil des brèves de '+E.esc(section)+'</h2><a href="/breves">Toutes les brèves ↗</a></div>'+(briefs.length?'<ol class="ed-section-briefs">'+short+'</ol>':'<p class="notice">Aucune brève disponible dans ce flux pour le moment.</p>');
+function sectionPage(section){
+ const chosen=publishedArticles().filter(d=>d.section===section).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+ return '<section class="ed-archive-intro"><span class="ed-kicker">LE JOURNAL · RUBRIQUE</span><h1>'+E.esc(section)+'</h1><p>Articles, analyses et informations courtes écrits par la rédaction de JLG Média.</p></section>'
+  +(chosen.length?'<div class="ed-archive-grid">'+chosen.map(d=>newsroomCard(d)).join('')+'</div>':'<div class="empty">Aucun article de la rédaction actuellement publié dans cette rubrique.</div>');
 }
-module.exports={cover,dossierIndex,sectionPage,newsroomCard,PRINT_DATE};
+function shortPage(){
+ const shorts=publishedArticles().filter(d=>d.format==='breve').sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+ const picks=(shorts.length?shorts:publishedArticles().slice(0,8)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+ const cards=picks.map(d=>'<article class="article-card"><span class="badge">'+E.esc(d.section)+' · '+(d.format==='breve'?'Brève de la rédaction':'À retenir')+'</span><h3><a href="'+href(d)+'">'+E.esc(d.title)+'</a></h3><p>'+E.esc(d.subtitle||d.sections[0]?.paragraphs?.[0]||'')+'</p><div class="meta"><span>JLG Média · '+E.esc(d.date)+'</span><a href="'+href(d)+'">Lire →</a></div></article>').join('');
+ return '<section class="ed-archive-intro"><span class="ed-kicker">LA RÉDACTION · EN BREF</span><h1>En bref</h1><p>Informations rédigées pour JLG Média. Les titres et extraits des autres éditeurs ne sont pas publiés comme nos propres articles.</p></section>'
+  +(cards?'<div class="grid">'+cards+'</div>':'<div class="empty">Les prochaines brèves paraîtront après rédaction.</div>');
+}
+
+module.exports={cover,dossierIndex,sectionPage,shortPage,homeEligible,publishedArticles,newsroomCard,PRINT_DATE};
