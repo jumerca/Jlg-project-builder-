@@ -22,25 +22,24 @@ test('the edition contains seven original sourced articles, not RSS replicas',()
   assert.ok(!/rss/i.test(s.eyebrow));
  }
 });
-test('cover promotes editorial dossiers, relegates press feed to short linked briefs',()=>{
+test('home only displays JLG-authored national and international articles, never RSS copy or local news',()=>{
  const teaser={id:'sample',title:'Titre de dépêche non rédigée',category:'France',sourceNames:['Agence'],kind:'breve'};
  const h=P.cover([teaser]);
- assert.match(h,/COP31/);
- assert.match(h,/Choose France/);
- assert.match(h,/Souvigne/);
- assert.match(h,/EN CORRÈZE/);
- assert.match(h,/SPORT/);
- assert.match(h,/Le fil des brèves/);
- assert.match(h,/Titre de dépêche non rédigée/);
- assert.ok(h.indexOf('COP31')<h.indexOf('Titre de dépêche non rédigée'));
+ assert.match(h,/À la une/);
+ assert.ok(h.includes('/dossier/marseille-le-mans-virevolte-2026-11-23'));
  assert.ok(h.includes('/dossier/cop31-antalya-pas-accord-final'));
- assert.ok(!h.includes('Pas de résumé exploitable'));
+ assert.ok(h.includes('/dossier/choose-france-42-milliards-decryptage'));
+ assert.doesNotMatch(h,/Titre de dépêche non rédigée/);
+ assert.doesNotMatch(h,/EN CORRÈZE|Au plus près du territoire|Le fil des brèves/);
+ for(const slug of ['souvigne-correze-barrage-riviere','correze-restrictions-eau-fin-novembre','oyonnax-brive-32-22-2026']){
+  assert.ok(!h.includes('/dossier/'+slug),'local headline must not be on the front page: '+slug);
+ }
 });
-test('front page remains useful when all RSS feeds fail',()=>{
+test('front page is independent of RSS feed availability',()=>{
  const h=P.cover([]);
- assert.match(h,/COP31/);
- assert.match(h,/Le fil est momentanément indisponible/);
+ assert.match(h,/À la une/);
  assert.ok(h.includes('/dossiers'));
+ assert.ok(h.includes('/?section=Corr%C3%A8ze'));
 });
 test('newsroom index shows all editorial titles',()=>{
  const h=P.dossierIndex();
@@ -50,7 +49,7 @@ test('newsroom index shows all editorial titles',()=>{
 test('France, Correze and international sections feature authored coverage first',()=>{
  for(const section of ['France','Corrèze','International','Sport']){
   const t=P.sectionPage(section,{},[]);
-  assert.match(t,/Nos articles de fond/);
+  assert.match(t,/Articles, analyses et informations courtes écrits par la rédaction/);
   for(const d of DOSSIERS.filter(x=>x.section===section))assert.ok(t.includes(E.esc(d.title)));
  }
 });
