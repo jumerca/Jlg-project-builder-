@@ -16,7 +16,7 @@ const DOSSIERS=[
     'Les matchs des Bleus commencent à Stuttgart, avant d’éventuels déplacements selon le parcours. La finale est programmée le 31 janvier à Cologne. La chronologie réelle des rencontres, des jours de récupération et des adversaires demeure déterminante.' ]},
    {title:'Argentine, Brésil, Koweït : trois adversaires, pas trois pronostics',paragraphs:[
     'L’Argentine et le Brésil ont une expérience significative du handball continental et international. Le Koweït représente quant à lui un autre contexte de qualification. Les seules origines géographiques ne suffisent pourtant pas pour décrire leur niveau réel en janvier 2027. Il faudra examiner les effectifs sélectionnés, la préparation et les rencontres récentes, en distinguant systématiquement les données observées des réputations.',
-    'Pour la France, la capacité à résister à plusieurs styles de défense, le contrôle des pertes de balle et la qualité des replis seront des éléments pertinents à suivre. Ce sont des angles d’analyse proposés par JLG Média, non des déclarations attribuées au sélectionneur.' ]},
+    'Pour la France, la capacité à résister à plusieurs styles de défense, le contrôle des pertes de balle et la qualité des replis seront des éléments pertinents à suivre. Ces éléments seront déterminants à observer pendant les rencontres, notamment face aux défenses les plus organisées.' ]},
    {title:'Les questions tactiques qui méritent un vrai suivi',paragraphs:[
     'Une analyse sérieuse du jeu français ne doit pas se limiter au résultat final. Elle devra mesurer la répartition des tirs entre arrières, pivots et ailiers, le rendement des gardiens, la création de situations favorables à six mètres et les effets des rotations sur le rythme. Ces indicateurs n’ont pour l’instant aucune valeur chiffrée établie pour les matchs à venir.',
     'Les associations défensives et les transitions entre attaque et repli seront également à observer. Là encore, il s’agit de thèmes de couverture du tournoi, pas de choix tactiques officiellement annoncés par le staff.' ]},
@@ -75,7 +75,7 @@ const DOSSIERS=[
     {
       "title": "Les questions sportives à suivre",
       "paragraphs": [
-        "La gestion des pertes de balle, le rendement au tir face aux défenses regroupées et la qualité du repli seront des éléments pertinents pour analyser les Bleues. Le rôle des rotations sera également à observer, notamment avec un enchaînement de trois matchs en cinq jours. Il s'agit d'axes de lecture proposés par JLG Média, et non d'une composition ou d'une tactique annoncée par Sébastien Gardillou.",
+        "La gestion des pertes de balle, le rendement au tir face aux défenses regroupées et la qualité du repli seront des éléments pertinents pour analyser les Bleues. Le rôle des rotations sera également à observer, notamment avec un enchaînement de trois matchs en cinq jours. La gestion des rotations et la qualité du repli donneront de premiers indices sur la solidité des Bleues dans la compétition.",
         "Au 22 novembre, aucun score de ces trois rencontres ne peut être communiqué, puisque le tournoi n'a pas débuté. La rubrique Scores affichera donc les affiches officielles sans résultat et distinguera ces informations du flux communautaire TheSportsDB, susceptible de ne pas couvrir l'ensemble de la compétition."
       ]
     }
@@ -117,7 +117,7 @@ const DOSSIERS=[
       "title": "Le tournant des points au pied",
       "paragraphs": [
         "Le CA Brive a mené 12 à 6 après l'essai de Siciliano et la transformation de James Shillcock. Oyonnax est repassé devant avant la pause grâce à l'essai transformé de Kaitu'u, puis à deux pénalités de Thomas Vincent. Le tableau affichait 19 à 12 au changement de côté.",
-        "Le CAB est revenu à 19–15 puis, à la cinquantième minute, à 26–22 sur l'essai transformé de Charcosset. Thomas Vincent a ensuite inscrit une nouvelle pénalité, avant de réussir un drop à la 73e minute. D'après la feuille de match LNR, il totalise cinq pénalités, deux transformations et un drop. Ces coups de pied ont transformé les séquences favorables d'Oyonnax en points concrets."
+        "Le CAB est revenu à 19–15 puis, à la cinquantième minute, à 26–22 sur l'essai transformé de Charcosset. Thomas Vincent a ensuite inscrit une nouvelle pénalité, avant de réussir un drop à la 73e minute. La feuille de match de la LNR lui attribue cinq pénalités, deux transformations et un drop. Ces coups de pied ont transformé les séquences favorables d'Oyonnax en points concrets."
       ]
     },
     {
@@ -130,8 +130,8 @@ const DOSSIERS=[
     {
       "title": "La suite du calendrier",
       "paragraphs": [
-        "Selon le programme communiqué par la LNR après le match, Brive devait recevoir Biarritz le jeudi 26 novembre à 21 heures, tandis qu'Oyonnax devait se déplacer à Dax le vendredi 27 novembre à 19 heures. Ces rencontres sont inscrites ici comme des rendez-vous annoncés au 22 novembre, pas comme des résultats acquis.",
-        "Pour évaluer la réaction briviste, il faudra regarder la discipline, la conquête et surtout la conversion des temps forts en points. Ce sont des questions de suivi éditorial : aucun diagnostic chiffré supplémentaire n'est ajouté sans feuille de match détaillée."
+        "Le calendrier communiqué par la LNR annonçait Brive–Biarritz le jeudi 26 novembre à 21 heures et Dax–Oyonnax le vendredi 27 novembre à 19 heures. Ces rencontres sont inscrites ici comme des rendez-vous annoncés au 22 novembre, pas comme des résultats acquis.",
+        "Pour évaluer la réaction briviste, il faudra regarder la discipline, la conquête et surtout la conversion des temps forts en points. Pour mesurer la réaction briviste, les statistiques officielles de la prochaine rencontre devront compléter la simple lecture du tableau d'affichage."
       ]
     }
   ]
