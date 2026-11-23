@@ -28,7 +28,7 @@ test('rolling issue leads on the homepage using its actual edition date',()=>{
  const html=cover([]);
  assert.ok(html.includes(lead.title.replace(/&/g,'&amp;'))||html.includes(lead.title));
  assert.ok(html.includes('datetime="'+lead.date+'"'));
- assert.ok(html.includes('Actualisée le'));
+ assert.ok(html.includes('Édition du'));
  assert.ok(!html.includes('Une datée du 22 novembre 2026'));
 });
 test('new articles are listed ahead of old dossiers and preserve archival originals',()=>{
