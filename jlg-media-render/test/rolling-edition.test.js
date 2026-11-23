@@ -16,9 +16,10 @@ test('rolling edition publishes valid original dated articles with independent s
   assert.match(article.date,/^\d{4}-\d{2}-\d{2}$/);
   assert.ok(['France','International','Corrèze','Sport','Cinéma','Voyages','Économie'].includes(article.section));
   assert.ok(article.title?.length>=20&&article.subtitle?.length>=45);
-  assert.ok(article.sections?.length>=3&&article.sections.every(s=>s.title&&s.paragraphs?.length>=2));
+  const short=article.format==='breve';
+  assert.ok(article.sections?.length>=(short?1:3)&&article.sections.every(s=>s.title&&s.paragraphs?.length>=(short?1:2)));
   assert.ok(article.sources?.length>=2&&article.sources.every(s=>valid.test(s.url)&&s.title?.length>4));
-  assert.ok(article.sections.flatMap(s=>s.paragraphs).join(' ').split(/\s+/).length>=250);
+  assert.ok(article.sections.flatMap(s=>s.paragraphs).join(' ').split(/\s+/).length>=(short?35:250));
   assert.ok(['une','secondary'].includes(article.priority||'secondary'));
  }
 });
