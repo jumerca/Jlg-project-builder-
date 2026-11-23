@@ -25,9 +25,7 @@ function cover(news=[]){
  const aside=[economy,local].filter(Boolean);
  const briefs=news.slice(0,7).map((g,i)=>'<li><span class="ed-brief-number">'+String(i+1).padStart(2,'0')+'</span><div><span class="ed-brief-tag">'+E.esc(g.category||'Actualité')+'</span><a href="/article?id='+encodeURIComponent(g.id)+'">'+E.esc(g.title)+'</a><small>'+E.esc(g.sourceNames?.slice(0,2).join(' · ')||'Flux de presse')+' · BRÈVE</small></div></li>').join('');
  return '<div class="ed-cover">'
-  +'<div class="ed-issue-line"><span><span class="ed-live-dot"></span> LA UNE · ÉDITION DU JOURNAL</span><time datetime="2026-11-22">'+PRINT_DATE+'</time><a href="/journal">Tous nos articles <span aria-hidden="true">↗</span></a></div>'
-  +'<header class="ed-front-title"><div><span class="ed-front-number">N° 001 · JLG CREATIVE</span><h1>Le journal <em>des faits.</em></h1><p>Des articles écrits, des sources vérifiables, des analyses qui expliquent ce qui se passe — pas une vitrine de dépêches.</p></div><div class="ed-front-identity"><span>ÉDITION</span><strong>22<span>·</span>11</strong><small>2026 · FRANCE</small></div></header>'
-  +'<div class="ed-breaking"><strong>À LA UNE</strong><span>Climat : la COP31 s’achève sans déclaration politique commune à Antalya.</span><a href="'+href(lead)+'">Comprendre le blocage →</a></div>'
+  +'<div class="ed-compact-head"><div><span class="ed-compact-date">ÉDITION DU 22 NOVEMBRE 2026</span><h1>À la une<span>.</span></h1></div><a href="/journal">Tous les articles ↗</a></div>'
   +'<section class="ed-lead-grid"><article class="ed-lead">'
   +I.picture(lead,'lead')
   +'<div class="ed-lead-text">'+label(lead)+'<h2>'+headline(lead)+'</h2><p>'+E.esc(lead.subtitle)+'</p><div class="ed-lead-footer"><span>LE GRAND DOSSIER · '+sourceCount(lead)+' DOCUMENTS SOURCES</span><a href="'+href(lead)+'">Lire notre analyse <span aria-hidden="true">↗</span></a></div></div></article>'
