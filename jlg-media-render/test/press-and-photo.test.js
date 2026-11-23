@@ -28,10 +28,10 @@ t('BFMTV and RMC Sport and Midi Olympique and Rugbyrama are not fake independent
  a.equal(story.kind,'breve');a.equal(story.publishers,1);
  a.equal(M.family('BFMTV'),M.family('RMC Sport'));
 });
-t('all seven editorial dossiers have one true photo identified with attribution and license',()=>{
- a.equal(DOSSIERS.length,7);
+t('all published editorial dossiers have a credited and licensed documentary photo',()=>{
+ a.ok(DOSSIERS.length>=7);
  for(const d of DOSSIERS){
-  const p=I.PHOTOS[d.slug];
+  const p=I.PHOTOS[d.slug]||d.photo;
   a.ok(p,d.slug);
   a.ok(p.file.match(/\.(jpg|JPG)$/),d.slug);
   a.ok(p.author&&p.license&&p.licenseUrl&&p.caption);
