@@ -1,9 +1,9 @@
 {
   "name": "jlg-media-independent",
-  "version": "0.11.2",
+  "version": "0.12.0",
   "private": true,
   "type": "commonjs",
-  "description": "JLG Média, édition de presse originale et indépendante, publiée sur Render",
+  "description": "Journal numérique JLG Média : articles de la rédaction, photos, scores fiables et PWA mobile",
   "scripts": {
     "start": "node server.js",
     "test": "node --test test/*.test.js"
