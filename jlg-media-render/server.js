@@ -11,6 +11,7 @@ const P=require('./lib/frontpage');
 const I=require('./lib/photos');
 const BRAND=require('./lib/brand-icon');
 const {DOSSIERS}=require('./lib/dossiers');
+const {ROLLING,UPDATED_AT}=require('./lib/edition-rolling');
 const ROOT=path.join(__dirname,'public');
 const pathSafe=p=>path.normalize(p).replace(/^(\.\.(\/|\\|$))+/,'');
 const C={title:'JLG Média',desc:'Actualités françaises, dossiers originaux et scores sportifs sourcés'};
@@ -117,7 +118,7 @@ function html(res,body,status=200){res.writeHead(status,{'Content-Type':'text/ht
 async function handler(req,res){
  const url=new URL(req.url||'/','https://jlg-media.render.local'),p=url.pathname;
  try{
-  if(p==='/api/health')return json(res,{ok:true,product:'JLG Média · édition Render',version:'0.12.0',independent:true,timestamp:new Date().toISOString()});
+  if(p==='/api/health')return json(res,{ok:true,product:'JLG Média · édition Render',version:'0.12.0',independent:true,editorialUpdatedAt:UPDATED_AT,rollingArticles:ROLLING.length,timestamp:new Date().toISOString()});
   if(p==='/icon-192.png'||p==='/icon-512.png'||p==='/apple-touch-icon.png'){
     const size=p==='/icon-512.png'?512:p==='/apple-touch-icon.png'?180:192;
     res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public,max-age=3600','X-Content-Type-Options':'nosniff'});return res.end(BRAND.png(size));
@@ -151,7 +152,7 @@ async function handler(req,res){
    const section=url.searchParams.get('section')||'';
    if(p==='/'&&!section&&!url.searchParams.has('q')){
     const feed=await load();
-    return html(res,layout(P.cover(E.combine(feed.items)),'La Une · Édition du 22 novembre','/'));
+    return html(res,layout(P.cover(E.combine(feed.items)),'À la une','/'));
    }
    const feed=await load();
    let groups=E.combine(feed.items);
@@ -164,7 +165,7 @@ async function handler(req,res){
    if(q)groups=groups.filter(g=>E.norm(g.title+' '+g.summary+' '+g.sourceNames.join(' ')).includes(q));
    if(p==='/breves'||section==='Brèves'||q)return html(res,layout(journalPage(groups,feed,'Brèves'),'Les brèves des médias','/breves'));
    if(section)return html(res,layout(P.sectionPage(section,feed,groups),'Actualités '+section,'/?section='+encodeURIComponent(section)));
-   return html(res,layout(P.cover(groups),'La Une · Édition du 22 novembre','/'));
+   return html(res,layout(P.cover(groups),'À la une','/'));
   }
   return html(res,layout('<section class="intro"><h1>Page introuvable</h1><p>Cette adresse n’existe pas dans l’édition indépendante.</p></section>','404'),404);
  }catch(e){console.error('JLG Media request error',e);return html(res,layout('<div class="empty">Le service connaît un problème temporaire. Aucune information non vérifiée n’a été affichée. <a href="/">Réessayer</a>.</div>','Indisponible'),503)}
