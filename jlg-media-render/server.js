@@ -146,26 +146,20 @@ async function handler(req,res){
    const data=await S.scores(sport,day);
    return p==='/api/scores'?json(res,data):html(res,layout(scorePage(data),'Scores & Direct','/scores'));
   }
-  if(['/', '/journal','/article','/api/actualites','/breves'].includes(p)){
-   // The curated edition and RSS briefing are distinct editorial products.
-   if(p==='/journal')return html(res,layout(P.dossierIndex(),'Les articles de la rédaction','/journal'));
-   const section=url.searchParams.get('section')||'';
-   if(p==='/'&&!section&&!url.searchParams.has('q')){
-    const feed=await load();
-    return html(res,layout(P.cover(E.combine(feed.items)),'À la une','/'));
-   }
+  // Every visible editorial article is an authored JLG Média dossier.
+  // RSS is used only as source material for newsroom research, never as an article page.
+  if(p==='/'&&!url.searchParams.has('section'))return html(res,layout(P.cover(),'À la une','/'));
+  if(p==='/journal')return html(res,layout(P.dossierIndex(),'Les articles de la rédaction','/journal'));
+  if(p==='/breves'||(p==='/'&&url.searchParams.get('section')==='Brèves'))return html(res,layout(P.shortPage(),'En bref · JLG Média','/breves'));
+  if(p==='/article')return html(res,layout('<section class="ed-archive-intro"><h1>Article indisponible</h1><p>Cette ancienne adresse ne correspond pas à un article de la rédaction. Retrouvez les publications de JLG Média ci-dessous.</p><a href="/breves">En bref →</a></section>','Article indisponible','/breves'),410);
+  if(p==='/api/actualites'){
    const feed=await load();
-   let groups=E.combine(feed.items);
-   if(p==='/api/actualites')return json(res,{fetchedAt:feed.at,sources:feed.sources,groups:groups.slice(0,100).map(x=>({id:x.id,title:x.title,category:x.category,kind:x.kind,sourceCount:x.count}))});
-   if(p==='/article'){
-    const g=groups.find(x=>x.id===url.searchParams.get('id'));
-    return g?html(res,layout(article(g),g.title,'/breves')):html(res,layout('<div class="empty">Cette brève ne figure plus dans le fil récent. <a href="/breves">Consulter les dernières brèves</a>.</div>','Brève archivée','/breves'),404);
-   }
-   const q=E.norm(url.searchParams.get('q')||'');
-   if(q)groups=groups.filter(g=>E.norm(g.title+' '+g.summary+' '+g.sourceNames.join(' ')).includes(q));
-   if(p==='/breves'||section==='Brèves'||q)return html(res,layout(journalPage(groups,feed,'Brèves'),'Les brèves des médias','/breves'));
-   if(section)return html(res,layout(P.sectionPage(section,feed,groups),'Actualités '+section,'/?section='+encodeURIComponent(section)));
-   return html(res,layout(P.cover(groups),'À la une','/'));
+   const groups=E.combine(feed.items);
+   return json(res,{fetchedAt:feed.at,sources:feed.sources,groups:groups.slice(0,100).map(x=>({id:x.id,title:x.title,category:x.category,kind:x.kind,sourceCount:x.count}))});
+  }
+  if(p==='/'){
+   const section=url.searchParams.get('section')||'';
+   return html(res,layout(P.sectionPage(section),section+' · JLG Média','/?section='+encodeURIComponent(section)));
   }
   return html(res,layout('<section class="intro"><h1>Page introuvable</h1><p>Cette adresse n’existe pas dans l’édition indépendante.</p></section>','404'),404);
  }catch(e){console.error('JLG Media request error',e);return html(res,layout('<div class="empty">Le service connaît un problème temporaire. Aucune information non vérifiée n’a été affichée. <a href="/">Réessayer</a>.</div>','Indisponible'),503)}
