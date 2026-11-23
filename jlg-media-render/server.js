@@ -9,6 +9,7 @@ const A=require('./lib/agenda');
 const V=require('./lib/agenda-view');
 const P=require('./lib/frontpage');
 const I=require('./lib/photos');
+const BRAND=require('./lib/brand-icon');
 const {DOSSIERS}=require('./lib/dossiers');
 const ROOT=path.join(__dirname,'public');
 const pathSafe=p=>path.normalize(p).replace(/^(\.\.(\/|\\|$))+/,'');
@@ -22,7 +23,7 @@ function nav(current){
  return '<nav class="navouter"><div class="container nav" aria-label="Rubriques">'+NAV.map(([href,label])=>'<a href="'+href+'" class="'+(href===current?'active':'')+'">'+E.esc(label)+'</a>').join('')+'</div></nav>';
 }
 function layout(body,title=C.title,current='/',desc=C.desc){
- return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#081a2b"><meta name="description" content="'+E.esc(desc)+'"><link rel="icon" type="image/svg+xml" href="/icon.svg"><link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/style.css?v=099"><link rel="stylesheet" href="/frontpage.css?v=0111"><title>'+E.esc(title)+' · JLG Média</title></head><body><div class="topbar"><div class="container flex between"><span>JLG CREATIVE · JOURNAL NUMÉRIQUE</span><span>INFORMATION SOURCÉE · V0.11.2 · ÉDITION</span></div></div><header class="mast"><div class="container mast-inner"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true">J</span><span><span class="brand-name">JLG <em>Média</em></span><small>COMPRENDRE, VÉRIFIER, TRANSMETTRE</small></span></a><div class="mast-right"><span>Édition française indépendante</span><a href="/scores">Scores sportifs</a></div></div></header>'+nav(current)+'<main class="container">'+body+'</main><footer class="footer"><div class="container"><div><b>JLG Média · JLG Creative</b><p>Les articles de fond sont rédigés à partir de documents identifiés. Les brèves issues de flux RSS restent attribuées à leurs médias. Les articles ne sont pas des reportages de terrain. Les scores sportifs peuvent être incomplets.</p></div><p>Édition indépendante de l’ancienne version Vercel. Hébergée sur Render. <a href="/api/health">État technique</a> · <a href="/journal">Méthode éditoriale</a></p></div></footer></body></html>';
+ return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#06192b"><meta name="description" content="'+E.esc(desc)+'"><link rel="icon" type="image/svg+xml" href="/icon.svg"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/style.css?v=099"><link rel="stylesheet" href="/frontpage.css?v=012"><link rel="stylesheet" href="/site-rebrand.css?v=012"><title>'+E.esc(title)+' · JLG Média</title></head><body><header class="mast"><div class="container mast-inner"><a class="brand" href="/"><img class="brand-logo" src="/icon.svg" alt="" width="44" height="44"><span class="brand-name">JLG <em>Média</em></span></a><a class="mast-edition" href="/dossiers">Le journal <span aria-hidden="true">↗</span></a></div></header>'+nav(current)+'<main class="container">'+body+'</main><footer class="footer"><div class="container"><div><b>JLG Média · JLG Creative</b><p>Les articles de fond sont rédigés à partir de documents identifiés. Les brèves issues de flux RSS restent attribuées à leurs médias. Les articles ne sont pas des reportages de terrain. Les scores sportifs peuvent être incomplets.</p></div><p>Édition indépendante de l’ancienne version Vercel. Hébergée sur Render. <a href="/api/health">État technique</a> · <a href="/journal">Méthode éditoriale</a></p></div></footer></body></html>';
 }
 function card(g,large=false){
  const url='/article?id='+encodeURIComponent(g.id);
@@ -89,8 +90,12 @@ function html(res,body,status=200){res.writeHead(status,{'Content-Type':'text/ht
 async function handler(req,res){
  const url=new URL(req.url||'/','https://jlg-media.render.local'),p=url.pathname;
  try{
-  if(p==='/api/health')return json(res,{ok:true,product:'JLG Média · édition Render',version:'0.11.2',independent:true,timestamp:new Date().toISOString()});
-  if(['/style.css','/frontpage.css','/icon.svg','/manifest.webmanifest'].includes(p)){
+  if(p==='/api/health')return json(res,{ok:true,product:'JLG Média · édition Render',version:'0.12.0',independent:true,timestamp:new Date().toISOString()});
+  if(p==='/icon-192.png'||p==='/icon-512.png'||p==='/apple-touch-icon.png'){
+    const size=p==='/icon-512.png'?512:p==='/apple-touch-icon.png'?180:192;
+    res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public,max-age=3600','X-Content-Type-Options':'nosniff'});return res.end(BRAND.png(size));
+   }
+   if(['/style.css','/frontpage.css','/site-rebrand.css','/icon.svg','/manifest.webmanifest'].includes(p)){
    const fn=path.join(ROOT,pathSafe(p.slice(1))),type=p.endsWith('.css')?'text/css':p.endsWith('.svg')?'image/svg+xml':'application/manifest+json';
    res.writeHead(200,{'Content-Type':type+'; charset=utf-8','Cache-Control':'public,max-age=3600'});return fs.createReadStream(fn).pipe(res);
   }
