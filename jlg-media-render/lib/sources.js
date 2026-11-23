@@ -10,11 +10,15 @@ const FEEDS=[
  {name:'France 3 Tulle',url:'https://france3-regions.franceinfo.fr/nouvelle-aquitaine/correze/tulle/rss'},
  {name:'Le Figaro',url:'https://www.lefigaro.fr/rss/figaro_actualites.xml'},
  {name:'BFMTV',url:'https://www.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/'},
+ {name:'TF1 INFO · Une',url:'https://www.tf1info.fr/feeds/rss-une.xml',publisher:'TF1 INFO'},
  {name:'Libération',url:'https://www.liberation.fr/arc/outboundfeeds/rss-all/?outputType=xml'},
  {name:'La Croix',url:'https://www.la-croix.com/feeds/rss/site.xml'},
  {name:'Ouest-France',url:'https://www.ouest-france.fr/rss/une'},
- {name:'Google Actualités · Corrèze',url:'https://news.google.com/rss/search?q=Corr%C3%A8ze%20OR%20Brive%20OR%20Tulle%20OR%20Pompadour&hl=fr&gl=FR&ceid=FR%3Afr'},
- ...MEDIA.DISCOVERY
+ {name:'RMC Sport · Fil',url:'https://rmcsport.bfmtv.com/rss/fil-sport/',publisher:'RMC Sport',categoryHint:'Sport'},
+ {name:'RMC Sport · Football',url:'https://rmcsport.bfmtv.com/rss/football/',publisher:'RMC Sport',categoryHint:'Sport'},
+ {name:'RMC Sport · Rugby',url:'https://rmcsport.bfmtv.com/rss/rugby/',publisher:'RMC Sport',categoryHint:'Sport'},
+ {name:'Rugbyrama · Rugby',url:'https://www.rugbyrama.fr/rss.xml',publisher:'Rugbyrama',categoryHint:'Sport'},
+ {name:'Service Public',url:'https://www.service-public.gouv.fr/abonnements/rss/actu-actualites-particuliers.rss',categoryHint:'France'}
 ];
 const decode=s=>String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/&#(x[\da-f]+|\d+);/gi,(_,n)=>{try{return String.fromCodePoint(n[0].toLowerCase()==='x'?parseInt(n.slice(1),16):parseInt(n,10))}catch{return ''}}).replace(/&(amp|lt|gt|quot|apos|nbsp|eacute|egrave|ecirc|agrave|ccedil|rsquo|ldquo|rdquo);/gi,(_,x)=>({amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' ',eacute:'é',egrave:'è',ecirc:'ê',agrave:'à',ccedil:'ç',rsquo:'’',ldquo:'“',rdquo:'”'}[x.toLowerCase()]||''));
 const clean=s=>decode(s).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
@@ -35,7 +39,7 @@ function parse(xml,origin,now=Date.now()){
   const date=clean(field(block,'pubDate')||field(block,'published')||field(block,'updated'));
   const epoch=Number.isFinite(Date.parse(date))?Date.parse(date):0;
   const source=clean(field(block,'source'));
-  return {id:hash(url||title),title:title.slice(0,250),url,publisher:source||origin.name,feed:origin.name,summary:summary.slice(0,450),epoch,date:epoch?new Date(epoch).toISOString():null};
+  return {id:hash(url||title),title:title.slice(0,250),url,publisher:origin.publisher||source||origin.name,feed:origin.name,categoryHint:origin.categoryHint||null,summary:summary.slice(0,450),epoch,date:epoch?new Date(epoch).toISOString():null};
  }).filter(x=>x.title.length>=10&&x.url&&(!x.epoch||x.epoch<now+86400000)&&MEDIA.acceptsAggregate(origin,x.publisher,x.url));
 }
 let cached={at:0,items:[],sources:[]},inflight=null;
