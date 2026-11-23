@@ -1,6 +1,48 @@
 'use strict';
-// Articles originaux vérifiés, rédigés par JLG Média ; les flux RSS ne sont pas des articles.
 const ROLLING=[
+  {
+    "slug": "macron-regle-or-budgetaire-2026-11-23",
+    "title": "Budget : Macron relance la piste d’une règle d’or constitutionnelle",
+    "subtitle": "Le président envisage de reprendre une réforme abandonnée en 2011. Le projet encadrerait les finances publiques sur plusieurs années, sans interdire automatiquement les déficits.",
+    "section": "France",
+    "scope": "national",
+    "format": "breve",
+    "date": "2026-11-23",
+    "lastChecked": "2026-11-23",
+    "priority": "une",
+    "eyebrow": "POLITIQUE · FINANCES PUBLIQUES",
+    "readTime": "1 min",
+    "sources": [
+      {
+        "title": "Le Figaro — entretien avec Emmanuel Macron, 23 novembre",
+        "url": "https://www.lefigaro.fr/politique/emmanuel-macron-au-figaro-la-regle-d-or-budgetaire-peut-etre-une-idee-a-explorer-20261123"
+      },
+      {
+        "title": "LCP — contenu du projet constitutionnel, 23 novembre",
+        "url": "https://lcp.fr/actualites/regle-d-or-que-prevoit-vraiment-le-texte-qu-emmanuel-macron-envisage-de-faire-adopter"
+      },
+      {
+        "title": "Reuters — projet de réforme budgétaire, 23 novembre",
+        "url": "https://www.reuters.com/markets/europe/macron-proposes-reviving-plan-enshrine-fiscal-rules-french-constitution-2026-11-23/"
+      }
+    ],
+    "sections": [
+      {
+        "title": "Une réforme encore incertaine",
+        "paragraphs": [
+          "Emmanuel Macron a confirmé lundi 23 novembre qu’il envisageait de remettre à l’ordre du jour la réforme constitutionnelle des finances publiques engagée en 2011. Le dispositif imposerait une programmation budgétaire sur au moins trois ans, avec des objectifs de dépenses et de recettes. Il ne fixerait pas de plafond automatique au déficit.",
+          "La perspective d’un vote en janvier reste conditionnelle. Pour adopter définitivement cette révision par la voie parlementaire, le président devrait réunir une majorité des trois cinquièmes des suffrages exprimés au Congrès. Dans un Parlement divisé sur le budget 2027, cette étape constitue le principal obstacle politique."
+        ]
+      }
+    ],
+    "photo": {
+      "file": "Palais Brongniart Facade.jpg",
+      "author": "Arthur Weidmann",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "caption": "Le palais Brongniart, ancienne Bourse de Paris, en août 2022. Photographie d’illustration."
+    }
+  },
   {
     "slug": "nvidia-retour-jensen-huang-direction-2026-11-23",
     "title": "Nvidia : Jensen Huang reprend les commandes, mais les enquêtes se poursuivent",
@@ -10,7 +52,7 @@ const ROLLING=[
     "format": "article",
     "date": "2026-11-23",
     "lastChecked": "2026-11-23",
-    "priority": "une",
+    "priority": "secondary",
     "eyebrow": "TECHNOLOGIE · ÉTATS-UNIS · INTELLIGENCE ARTIFICIELLE",
     "readTime": "4 min",
     "sources": [
