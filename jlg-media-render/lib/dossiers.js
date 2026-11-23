@@ -54,15 +54,15 @@ const DOSSIERS=[
     {
       "title": "Un groupe E qui se joue entièrement à Katowice",
       "paragraphs": [
-        "L'Euro féminin 2026 est programmé du 3 au 20 décembre dans cinq pays : Pologne, République tchèque, Roumanie, Slovaquie et Turquie. La France disputera sa première phase à Katowice, dans le groupe E, avec la Pologne, les Îles Féroé et l'Ukraine. Ce tableau a été publié par l'EHF et confirmé par la Fédération française de handball.",
+        "L'Euro féminin 2026 est programmé du 3 au 20 décembre dans cinq pays : Pologne, République tchèque, Roumanie, Slovaquie et Turquie. La France disputera sa première phase à Katowice, dans le groupe E, avec la Pologne, les Îles Féroé et l'Ukraine. Les trois affiches du premier tour placent les Bleues face à des profils différents, avec une qualification à aller chercher sur le terrain.",
         "Le calendrier de la France est arrêté pour le tour préliminaire : France–Pologne le samedi 5 décembre à 18 h ; France–Îles Féroé le lundi 7 décembre à 20 h 30 ; Ukraine–France le mercredi 9 décembre à 20 h 30. L'EHF indique que ces horaires sont en heure d'Europe centrale. La stabilité du lieu limite les transferts pendant cette première séquence, mais ne préjuge pas des résultats."
       ]
     },
     {
       "title": "Deux matchs de préparation en Allemagne, sans les confondre avec l'Euro",
       "paragraphs": [
-        "Avant d'entrer dans la compétition, les Bleues doivent retrouver l'Allemagne en amical : le 26 novembre à Stuttgart (19 h 30) et le 28 novembre à Neu-Ulm (15 h 30). Ces rendez-vous figurent dans le programme officiel publié par la FFHandball. Ils ne doivent pas être enregistrés comme des rencontres de l'Euro, ni comme des matchs déjà joués.",
-        "Le sélectionneur Sébastien Gardillou a convoqué vingt joueuses pour ce rassemblement. Cette liste de préparation ne doit pas être automatiquement présentée comme l'effectif définitif du championnat : la situation sportive et les annonces du staff peuvent encore évoluer. Toute mise à jour de la sélection doit provenir d'une publication fédérale."
+        "Avant d'entrer dans la compétition, les Bleues doivent retrouver l'Allemagne en amical : le 26 novembre à Stuttgart (19 h 30) et le 28 novembre à Neu-Ulm (15 h 30). Ces deux oppositions doivent permettre au groupe de peaufiner ses réglages à quelques jours du coup d’envoi européen.",
+        "Le sélectionneur Sébastien Gardillou a convoqué vingt joueuses pour ce rassemblement. Le groupe retenu pour les matchs amicaux représente une étape importante de la préparation, mais la liste définitive pour l’Euro peut encore évoluer."
       ]
     },
     {
@@ -76,7 +76,7 @@ const DOSSIERS=[
       "title": "Les questions sportives à suivre",
       "paragraphs": [
         "La gestion des pertes de balle, le rendement au tir face aux défenses regroupées et la qualité du repli seront des éléments pertinents pour analyser les Bleues. Le rôle des rotations sera également à observer, notamment avec un enchaînement de trois matchs en cinq jours. La gestion des rotations et la qualité du repli donneront de premiers indices sur la solidité des Bleues dans la compétition.",
-        "Au 22 novembre, aucun score de ces trois rencontres ne peut être communiqué, puisque le tournoi n'a pas débuté. La rubrique Scores affichera donc les affiches officielles sans résultat et distinguera ces informations du flux communautaire TheSportsDB, susceptible de ne pas couvrir l'ensemble de la compétition."
+        "À moins de deux semaines du tournoi, la France connaît son calendrier et ses adversaires. Les résultats restent à écrire, avec une première échéance face à la Pologne le 5 décembre."
       ]
     }
   ]
@@ -109,7 +109,7 @@ const DOSSIERS=[
     {
       "title": "Le fait principal : 32–22, après une première période à 19–12",
       "paragraphs": [
-        "Le vendredi 20 novembre 2026, le CA Brive s'est incliné 32 à 22 sur le terrain d'Oyonnax, au stade Charles-Mathon, lors de la onzième journée de PRO D2. Le score à la pause était de 19 à 12. La Ligue nationale de rugby et le club local confirment tous deux le résultat. Il ne s'agit pas d'une simulation ni d'un score repris sans vérification.",
+        "Le vendredi 20 novembre 2026, le CA Brive s'est incliné 32 à 22 sur le terrain d'Oyonnax, au stade Charles-Mathon, lors de la onzième journée de PRO D2. Le score à la pause était de 19 à 12. Pour les Corréziens, ce revers met fin à une soirée où l'efficacité en attaque n'a pas suffi à compenser les points concédés au pied.",
         "Brive a inscrit trois essais : Lewis Noon, Valerio Siciliano et Yanis Charcosset. Oyonnax en a inscrit deux, par Alifeleti Kaitu'u et Jules Solinas. Le contraste entre ces deux décomptes et le score final résume une partie de la rencontre : les essais ne constituent pas l'unique source de points en rugby."
       ]
     },
@@ -123,15 +123,15 @@ const DOSSIERS=[
     {
       "title": "Ce qu'on peut conclure — et ce qu'on ne peut pas",
       "paragraphs": [
-        "L'analyse la plus solide est celle de l'efficacité au tableau d'affichage : Brive marque davantage d'essais, mais Oyonnax convertit suffisamment de situations de marque pour gagner avec dix points d'avance. La feuille de match permet de situer chaque bascule du score, sans supposer ce qui s'est dit dans les vestiaires ni inventer de statistiques de possession.",
+        "Le paradoxe du match est limpide : Brive marque trois essais contre deux, mais repart avec une défaite de dix points. Cinq pénalités et un drop de Thomas Vincent ont donné à Oyonnax la maîtrise du tableau d'affichage, y compris lors des temps forts corréziens.",
         "Le club oyonnaxien indique avoir préservé son invincibilité à domicile et retrouvé la première place provisoire. La LNR situait alors le CAB à la quatrième place provisoire. Ces positions sont datées du soir de la rencontre : elles ne doivent pas être présentées comme un classement permanent."
       ]
     },
     {
       "title": "La suite du calendrier",
       "paragraphs": [
-        "Le calendrier communiqué par la LNR annonçait Brive–Biarritz le jeudi 26 novembre à 21 heures et Dax–Oyonnax le vendredi 27 novembre à 19 heures. Ces rencontres sont inscrites ici comme des rendez-vous annoncés au 22 novembre, pas comme des résultats acquis.",
-        "Pour évaluer la réaction briviste, il faudra regarder la discipline, la conquête et surtout la conversion des temps forts en points. Pour mesurer la réaction briviste, les statistiques officielles de la prochaine rencontre devront compléter la simple lecture du tableau d'affichage."
+        "Le calendrier communiqué par la LNR annonçait Brive–Biarritz le jeudi 26 novembre à 21 heures et Dax–Oyonnax le vendredi 27 novembre à 19 heures. La réception de Biarritz puis le déplacement d’Oyonnax à Dax prolongeront ce duel à distance au classement.",
+        "La réaction briviste se jouera notamment sur la discipline et l’efficacité des séquences de domination. À Oyonnax, l’écart s’est creusé moins dans le nombre d’essais que dans le rendement des occasions concédées."
       ]
     }
   ]
