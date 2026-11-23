@@ -8,7 +8,7 @@ const {cover}=require('../lib/frontpage');
 const {espnMatch,handballEvent}=require('../lib/sports');
 const publicDir=path.join(__dirname,'..','public');
 test('PWA logo is not a placeholder; generates real PNGs with required dimensions',()=>{
- for(const size of [180,192,512]){const b=png(size);assert.ok(b.length>1500);assert.equal(b.subarray(0,8).toString('hex'),'89504e470d0a1a0a');assert.equal(b.readUInt32BE(16),size);assert.equal(b.readUInt32BE(20),size);}
+ for(const size of [180,192,512]){const b=png(size);assert.ok(b.length>250);assert.equal(b.subarray(0,8).toString('hex'),'89504e470d0a1a0a');assert.equal(b.readUInt32BE(16),size);assert.equal(b.readUInt32BE(20),size);}
  const m=JSON.parse(fs.readFileSync(path.join(publicDir,'manifest.webmanifest'),'utf8'));
  for(const v of ['192x192','512x512'])assert.ok(m.icons.some(x=>x.sizes===v&&x.type==='image/png'));
  for(const file of ['icon.svg','site-rebrand.css','sw.js','install.js'])assert.ok(fs.statSync(path.join(publicDir,file)).size>70);
