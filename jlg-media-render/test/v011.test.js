@@ -80,5 +80,5 @@ test('journal homepage links to style, curated articles, and independent briefs'
 test('new CSS file is served and health reports next edition',async()=>{
  const r=await page('/api/health');
  assert.equal(r.status,200);
- assert.equal(JSON.parse(r.body).version,'0.11.2');
+ assert.equal(JSON.parse(r.body).version,'0.12.0');
 });
