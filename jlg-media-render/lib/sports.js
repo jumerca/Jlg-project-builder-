@@ -34,7 +34,7 @@ function espnMatch(e,kind){
  const h=rows.find(x=>x.homeAway==='home')||rows[0],a=rows.find(x=>x.homeAway==='away')||rows[1];
  const finished=st.completed===true||st.state==='post',live=st.state==='in';
  const score=x=>(finished||live)?num(x.score):null;
- return {id:String(e.id||''),home:h.team.displayName,away:a.team.displayName,homeScore:score(h),awayScore:score(a),status:finished?'Terminé':live?'En cours selon ESPN':'Programmé',time:parisClock(e.date),url:safeLink((e.links||[]).find(l=>safeLink(l.href))?.href)||null,provider:'ESPN',kind};
+ return {id:String(e.id||''),home:h.team.displayName,away:a.team.displayName,homeScore:score(h),awayScore:score(a),state:finished?'final':live?'live':'scheduled',kickoff:e.date||null,status:finished?'Terminé':live?'En cours selon ESPN':'Programmé',time:parisClock(e.date),url:safeLink((e.links||[]).find(l=>safeLink(l.href))?.href)||null,provider:'ESPN',kind};
 }
 async function espn(league,date,fetcher=fetch){
  const url='https://site.api.espn.com/apis/site/v2/sports/'+league.kind+'/'+league.code+'/scoreboard?dates='+date.replaceAll('-','');
@@ -51,8 +51,8 @@ function handballEvent(e,date,league){
  const home=String(e.strHomeTeam||'').trim(),away=String(e.strAwayTeam||'').trim();
  if(!home||!away||home===away)return null;
  const raw=String(e.strStatus||e.strProgress||'').trim().toLowerCase();
- const final=/^(match finished|finished|final|full time|ft|ended|after penalties|after extra time|aet)$/.test(raw);
- const live=/^(live|in progress|1st half|2nd half|half time|halftime|ht|first half|second half)$/.test(raw);
+ const final=/^(match finished|finished|final|full time|ft|ended|after penalties|after extra time|aet|pen|penalties|full-time|after overtime|aot|ap)$/.test(raw);
+ const live=/^(live|in progress|1st half|2nd half|half time|halftime|ht|first half|second half|1h|2h)$/.test(raw);
  const status=final?'Terminé':live?'En cours selon TheSportsDB':/postponed|cancelled|canceled|suspended/.test(raw)?'Reporté ou annulé':'Programmé ou statut non confirmé';
  const h=num(e.intHomeScore),a=num(e.intAwayScore),has=(final||live)&&h!==null&&a!==null&&h<=100&&a<=100;
  const id=/^\d{1,13}$/.test(String(e.idEvent||''))?e.idEvent:null;
@@ -60,7 +60,7 @@ function handballEvent(e,date,league){
  const rawStamp=e.strTimestamp||((e.dateEvent&&/^\d{2}:\d{2}(:\d{2})?$/.test(String(e.strTime||'')))?e.dateEvent+'T'+e.strTime+'Z':null);
  const utc=rawStamp?new Date(/(?:Z|[+-]\d{2}:?\d{2})$/.test(rawStamp)?rawStamp:rawStamp.replace(' ','T')+'Z'):null;
  const time=utc&&Number.isFinite(utc.getTime())?parisClock(utc.toISOString()):null;
- return {id,home,away,homeScore:has?h:null,awayScore:has?a:null,status,time,url:id?'https://www.thesportsdb.com/event/'+id:null,provider:'TheSportsDB · communauté',kind:'Handball',league:e.strLeague||league.name};
+ return {id,home,away,homeScore:has?h:null,awayScore:has?a:null,state:final?'final':live?'live':/postponed|cancelled|canceled|suspended/.test(raw)?'cancelled':'scheduled',kickoff:utc&&Number.isFinite(utc.getTime())?utc.toISOString():null,status,time,url:id?'https://www.thesportsdb.com/event/'+id:null,provider:'TheSportsDB · communauté',kind:'Handball',league:e.strLeague||league.name};
 }
 async function handball(league,date,fetcher=fetch){
  const url='https://www.thesportsdb.com/api/v1/json/123/eventsday.php?d='+date+'&s=Handball&l='+league.id;
