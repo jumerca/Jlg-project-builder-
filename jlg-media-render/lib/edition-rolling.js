@@ -1,6 +1,43 @@
 'use strict';
 const ROLLING=[
   {
+    "slug": "livret-a-retraits-record-2026-11-24",
+    "title": "Livret A : près de dix milliards d’euros de retraits nets depuis janvier",
+    "subtitle": "Les chiffres dévoilés mardi confirment le recul de l’épargne réglementée, alors que le gouvernement envisage de relever le plafond du Livret A.",
+    "section": "France",
+    "scope": "national",
+    "format": "breve",
+    "date": "2026-11-24",
+    "priority": "une",
+    "eyebrow": "ÉCONOMIE · ÉPARGNE",
+    "readTime": "1 min",
+    "sources": [
+      {
+        "title": "Le Monde — Gaétan Pierret, 24 novembre",
+        "url": "https://www.lemonde.fr/argent/article/2026/11/24/les-epargnants-ont-retire-pres-de-10-milliards-d-euros-de-leurs-livret-a-depuis-janvier-un-record-depuis-dix-ans_6814708_1657007.html"
+      },
+      {
+        "title": "TF1 Info avec AFP — 24 novembre",
+        "url": "https://www.tf1info.fr/economie/epargne-le-livret-a-connait-pour-l-instant-sa-pire-annee-depuis-2008-2477744.html"
+      }
+    ],
+    "sections": [
+      {
+        "title": "L’épargne sous pression",
+        "paragraphs": [
+          "Le Livret A perd du terrain. D’après les chiffres de la Caisse des dépôts publiés ce mardi, le solde entre versements et retraits atteint −9,54 milliards d’euros depuis janvier, dont −2,62 milliards en octobre. Avec une rémunération de 1,7 % et une inflation annuelle de 3,4 % en octobre, le placement ne compense plus la hausse générale des prix. Le gouvernement envisage pourtant de relever son plafond en février 2027 : une mesure dont les modalités restent à arrêter."
+        ]
+      }
+    ],
+    "photo": {
+      "file": "Agence Caisse Épargne Fontainebleau 3.jpg",
+      "author": "Chabe01",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "caption": "Agence bancaire à Fontainebleau, photographie d’archive du 8 septembre 2018."
+    }
+  },
+  {
     "slug": "macron-regle-or-budgetaire-2026-11-23",
     "title": "Budget : Macron relance la piste d’une règle d’or constitutionnelle",
     "subtitle": "Le président envisage de reprendre une réforme abandonnée en 2011. Le projet encadrerait les finances publiques sur plusieurs années, sans interdire automatiquement les déficits.",
@@ -288,5 +325,5 @@ const ROLLING=[
     }
   }
 ];
-const UPDATED_AT='2026-11-23';
+const UPDATED_AT='2026-11-24';
 module.exports={ROLLING,UPDATED_AT};
